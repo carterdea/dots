@@ -25,12 +25,28 @@ Personal dotfiles for macOS development environment.
 - [ripgrep](https://github.com/BurntSushi/ripgrep) - `brew install ripgrep`
 - [GitHub CLI](https://cli.github.com/) - `brew install gh`
 
-## Installation
+## Quick Start (Fresh macOS Install)
+
+For a completely fresh macOS machine:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/carterdea/dots/main/bootstrap.sh)
+```
+
+This will:
+1. Install Xcode Command Line Tools
+2. Install Homebrew
+3. Install oh-my-zsh
+4. Clone this repository
+5. Install essential tools (bat, fd, ripgrep, zoxide, etc.)
+6. Run the dotfiles installer
+
+## Manual Installation
 
 Clone this repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/dots.git ~/dots
+git clone https://github.com/carterdea/dots.git ~/dots
 cd ~/dots
 ```
 
@@ -89,11 +105,27 @@ source ~/.zshrc
 # Or open a new terminal
 ```
 
+## Brewfile
+
+Install all packages from the Brewfile:
+
+```bash
+brew bundle install --file=~/dots/Brewfile
+```
+
+Generate a new Brewfile from your current setup:
+
+```bash
+brew bundle dump --file=~/dots/Brewfile --force
+```
+
 ## Structure
 
 ```
 dots/
+├── bootstrap.sh            # Fresh macOS setup script
 ├── install.sh              # Installation script
+├── Brewfile                # Homebrew package list
 ├── README.md               # This file
 ├── shell/                  # Shell configurations
 │   ├── .zshrc
