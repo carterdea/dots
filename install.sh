@@ -150,6 +150,24 @@ install_agents() {
             fi
         done
     fi
+
+    # Install subagents
+    if [[ -d "$DOTFILES_DIR/agents/subagents" ]]; then
+        for subagent in "$DOTFILES_DIR/agents/subagents"/*.md; do
+            if [[ -f "$subagent" ]]; then
+                create_symlink "$subagent" "$HOME/.claude/agents/$(basename "$subagent")"
+            fi
+        done
+    fi
+
+    # Install skills
+    if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
+        for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
+            if [[ -d "$skill_dir" ]] && [[ "$(basename "$skill_dir")" != ".gitkeep" ]]; then
+                create_symlink "$skill_dir" "$HOME/.claude/skills/$(basename "$skill_dir")"
+            fi
+        done
+    fi
 }
 
 # Parse arguments
