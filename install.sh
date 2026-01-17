@@ -20,7 +20,7 @@ INSTALL_SHELL=false
 INSTALL_GIT=false
 INSTALL_CONFIG=false
 INSTALL_SSH=false
-INSTALL_CLAUDE=false
+INSTALL_AGENTS=false
 
 # Helper functions
 info() {
@@ -47,7 +47,7 @@ OPTIONS:
     --git           Install git configurations
     --config        Install tool configs (ripgrep, gh)
     --ssh           Install SSH config
-    --claude        Install Claude AI config
+    --agents        Install Claude Code agents config
     --no-backup     Skip backing up existing files
     --dry-run       Show what would be done without making changes
     -h, --help      Show this help message
@@ -136,9 +136,20 @@ install_ssh() {
     create_symlink "$DOTFILES_DIR/ssh/config" "$HOME/.ssh/config"
 }
 
-install_claude() {
-    info "Installing Claude AI configuration..."
-    create_symlink "$DOTFILES_DIR/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+install_agents() {
+    info "Installing Claude Code agents configuration..."
+
+    # Install global AGENTS.md as CLAUDE.md
+    create_symlink "$DOTFILES_DIR/agents/AGENTS.md" "$HOME/.claude/CLAUDE.md"
+
+    # Install prompts as commands
+    if [[ -d "$DOTFILES_DIR/agents/prompts" ]]; then
+        for prompt in "$DOTFILES_DIR/agents/prompts"/*.md; do
+            if [[ -f "$prompt" ]] && [[ "$(basename "$prompt")" != ".gitkeep" ]]; then
+                create_symlink "$prompt" "$HOME/.claude/commands/$(basename "$prompt")"
+            fi
+        done
+    fi
 }
 
 # Parse arguments
@@ -169,8 +180,8 @@ while [[ $# -gt 0 ]]; do
             INSTALL_SSH=true
             shift
             ;;
-        --claude)
-            INSTALL_CLAUDE=true
+        --agents)
+            INSTALL_AGENTS=true
             shift
             ;;
         --no-backup)
@@ -204,13 +215,13 @@ if [[ "$INSTALL_ALL" == true ]]; then
     install_git
     install_config
     install_ssh
-    install_claude
+    install_agents
 else
     [[ "$INSTALL_SHELL" == true ]] && install_shell
     [[ "$INSTALL_GIT" == true ]] && install_git
     [[ "$INSTALL_CONFIG" == true ]] && install_config
     [[ "$INSTALL_SSH" == true ]] && install_ssh
-    [[ "$INSTALL_CLAUDE" == true ]] && install_claude
+    [[ "$INSTALL_AGENTS" == true ]] && install_agents
 fi
 
 if [[ "$DRY_RUN" == false ]]; then

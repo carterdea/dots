@@ -142,8 +142,10 @@ dots/
 │       └── config.yml
 ├── ssh/                    # SSH configuration
 │   └── config
-└── claude/                 # Claude AI configuration
-    └── CLAUDE.md
+└── agents/                 # Claude Code agents configuration
+    ├── AGENTS.md           # Global instructions
+    ├── prompts/            # Slash commands
+    └── skills/             # Custom skills
 ```
 
 ## Features
