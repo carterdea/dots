@@ -1,0 +1,35 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies (when not project-specific)
+node_modules/
+
+# Build outputs (common accidental commits)
+dist/
+build/
+*.pyc
+__pycache__/
+
+# Claude
+**/.claude/settings.local.json

@@ -1,0 +1,19 @@
+# Local settings
+.claude/settings.local.json
+config/gh/hosts.yml
+
+# Backups
+*.backup
+*.bak
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
