@@ -189,4 +189,4 @@ cp -r ~/.dotfiles-backup-TIMESTAMP/.zshrc ~/.zshrc
 
 ## Credits
 
-Inspired by [jxnl/dots](https://github.com/jxnl/dots)
+Inspired by [jxnl/dots](https://github.com/jxnl/dots) & [brendon-codes/dotfiles](https://github.com/brendon-codes/dotfiles)
