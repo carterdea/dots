@@ -68,6 +68,22 @@ brew install \
     gh \
     tig
 
+# Install Bun
+if ! command -v bun &> /dev/null; then
+    info "Installing Bun..."
+    curl -fsSL https://bun.sh/install | bash
+else
+    info "Bun already installed"
+fi
+
+# Install Claude Code
+if ! command -v claude &> /dev/null; then
+    info "Installing Claude Code..."
+    curl -fsSL https://claude.ai/install.sh | bash
+else
+    info "Claude Code already installed"
+fi
+
 # Run the dotfiles installer
 info "Running dotfiles installer..."
 cd "$DOTFILES_DIR"

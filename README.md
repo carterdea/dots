@@ -7,23 +7,35 @@ Personal dotfiles for macOS development environment.
 - **Shell**: Zsh and Bash configurations with oh-my-zsh
 - **Git**: Git configuration with Kaleidoscope integration and useful aliases
 - **SSH**: macOS keychain integration
+- **Terminal**: Ghostty terminal emulator configuration
 - **Tools**: Ripgrep, GitHub CLI
 - **AI**: Claude Code global configuration
 
 ## Prerequisites
 
-- macOS (Darwin)
-- [Homebrew](https://brew.sh/)
-- [oh-my-zsh](https://ohmyz.sh/)
-- Git
+For a fresh macOS machine, you only need:
 
-### Optional Dependencies
+- **macOS** (any recent version)
+- **Internet connection**
+- **Terminal** access
+
+The bootstrap script will automatically install everything else, including:
+- Xcode Command Line Tools
+- Homebrew
+- oh-my-zsh
+- Git
+- Essential development tools (bat, fd, ripgrep, zoxide, gh, tig)
+- Bun (JavaScript runtime)
+- Claude Code (AI coding assistant)
+
+### Optional Applications
+
+These are referenced in configs but not required:
 
 - [Cursor](https://cursor.sh/) - Code editor
 - [Sublime Text](https://www.sublimetext.com/) - Text editor
-- [Kaleidoscope](https://kaleidoscope.app/) - Diff/merge tool
-- [ripgrep](https://github.com/BurntSushi/ripgrep) - `brew install ripgrep`
-- [GitHub CLI](https://cli.github.com/) - `brew install gh`
+- [Kaleidoscope](https://kaleidoscope.app/) - Git diff/merge tool
+- [Ghostty](https://ghostty.org/) - Terminal emulator
 
 ## Quick Start (Fresh macOS Install)
 
@@ -38,8 +50,10 @@ This will:
 2. Install Homebrew
 3. Install oh-my-zsh
 4. Clone this repository
-5. Install essential tools (bat, fd, ripgrep, zoxide, etc.)
-6. Run the dotfiles installer
+5. Install essential tools (bat, fd, ripgrep, zoxide, gh, tig)
+6. Install Bun
+7. Install Claude Code
+8. Run the dotfiles installer
 
 ## Manual Installation
 
@@ -138,8 +152,10 @@ dots/
 │   └── ignore
 ├── config/                 # Tool configurations
 │   ├── .ripgreprc
-│   └── gh/
-│       └── config.yml
+│   ├── gh/
+│   │   └── config.yml
+│   └── ghostty/
+│       └── config
 ├── ssh/                    # SSH configuration
 │   └── config
 └── agents/                 # Claude Code agents configuration

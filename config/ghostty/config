@@ -1,0 +1,26 @@
+# Ghostty Terminal Configuration
+# Docs: https://ghostty.org/docs/config
+# Reload config: Cmd+Shift+, (macOS)
+
+# Appearance
+background = #000000
+background-opacity = 0.95
+background-blur = 30
+theme = deep
+
+# Cursor
+cursor-style = block
+
+# Font
+font-family = Menlo
+font-thicken = true
+
+# Window
+window-colorspace = display-p3
+window-theme = auto
+window-padding-x = 16
+window-padding-y = 8
+
+# macOS-specific
+macos-titlebar-proxy-icon = hidden
+macos-titlebar-style = tabs
