@@ -189,6 +189,10 @@ Your dotfiles include prompts (slash commands) and skills that work across Claud
 **Code Quality:**
 - `/pre-pr` - Pre-PR validation (security, tests, breaking changes)
 - `/python-qa` - Run Python QA pipeline
+- `/rams` - Accessibility and visual design review
+
+**Shopify:**
+- `/shopify-dev-theme` - Create dev theme from git branch
 
 **Meta:**
 - `/new-cmd` - Create new commands from conversations
