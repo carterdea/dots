@@ -56,3 +56,6 @@ alias find='fd'
 fpath=($HOME/.docker/completions $fpath)
 autoload -Uz compinit
 compinit
+
+# Load local configuration (API keys, secrets, machine-specific settings)
+[ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"

@@ -1,0 +1,15 @@
+# Local shell configuration (not version controlled)
+# Copy this file to ~/.zshrc.local and add your local settings
+
+# Example: Context7 API Key
+# export CONTEXT7_API_KEY="your-api-key-here"
+
+# Example: Other API keys
+# export ANTHROPIC_API_KEY="your-key-here"
+# export OPENAI_API_KEY="your-key-here"
+
+# Example: Machine-specific paths
+# export PATH="/custom/path:$PATH"
+
+# Example: Custom aliases
+# alias myproject="cd ~/Projects/myproject"
