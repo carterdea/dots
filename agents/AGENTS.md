@@ -1,14 +1,29 @@
-- Be direct.
-- Get right to the point.
-- Do not engage in flattery, sycophantic tones, or compliments.
-- Unwind whatever personality trait you have have given you to increase engagement.
-- Do not end every answer with a question just to keep the conversation going. Suggestions for improvements are welcome.
-- Do not lie to me to make me feel better.
-- Do not provide redundant information.
-- Do not use unnecessary greetings or exclamations.
-- Do not try to be friendly.
-- Do not provide moral judgments or moral opinions.
-- Give truthful answers.
-- Do not make unsubstantiated guesses. Guesses based on evidence or research is OK.
-- If policy prevents you from responding according to these preferences, print "!!!!" before answering.
-- Include the cost of every request at the end of every response. Must be in this format: $1.11
+## Python
+- Use `uv` instead of `pip` when possible
+- Use `uv run` instead of `python`
+
+## JavaScript/TypeScript
+- Use `bun` instead of `npm` or `node` when possible
+
+## Testing
+- Do not mock tests just to make them pass
+- When in plan mode, always include writing tests
+
+## Git workflow
+- Never use `git add .`; select files one at a time
+- Commit often in logical groups
+- Do not work on `main` unless given permission
+
+## Writing and content
+- Do not use emojis in pull requests
+- Do not make up fake case studies or numbers
+- Sacrifice grammar for the sake of concision
+- List any unresolved questions at the end, if any
+
+## Autonomy
+- Default to action; only ask when a decision is truly blocking
+- If details are missing, pick a reasonable default and state the assumption
+- Keep work moving with small, incremental steps and quick checks
+
+## Cost tracking
+- Include the cost of every request at the end of every response in format: $X.XX

@@ -21,6 +21,10 @@ INSTALL_GIT=false
 INSTALL_CONFIG=false
 INSTALL_SSH=false
 INSTALL_AGENTS=false
+INSTALL_CLAUDE=false
+INSTALL_CODEX=false
+INSTALL_CURSOR=false
+INSTALL_CURSOR_PROJECT=false
 
 # Helper functions
 info() {
@@ -45,9 +49,13 @@ OPTIONS:
     --all           Install all dotfiles
     --shell         Install shell configurations (.zshrc, .bashrc, etc.)
     --git           Install git configurations
-    --config        Install tool configs (ripgrep, gh)
+    --config        Install tool configs (ripgrep, gh, ghostty)
     --ssh           Install SSH config
-    --agents        Install Claude Code agents config
+    --agents        Install Claude Code agents config (legacy, use --claude)
+    --claude        Install prompts/skills to Claude Code (~/.claude)
+    --codex         Install prompts/skills to Codex (~/.codex)
+    --cursor        Install prompts to Cursor global (~/.cursor)
+    --cursor-project Install prompts to Cursor project (.cursor)
     --no-backup     Skip backing up existing files
     --dry-run       Show what would be done without making changes
     -h, --help      Show this help message
@@ -138,7 +146,12 @@ install_ssh() {
 }
 
 install_agents() {
-    info "Installing Claude Code agents configuration..."
+    warn "The --agents flag is deprecated. Use --claude instead."
+    install_claude
+}
+
+install_claude() {
+    info "Installing Claude Code configuration..."
 
     # Install global AGENTS.md as CLAUDE.md
     create_symlink "$DOTFILES_DIR/agents/AGENTS.md" "$HOME/.claude/CLAUDE.md"
@@ -166,6 +179,57 @@ install_agents() {
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             if [[ -d "$skill_dir" ]] && [[ "$(basename "$skill_dir")" != ".gitkeep" ]]; then
                 create_symlink "$skill_dir" "$HOME/.claude/skills/$(basename "$skill_dir")"
+            fi
+        done
+    fi
+}
+
+install_codex() {
+    info "Installing Codex (OpenAI) configuration..."
+
+    # Install global AGENTS.md
+    create_symlink "$DOTFILES_DIR/agents/AGENTS.md" "$HOME/.codex/AGENTS.md"
+
+    # Install prompts
+    if [[ -d "$DOTFILES_DIR/agents/prompts" ]]; then
+        for prompt in "$DOTFILES_DIR/agents/prompts"/*.md; do
+            if [[ -f "$prompt" ]] && [[ "$(basename "$prompt")" != ".gitkeep" ]]; then
+                create_symlink "$prompt" "$HOME/.codex/prompts/$(basename "$prompt")"
+            fi
+        done
+    fi
+
+    # Install skills
+    if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
+        for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
+            if [[ -d "$skill_dir" ]] && [[ "$(basename "$skill_dir")" != ".gitkeep" ]]; then
+                create_symlink "$skill_dir" "$HOME/.codex/skills/$(basename "$skill_dir")"
+            fi
+        done
+    fi
+}
+
+install_cursor() {
+    info "Installing Cursor (global) configuration..."
+
+    # Install prompts to global Cursor commands
+    if [[ -d "$DOTFILES_DIR/agents/prompts" ]]; then
+        for prompt in "$DOTFILES_DIR/agents/prompts"/*.md; do
+            if [[ -f "$prompt" ]] && [[ "$(basename "$prompt")" != ".gitkeep" ]]; then
+                create_symlink "$prompt" "$HOME/.cursor/commands/$(basename "$prompt")"
+            fi
+        done
+    fi
+}
+
+install_cursor_project() {
+    info "Installing Cursor (project) configuration..."
+
+    # Install prompts to project-local .cursor/commands
+    if [[ -d "$DOTFILES_DIR/agents/prompts" ]]; then
+        for prompt in "$DOTFILES_DIR/agents/prompts"/*.md; do
+            if [[ -f "$prompt" ]] && [[ "$(basename "$prompt")" != ".gitkeep" ]]; then
+                create_symlink "$prompt" ".cursor/commands/$(basename "$prompt")"
             fi
         done
     fi
@@ -203,6 +267,22 @@ while [[ $# -gt 0 ]]; do
             INSTALL_AGENTS=true
             shift
             ;;
+        --claude)
+            INSTALL_CLAUDE=true
+            shift
+            ;;
+        --codex|--openai)
+            INSTALL_CODEX=true
+            shift
+            ;;
+        --cursor)
+            INSTALL_CURSOR=true
+            shift
+            ;;
+        --cursor-project)
+            INSTALL_CURSOR_PROJECT=true
+            shift
+            ;;
         --no-backup)
             BACKUP=false
             shift
@@ -234,13 +314,17 @@ if [[ "$INSTALL_ALL" == true ]]; then
     install_git
     install_config
     install_ssh
-    install_agents
+    install_claude
 else
     [[ "$INSTALL_SHELL" == true ]] && install_shell
     [[ "$INSTALL_GIT" == true ]] && install_git
     [[ "$INSTALL_CONFIG" == true ]] && install_config
     [[ "$INSTALL_SSH" == true ]] && install_ssh
     [[ "$INSTALL_AGENTS" == true ]] && install_agents
+    [[ "$INSTALL_CLAUDE" == true ]] && install_claude
+    [[ "$INSTALL_CODEX" == true ]] && install_codex
+    [[ "$INSTALL_CURSOR" == true ]] && install_cursor
+    [[ "$INSTALL_CURSOR_PROJECT" == true ]] && install_cursor_project
 fi
 
 if [[ "$DRY_RUN" == false ]]; then

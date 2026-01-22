@@ -85,12 +85,15 @@ cd ~/dots
 
 ### Available Flags
 
-- `--all` - Install all configurations
+- `--all` - Install all configurations (includes Claude Code)
 - `--shell` - Install shell configs (.zshrc, .bashrc, etc.)
 - `--git` - Install git configurations
-- `--config` - Install tool configs (ripgrep, gh)
+- `--config` - Install tool configs (ripgrep, gh, ghostty)
 - `--ssh` - Install SSH config
-- `--claude` - Install Claude AI config
+- `--claude` - Install prompts/skills to Claude Code (~/.claude)
+- `--codex` / `--openai` - Install prompts/skills to Codex (~/.codex)
+- `--cursor` - Install prompts to Cursor global (~/.cursor)
+- `--cursor-project` - Install prompts to Cursor project (.cursor)
 - `--no-backup` - Skip backing up existing files
 - `--dry-run` - Preview changes without applying them
 
@@ -162,6 +165,52 @@ dots/
     ├── AGENTS.md           # Global instructions
     ├── prompts/            # Slash commands
     └── skills/             # Custom skills
+```
+
+## AI Assistant Configuration
+
+Your dotfiles include prompts (slash commands) and skills that work across Claude Code, Codex, and Cursor.
+
+### Available Prompts
+
+**Development Workflow:**
+- `/de-slop` - Remove AI artifacts before PRs
+- `/make-tests` - Generate tests for your changes
+- `/design-doc` - Create technical design documents
+- `/work-forever` - Autonomous long-running task mode
+
+**GitHub Workflow:**
+- `/gh-ship` - Commit, push, and create PR in one step
+- `/gh-commit` - Create well-formatted commits
+- `/gh-review-pr` - Review PRs thoroughly
+- `/gh-address-pr-comments` - Resolve PR review comments
+- `/gh-fix-ci` - Debug and fix failing CI checks
+
+**Code Quality:**
+- `/pre-pr` - Pre-PR validation (security, tests, breaking changes)
+- `/python-qa` - Run Python QA pipeline
+
+**Meta:**
+- `/new-cmd` - Create new commands from conversations
+- `/new-skill` - Create new skills from workflows
+
+### Installation Options
+
+```bash
+# Install to Claude Code only
+./install.sh --claude
+
+# Install to Cursor global
+./install.sh --cursor
+
+# Install to Cursor project-local
+./install.sh --cursor-project
+
+# Install to Codex
+./install.sh --codex
+
+# Install to all (Claude, Cursor, Codex)
+./install.sh --claude --cursor --codex
 ```
 
 ## Features
