@@ -224,7 +224,7 @@ Your dotfiles include prompts (slash commands) and skills that work across Claud
 - Clean, organized zsh configuration
 - oh-my-zsh with useful plugins (git, docker, z, colorize)
 - History configuration (10k lines, deduplication, sharing)
-- NVM, RVM, Bun, Rust support
+- asdf version manager, NVM, Bun, Rust support
 - Useful aliases
 
 ### Git

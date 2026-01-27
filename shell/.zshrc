@@ -29,7 +29,6 @@ export NVM_DIR="$HOME/.nvm"
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 export PATH="$HOME/.bun/bin:$PATH"
-export PATH="$HOME/.rvm/bin:$PATH"
 
 # Aliases
 alias sublime="subl"
@@ -56,6 +55,9 @@ alias find='fd'
 fpath=($HOME/.docker/completions $fpath)
 autoload -Uz compinit
 compinit
+
+# asdf version manager
+. $(brew --prefix asdf)/libexec/asdf.sh
 
 # Load local configuration (API keys, secrets, machine-specific settings)
 [ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"
