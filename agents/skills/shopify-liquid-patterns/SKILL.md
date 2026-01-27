@@ -69,7 +69,6 @@ description: Common Liquid code patterns for Shopify theme development. Use when
 ### Variant Selector (Radio Buttons with Availability)
 
 ```liquid
-{% comment %} Modern approach with option value availability tracking {% endcomment %}
 {% for option in product.options_with_values %}
   <fieldset class="option">
     <legend>{{ option.name }}</legend>
@@ -93,16 +92,30 @@ description: Common Liquid code patterns for Shopify theme development. Use when
 ## Image Handling
 
 ```liquid
-{% comment %} Recommended: Use image_tag filter for automatic responsive images {% endcomment %}
+{% comment %} Use image_tag filter for automatic responsive images {% endcomment %}
 {{ product.featured_image | image_url: width: 2000 | image_tag: loading: 'lazy' }}
 
-{% comment %} Manual srcset for more control {% endcomment %}
+{% comment %} Fixed-size image with retina support (1x/2x) {% endcomment %}
+{% assign image = product.featured_image %}
+<img
+  src="{{ image | image_url: width: 600 }}"
+  srcset="{{ image | image_url: width: 600 }} 1x,
+          {{ image | image_url: width: 1200 }} 2x"
+  alt="{{ image.alt | escape }}"
+  loading="lazy"
+  width="600"
+  height="{{ 600 | divided_by: image.aspect_ratio | round }}"
+>
+
+{% comment %} Responsive srcset with retina support {% endcomment %}
 {% assign image = product.featured_image %}
 <img
   src="{{ image | image_url: width: 600 }}"
   srcset="{{ image | image_url: width: 300 }} 300w,
           {{ image | image_url: width: 600 }} 600w,
-          {{ image | image_url: width: 900 }} 900w"
+          {{ image | image_url: width: 900 }} 900w,
+          {{ image | image_url: width: 1200 }} 1200w,
+          {{ image | image_url: width: 1800 }} 1800w"
   sizes="(max-width: 600px) 300px, (max-width: 900px) 600px, 900px"
   alt="{{ image.alt | escape }}"
   loading="lazy"
@@ -121,8 +134,6 @@ description: Common Liquid code patterns for Shopify theme development. Use when
 
   {% if paginate.pages > 1 %}
     {{ paginate | default_pagination }}
-    {% comment %} Or use custom pagination snippet {% endcomment %}
-    {% comment %} {% render 'pagination', paginate: paginate %} {% endcomment %}
   {% endif %}
 {% endpaginate %}
 ```
@@ -144,7 +155,6 @@ description: Common Liquid code patterns for Shopify theme development. Use when
 ```liquid
 {% comment %} Check for specific template {% endcomment %}
 {% if template.name == 'product' %}
-  {% comment %} Product-specific code {% endcomment %}
 {% endif %}
 
 {% comment %} Check customer status {% endcomment %}
