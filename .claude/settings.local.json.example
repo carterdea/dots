@@ -1,0 +1,8 @@
+{
+  "$comment": "Copy to ~/.claude/settings.local.json for machine-specific overrides",
+  "permissions": {
+    "allow": [
+      "Example: Add machine-specific Bash permissions here"
+    ]
+  }
+}

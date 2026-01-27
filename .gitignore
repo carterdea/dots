@@ -2,6 +2,26 @@
 .claude/settings.local.json
 config/gh/hosts.yml
 
+# Claude runtime data (DO NOT TRACK)
+.claude/cache/
+.claude/plugins/
+.claude/session-env/
+.claude/file-history/
+.claude/todos/
+.claude/plans/
+.claude/history.jsonl
+.claude/stats-cache.json
+.claude/security_warnings_state_*.json
+.claude/chrome/
+.claude/debug/
+.claude/downloads/
+.claude/ide/
+.claude/paste-cache/
+.claude/projects/
+.claude/shell-snapshots/
+.claude/statsig/
+.claude/telemetry/
+
 # Backups
 *.backup
 *.bak

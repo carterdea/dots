@@ -9,6 +9,10 @@
 - Do not mock tests just to make them pass
 - When in plan mode, always include writing tests
 
+## Planning and task management
+- When creating planning documents, use markdown checkboxes for tasks
+- When completing tasks from a planning document, check them off
+
 ## Git workflow
 - Never use `git add .`; select files one at a time
 - Commit often in logical groups
