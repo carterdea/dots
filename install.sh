@@ -156,6 +156,27 @@ install_claude() {
     # Install global AGENTS.md as CLAUDE.md
     create_symlink "$DOTFILES_DIR/agents/AGENTS.md" "$HOME/.claude/CLAUDE.md"
 
+    # Install settings.json
+    create_symlink "$DOTFILES_DIR/.claude/settings.json" "$HOME/.claude/settings.json"
+
+    # Install statusline command script
+    create_symlink "$DOTFILES_DIR/.claude/statusline-command.sh" "$HOME/.claude/statusline-command.sh"
+
+    # Make statusline script executable
+    if [[ "$DRY_RUN" == false ]]; then
+        chmod +x "$DOTFILES_DIR/.claude/statusline-command.sh"
+    fi
+
+    # Create settings.local.json if it doesn't exist
+    if [[ ! -f "$HOME/.claude/settings.local.json" ]]; then
+        if [[ "$DRY_RUN" == false ]]; then
+            cp "$DOTFILES_DIR/.claude/settings.local.json.example" "$HOME/.claude/settings.local.json"
+            info "Created ~/.claude/settings.local.json from example"
+        else
+            info "[DRY RUN] Would create ~/.claude/settings.local.json from example"
+        fi
+    fi
+
     # Install prompts as commands
     if [[ -d "$DOTFILES_DIR/agents/prompts" ]]; then
         for prompt in "$DOTFILES_DIR/agents/prompts"/*.md; do
