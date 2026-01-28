@@ -211,6 +211,16 @@ install_codex() {
     # Install global AGENTS.md
     create_symlink "$DOTFILES_DIR/agents/AGENTS.md" "$HOME/.codex/AGENTS.md"
 
+    # Create config.toml from example if it doesn't exist
+    if [[ ! -f "$HOME/.codex/config.toml" ]]; then
+        if [[ "$DRY_RUN" == false ]]; then
+            cp "$DOTFILES_DIR/.codex/config.toml.example" "$HOME/.codex/config.toml"
+            info "Created ~/.codex/config.toml from example - edit to add your API keys"
+        else
+            info "[DRY RUN] Would create ~/.codex/config.toml from example"
+        fi
+    fi
+
     # Install prompts
     if [[ -d "$DOTFILES_DIR/agents/prompts" ]]; then
         for prompt in "$DOTFILES_DIR/agents/prompts"/*.md; do

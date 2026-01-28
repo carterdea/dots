@@ -113,6 +113,18 @@ cursor ~/.gitconfig.local
     email = your.email@example.com
 ```
 
+### AI Assistant Configuration
+
+If you installed Codex, edit `~/.codex/config.toml` with your API keys:
+
+```bash
+cursor ~/.codex/config.toml
+```
+
+Replace the placeholder values:
+- `ghp_YOUR_GITHUB_PAT_HERE` → Your GitHub PAT from https://github.com/settings/tokens
+- `ctx7sk-YOUR_CONTEXT7_KEY_HERE` → Your Context7 key from https://context7.com
+
 ### Shell Reload
 
 ```bash
