@@ -1,6 +1,7 @@
 model = "gpt-5.2-codex"
 model_verbosity = "low"
 model_reasoning_effort = "medium"
+approval_policy = "on-failure"
 
 [features]
 experimental_use_rmcp_client = true

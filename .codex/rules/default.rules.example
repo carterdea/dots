@@ -1,0 +1,230 @@
+# Mirrors Claude Code allowed Bash permissions.
+# Copy to ~/.codex/rules/default.rules
+
+# --- File operations ---
+
+prefix_rule(
+  pattern = ["ls"],
+  decision = "allow",
+  justification = "List directory contents",
+)
+
+prefix_rule(
+  pattern = ["mkdir"],
+  decision = "allow",
+  justification = "Create directories",
+)
+
+prefix_rule(
+  pattern = ["mv"],
+  decision = "allow",
+  justification = "Move or rename files",
+)
+
+prefix_rule(
+  pattern = ["cp"],
+  decision = "allow",
+  justification = "Copy files",
+)
+
+prefix_rule(
+  pattern = ["touch"],
+  decision = "allow",
+  justification = "Create or update file timestamps",
+)
+
+prefix_rule(
+  pattern = ["cat"],
+  decision = "allow",
+  justification = "Read file contents",
+)
+
+prefix_rule(
+  pattern = ["grep"],
+  decision = "allow",
+  justification = "Search file contents",
+)
+
+prefix_rule(
+  pattern = ["find"],
+  decision = "allow",
+  justification = "Find files",
+)
+
+prefix_rule(
+  pattern = ["chmod"],
+  decision = "allow",
+  justification = "Change file permissions",
+)
+
+prefix_rule(
+  pattern = ["pwd"],
+  decision = "allow",
+  justification = "Print working directory",
+)
+
+prefix_rule(
+  pattern = ["echo"],
+  decision = "allow",
+  justification = "Print text",
+)
+
+prefix_rule(
+  pattern = ["which"],
+  decision = "allow",
+  justification = "Locate executables",
+)
+
+prefix_rule(
+  pattern = ["sed"],
+  decision = "allow",
+  justification = "Stream editing",
+)
+
+prefix_rule(
+  pattern = ["awk"],
+  decision = "allow",
+  justification = "Text processing",
+)
+
+prefix_rule(
+  pattern = ["head"],
+  decision = "allow",
+  justification = "Print beginning of files",
+)
+
+prefix_rule(
+  pattern = ["tail"],
+  decision = "allow",
+  justification = "Print end of files",
+)
+
+prefix_rule(
+  pattern = ["wc"],
+  decision = "allow",
+  justification = "Word and line counts",
+)
+
+prefix_rule(
+  pattern = ["sort"],
+  decision = "allow",
+  justification = "Sort file contents",
+)
+
+prefix_rule(
+  pattern = ["uniq"],
+  decision = "allow",
+  justification = "Remove duplicate lines",
+)
+
+# --- Version control ---
+
+prefix_rule(
+  pattern = ["git"],
+  decision = "allow",
+  justification = "Git version control operations",
+)
+
+prefix_rule(
+  pattern = ["gh"],
+  decision = "allow",
+  justification = "GitHub CLI operations",
+)
+
+# --- JavaScript / Node package managers ---
+
+prefix_rule(
+  pattern = ["npm"],
+  decision = "allow",
+  justification = "Node package manager",
+)
+
+prefix_rule(
+  pattern = ["npx"],
+  decision = "allow",
+  justification = "Run npm packages",
+)
+
+prefix_rule(
+  pattern = ["bun"],
+  decision = "allow",
+  justification = "Bun runtime and package manager",
+)
+
+prefix_rule(
+  pattern = ["bunx"],
+  decision = "allow",
+  justification = "Run bun packages",
+)
+
+prefix_rule(
+  pattern = ["yarn"],
+  decision = "allow",
+  justification = "Yarn package manager",
+)
+
+prefix_rule(
+  pattern = ["pnpm"],
+  decision = "allow",
+  justification = "pnpm package manager",
+)
+
+# --- Python ---
+
+prefix_rule(
+  pattern = ["python"],
+  decision = "allow",
+  justification = "Python interpreter",
+)
+
+prefix_rule(
+  pattern = ["python3"],
+  decision = "allow",
+  justification = "Python 3 interpreter",
+)
+
+prefix_rule(
+  pattern = ["pip"],
+  decision = "allow",
+  justification = "Python package installer",
+)
+
+prefix_rule(
+  pattern = ["uv"],
+  decision = "allow",
+  justification = "Python package manager",
+)
+
+prefix_rule(
+  pattern = ["poetry"],
+  decision = "allow",
+  justification = "Python dependency manager",
+)
+
+# --- Linting / testing ---
+
+prefix_rule(
+  pattern = ["shellcheck"],
+  decision = "allow",
+  justification = "Shell script linter",
+)
+
+prefix_rule(
+  pattern = ["bats"],
+  decision = "allow",
+  justification = "Bash test framework",
+)
+
+# --- Project-specific ---
+
+prefix_rule(
+  pattern = ["gt", "stack", "submit"],
+  decision = "allow",
+  justification = "Graphite stack submit",
+)
+
+prefix_rule(
+  pattern = ["DISABLE_ELASTICSEARCH=1", "bundle", "exec", "rails", "test"],
+  decision = "allow",
+  justification = "Rails test suite with Elasticsearch disabled",
+)
