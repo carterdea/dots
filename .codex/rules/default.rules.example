@@ -46,9 +46,39 @@ prefix_rule(
 )
 
 prefix_rule(
+  pattern = ["rg"],
+  decision = "allow",
+  justification = "Fast text search",
+)
+
+prefix_rule(
   pattern = ["find"],
   decision = "allow",
   justification = "Find files",
+)
+
+prefix_rule(
+  pattern = ["fd"],
+  decision = "allow",
+  justification = "Fast file finder",
+)
+
+prefix_rule(
+  pattern = ["tree"],
+  decision = "allow",
+  justification = "Display directory tree",
+)
+
+prefix_rule(
+  pattern = ["stat"],
+  decision = "allow",
+  justification = "File status",
+)
+
+prefix_rule(
+  pattern = ["file"],
+  decision = "allow",
+  justification = "File type identification",
 )
 
 prefix_rule(
@@ -64,13 +94,55 @@ prefix_rule(
 )
 
 prefix_rule(
+  pattern = ["cd"],
+  decision = "allow",
+  justification = "Change directory",
+)
+
+prefix_rule(
   pattern = ["echo"],
   decision = "allow",
   justification = "Print text",
 )
 
 prefix_rule(
+  pattern = ["env"],
+  decision = "allow",
+  justification = "Show environment",
+)
+
+prefix_rule(
+  pattern = ["printenv"],
+  decision = "allow",
+  justification = "Show environment",
+)
+
+prefix_rule(
+  pattern = ["uname"],
+  decision = "allow",
+  justification = "System information",
+)
+
+prefix_rule(
+  pattern = ["whoami"],
+  decision = "allow",
+  justification = "Current user",
+)
+
+prefix_rule(
+  pattern = ["date"],
+  decision = "allow",
+  justification = "Current date and time",
+)
+
+prefix_rule(
   pattern = ["which"],
+  decision = "allow",
+  justification = "Locate executables",
+)
+
+prefix_rule(
+  pattern = ["command"],
   decision = "allow",
   justification = "Locate executables",
 )
@@ -115,6 +187,24 @@ prefix_rule(
   pattern = ["uniq"],
   decision = "allow",
   justification = "Remove duplicate lines",
+)
+
+prefix_rule(
+  pattern = ["diff"],
+  decision = "allow",
+  justification = "Compare files",
+)
+
+prefix_rule(
+  pattern = ["jq"],
+  decision = "allow",
+  justification = "JSON inspection",
+)
+
+prefix_rule(
+  pattern = ["yq"],
+  decision = "allow",
+  justification = "YAML inspection",
 )
 
 # --- Version control ---
@@ -213,6 +303,48 @@ prefix_rule(
   pattern = ["bats"],
   decision = "allow",
   justification = "Bash test framework",
+)
+
+prefix_rule(
+  pattern = ["eslint"],
+  decision = "allow",
+  justification = "JavaScript/TypeScript linter",
+)
+
+prefix_rule(
+  pattern = ["tsc"],
+  decision = "allow",
+  justification = "TypeScript type checker",
+)
+
+prefix_rule(
+  pattern = ["prettier"],
+  decision = "allow",
+  justification = "Code formatter",
+)
+
+prefix_rule(
+  pattern = ["pytest"],
+  decision = "allow",
+  justification = "Python test runner",
+)
+
+prefix_rule(
+  pattern = ["ruff"],
+  decision = "allow",
+  justification = "Python linter",
+)
+
+prefix_rule(
+  pattern = ["mypy"],
+  decision = "allow",
+  justification = "Python type checker",
+)
+
+prefix_rule(
+  pattern = ["flake8"],
+  decision = "allow",
+  justification = "Python linter",
 )
 
 # --- Project-specific ---
