@@ -24,6 +24,7 @@ brew "zoxide"
 # Development tools
 brew "autoconf"
 brew "automake"
+brew "bats-core"
 brew "biome"
 brew "coreutils"
 brew "libtool"
@@ -55,6 +56,7 @@ brew "heroku/brew/heroku"
 brew "gnupg"
 brew "hashicorp/tap/vault"
 brew "semgrep"
+brew "shellcheck"
 brew "snyk/tap/snyk"
 
 # Git utilities

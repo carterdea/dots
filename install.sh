@@ -70,10 +70,11 @@ EOF
 
 backup_file() {
     local file=$1
+    local backup_path
     if [[ -e "$file" ]] && [[ ! -L "$file" ]]; then
         if [[ "$BACKUP" == true ]]; then
             mkdir -p "$BACKUP_DIR"
-            local backup_path="$BACKUP_DIR/$(basename "$file")"
+            backup_path="$BACKUP_DIR/$(basename "$file")"
             if [[ "$DRY_RUN" == true ]]; then
                 info "[DRY RUN] Would backup: $file -> $backup_path"
             else
