@@ -1,0 +1,47 @@
+model = "gpt-5.2-codex"
+model_verbosity = "low"
+model_reasoning_effort = "medium"
+
+[features]
+experimental_use_rmcp_client = true
+
+# Add trusted projects here
+# [projects."/path/to/project"]
+# trust_level = "trusted"
+
+[tools]
+web_search = true
+
+# GitHub MCP - get a PAT from https://github.com/settings/tokens
+[mcp_servers.github]
+command = "docker"
+args = [
+  "run",
+  "-i",
+  "--rm",
+  "--network",
+  "host",
+  "-e",
+  "GITHUB_PERSONAL_ACCESS_TOKEN",
+  "ghcr.io/github/github-mcp-server",
+]
+env = { GITHUB_PERSONAL_ACCESS_TOKEN = "ghp_YOUR_GITHUB_PAT_HERE" }
+
+# Context7 MCP - get an API key from https://context7.com
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+env = { CONTEXT7_API_KEY = "ctx7sk-YOUR_CONTEXT7_KEY_HERE" }
+
+[mcp_servers.prisma]
+command = "npx"
+args = ["-y", "prisma", "mcp"]
+
+# Figma Desktop MCP - requires Figma desktop app running with Dev Mode enabled
+# URL-based servers may require newer Codex version
+# [mcp_servers.figma-desktop]
+# url = "http://127.0.0.1:3845/mcp"
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]

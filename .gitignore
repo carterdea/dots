@@ -1,5 +1,6 @@
-# Local settings
+# Local settings (contain secrets)
 .claude/settings.local.json
+.codex/config.toml
 config/gh/hosts.yml
 
 # Claude runtime data (DO NOT TRACK)
