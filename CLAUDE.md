@@ -49,6 +49,14 @@ Organization-wide defaults. Project-specific CLAUDE.md files override these.
 
 ---
 
+## Bug Fixing
+
+- When a bug is reported, don't start by trying to fix it
+- First, write a test that reproduces the bug
+- Then, have subagents try to fix the bug and prove it with a passing test
+
+---
+
 ## File Organization
 
 - `README.md` — high-level overview, setup, quick-start
