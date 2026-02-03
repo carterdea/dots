@@ -68,10 +68,10 @@
       "mcp__plugin_context7_context7__*",
       "mcp__*",
       "Bash(gt stack submit:*)",
-      "Bash(DISABLE_ELASTICSEARCH=1 bundle exec rails test:*)"
+      "Bash(DISABLE_ELASTICSEARCH=1 bundle exec rails test:*)",
+      "Bash(bundle show:*)"
     ]
   },
-  "model": "sonnet",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline-command.sh"
@@ -86,5 +86,6 @@
     "code-simplifier@claude-plugins-official": true,
     "figma@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true
-  }
+  },
+  "autoUpdatesChannel": "latest"
 }
