@@ -17,7 +17,12 @@ agents/
 │   ├── python-type-fixer.md       # Modernize Python type annotations
 │   └── python-code-simplifier.md  # Python refactoring suggestions
 └── skills/                # Claude Code skills for ~/.claude/skills/
-    └── code-review-prompt/        # Generate code review prompts
+    ├── code-review-prompt/        # Generate code review prompts
+    ├── emil-design-engineering/   # Design engineering principles
+    ├── pair-programming/          # Senior engineer pairing mode
+    ├── prove-it-bug-fix/          # Bug reproduction workflow
+    ├── shopify-liquid-patterns/   # Shopify Liquid patterns
+    └── web-animation-design/      # Animation patterns
 ```
 
 ## Installation
@@ -108,10 +113,23 @@ Suggests Python refactoring:
 
 ## Available Skills
 
+### `pair-programming`
+Senior engineer pairing mode with assumption surfacing, pushback, scope discipline, and simplicity enforcement. Invoke at the start of focused coding sessions.
+
+### `prove-it-bug-fix`
+Reproduce bugs with a failing test before attempting fixes. Ensures bugs are properly captured and fixes are verified.
+
 ### `code-review-prompt`
 Generates comprehensive code review prompts that can be copied into another Claude session. Automatically detects your tech stack and tailors the review checklist.
 
-Usage: Run as a skill to generate a prompt for your current branch.
+### `emil-design-engineering`
+Design engineering principles for building polished, accessible web interfaces. Covers animations, UI polish, forms, touch/accessibility, and performance.
+
+### `web-animation-design`
+Animation patterns and implementation guidance. Includes easing functions, timing, and practical tips for web animations.
+
+### `shopify-liquid-patterns`
+Common Liquid code patterns for Shopify theme development. Useful when writing templates, handling translations, or product displays.
 
 ## Adding Custom Content
 
