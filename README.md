@@ -177,6 +177,12 @@ dots/
     ├── AGENTS.md           # Global instructions
     ├── prompts/            # Slash commands
     └── skills/             # Custom skills
+        ├── code-review-prompt/
+        ├── emil-design-engineering/
+        ├── pair-programming/
+        ├── prove-it-bug-fix/
+        ├── shopify-liquid-patterns/
+        └── web-animation-design/
 ```
 
 ## AI Assistant Configuration
@@ -209,6 +215,20 @@ Your dotfiles include prompts (slash commands) and skills that work across Claud
 **Meta:**
 - `/new-cmd` - Create new commands from conversations
 - `/new-skill` - Create new skills from workflows
+
+### Available Skills
+
+Skills are loaded on-demand to provide specialized context and behaviors.
+
+**Coding Workflow:**
+- `/pair-programming` - Senior engineer pairing mode with assumption surfacing, pushback, and scope discipline
+- `/prove-it-bug-fix` - Reproduce bugs with failing tests before fixing
+- `/code-review-prompt` - Generate comprehensive code review prompts
+
+**Frontend Development:**
+- `/emil-design-engineering` - Design engineering principles for polished, accessible web interfaces
+- `/web-animation-design` - Animation patterns and implementation guidance
+- `/shopify-liquid-patterns` - Common Liquid code patterns for Shopify themes
 
 ### Installation Options
 
