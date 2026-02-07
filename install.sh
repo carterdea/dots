@@ -252,6 +252,15 @@ install_cursor() {
             fi
         done
     fi
+
+    # Install skills
+    if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
+        for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
+            if [[ -d "$skill_dir" ]] && [[ "$(basename "$skill_dir")" != ".gitkeep" ]]; then
+                create_symlink "$skill_dir" "$HOME/.cursor/skills/$(basename "$skill_dir")"
+            fi
+        done
+    fi
 }
 
 install_cursor_project() {
@@ -347,6 +356,8 @@ if [[ "$INSTALL_ALL" == true ]]; then
     install_config
     install_ssh
     install_claude
+    install_codex
+    install_cursor
 else
     [[ "$INSTALL_SHELL" == true ]] && install_shell
     [[ "$INSTALL_GIT" == true ]] && install_git
