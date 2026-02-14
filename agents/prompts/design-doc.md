@@ -83,17 +83,17 @@ Add subsections for each major component as needed:
 
 ## Implementation Plan
 
-### Phase 1: Foundation
-- Task 1
-- Task 2
+### - [ ] Phase 1: Foundation
+- [ ] Task 1
+- [ ] Task 2
 
-### Phase 2: Core Implementation
-- Task 3
-- Task 4
+### - [ ] Phase 2: Core Implementation
+- [ ] Task 3
+- [ ] Task 4
 
-### Phase 3: Polish & Testing
-- Write tests
-- Documentation
+### - [ ] Phase 3: Polish & Testing
+- [ ] Write tests
+- [ ] Documentation
 
 ## Appendix
 
@@ -101,9 +101,19 @@ Relevant links, detailed figures, or additional context.
 
 ---
 
-### 3. Iterate
+### 3. Offer to Save
 
-After generating:
+After generating, ask the user:
+
+> Want me to save this as a markdown file in `docs/`? (Recommended for larger efforts; skip for small tasks.)
+
+If yes:
+- Save to `docs/{PROJECT_NAME}_PLAN.md` (snake_case, lowercase)
+- Create the `docs/` directory if it doesn't exist
+
+### 4. Iterate
+
+After generating (and optionally saving):
 - Ask if any sections need expansion
 - Clarify open questions
 - Refine based on feedback
