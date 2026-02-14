@@ -16,14 +16,7 @@ gh api repos/{OWNER}/{REPO}/issues/{PR_NUMBER}/comments
 gh pr checkout {PR}
 ```
 
-3. Collect comments (review + issue comments)
-```bash
-gh pr view {PR_NUMBER} --json title -q .title
-gh api repos/{OWNER}/{REPO}/pulls/{PR_NUMBER}/comments
-gh api repos/{OWNER}/{REPO}/issues/{PR_NUMBER}/comments
-```
-
-4. Present a numbered list of actionable items (prefer file+line refs). Ask user which to handle.
+3. Present a numbered list of actionable items (prefer file+line refs). Ask user which to handle.
 
 5. For each selected item:
 - Show relevant code context
