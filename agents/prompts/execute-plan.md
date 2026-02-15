@@ -50,11 +50,36 @@ Find the next unchecked `- [ ]` task under `## Implementation Plan` and:
 3. Implement the change
 4. Validate (run tests, lint)
 5. Update the plan file: `- [ ]` becomes `- [x]`
-6. If all tasks in a phase are checked, check off the phase heading too: `### - [x]`
-7. Commit if cadence requires it (never `git add .` — stage files individually)
-8. Move to the next unchecked task
+6. Add a QA note as a nested item under the completed task (see QA Notes below)
+7. If all tasks in a phase are checked, check off the phase heading too: `### - [x]`
+8. Commit if cadence requires it (never `git add .` — stage files individually)
+9. Move to the next unchecked task
 
 State assumptions instead of asking. User can interrupt if they disagree.
+
+#### QA Notes
+
+After checking off each task, add a nested `QA:` line describing how to verify the change in a browser or via API. This gives `/qa` concrete instructions to follow later.
+
+- **User-facing changes** — add an unchecked QA item:
+  ```markdown
+  - [x] Add upsell modal component
+    - [ ] QA: Navigate to /cart with items, click "You might also like", verify modal opens with related products
+  ```
+
+- **API/backend changes** — describe the request to verify:
+  ```markdown
+  - [x] Create /cart/upsell API endpoint
+    - [ ] QA: POST /api/cart/upsell with product_id, expect 200 with upsell suggestions
+  ```
+
+- **Internal/non-user-facing changes** — mark as pre-checked:
+  ```markdown
+  - [x] Refactor utils
+    - [x] QA: None (internal refactor)
+  ```
+
+Keep QA notes brief — one line, focused on what to do and what to expect. The `/qa` command will use these as its test instructions.
 
 ### 5. Failure Triage
 
@@ -77,10 +102,11 @@ Stop execution, report what failed and why, and wait for user input before conti
 
 ### 6. Close Out
 
-When all tasks are checked off:
+When all tasks are checked off (or all tasks in a phase are checked off):
 - Run a final validation (tests, lint)
 - Report summary: tasks completed, commits made, any issues encountered
 - Review the completed work and suggest potential improvements, follow-up tasks, or areas that could benefit from additional testing — but do not act on any of them without user approval
+- If unchecked `- [ ] QA:` items exist in the plan, suggest: "Run `/qa` to verify completed work in the browser."
 
 ## Rules
 
