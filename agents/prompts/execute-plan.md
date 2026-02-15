@@ -8,6 +8,7 @@ Work through a plan file task-by-task, checking off items as they complete.
 /execute-plan docs/my_feature_PLAN.md       # Execute from a plan file
 /execute-plan                                # Look for a plan in conversation history
 /execute-plan docs/plan.md --commit-per-task # Override default commit cadence
+/execute-plan docs/plan.md --dry-run         # Preview what would happen without executing
 ```
 
 ## Workflow
@@ -72,14 +73,14 @@ Fix the issue, re-validate, and continue. If the fix doesn't work after one retr
 - Repeated failure after retry
 - Permission errors
 
-Stop execution, report what failed and why, and wait for user input before continuing.
+Stop execution, report what failed and why, and wait for user input before continuing. Suggest running `/handoff` if the user wants to continue in a new session.
 
 ### 6. Close Out
 
 When all tasks are checked off:
 - Run a final validation (tests, lint)
 - Report summary: tasks completed, commits made, any issues encountered
-- Suggest next steps if applicable
+- Review the completed work and suggest potential improvements, follow-up tasks, or areas that could benefit from additional testing — but do not act on any of them without user approval
 
 ## Rules
 
@@ -90,3 +91,13 @@ When all tasks are checked off:
 - Keep changes scoped to what the task describes — don't gold-plate
 - If the plan file doesn't exist at the given path, stop and ask
 - State assumptions, don't ask — the user will interrupt if something is wrong
+
+## Dry Run
+
+With `--dry-run`, run steps 1–3 only (Load Plan, Check Blockers, Detect Environment) and report:
+- Tasks remaining (with phase grouping)
+- Open questions found
+- Detected tooling
+- Resume point if applicable
+
+Do not execute any tasks or modify any files.
