@@ -43,7 +43,9 @@ Default commit cadence: **per-phase**. Override with `--commit-per-task` or `--c
 
 State the plan upfront: "Committing per-phase. Starting at Phase 1, Task 1. 12 tasks across 3 phases."
 
-Find the next unchecked `- [ ]` task under `## Implementation Plan` and:
+Find the next unchecked `- [ ]` task under `## Implementation Plan` and execute it. This includes failed QA items (`- [ ] QA:` with a `> FAIL:` annotation) — treat the failure annotation as the task description, fix the underlying code, then remove the `> FAIL:` line but leave the QA item unchecked for `/qa` to re-verify.
+
+For each task:
 
 1. Read the task description
 2. Research the codebase as needed to understand context
