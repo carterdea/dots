@@ -75,10 +75,10 @@ After checking off each task, add a nested `QA:` line describing how to verify t
     - [ ] QA: POST /api/cart/upsell with product_id, expect 200 with upsell suggestions
   ```
 
-- **Internal/non-user-facing changes** — mark as pre-checked:
+- **Internal/non-user-facing changes** — no checkbox, just a note:
   ```markdown
   - [x] Refactor utils
-    - [x] QA: None (internal refactor)
+    - QA: N/A
   ```
 
 Keep QA notes brief — one line, focused on what to do and what to expect. The `/qa` command will use these as its test instructions.
@@ -108,7 +108,41 @@ When all tasks are checked off (or all tasks in a phase are checked off):
 - Run a final validation (tests, lint)
 - Report summary: tasks completed, commits made, any issues encountered
 - Review the completed work and suggest potential improvements, follow-up tasks, or areas that could benefit from additional testing — but do not act on any of them without user approval
-- If unchecked `- [ ] QA:` items exist in the plan, suggest: "Run `/qa` to verify completed work in the browser."
+- Output a **Next Step** block (see below)
+
+#### Next Step Block
+
+Gather git context:
+
+```bash
+git branch --show-current
+git worktree list
+```
+
+If unchecked `- [ ] QA:` items exist in the plan, output:
+
+````
+```
+/qa <plan-file-path>
+
+branch: <current-branch>
+worktree: <worktree-path>  # omit if not in a worktree
+```
+````
+
+If all QA items are already checked (or all were `QA: N/A`), output:
+
+````
+```
+/pre-pr
+
+branch: <current-branch>
+worktree: <worktree-path>  # omit if not in a worktree
+```
+````
+
+- `worktree` line — only include if the current directory is a git worktree (not the main working tree)
+- Keep it copy-pastable with no extra commentary inside the block
 
 ## Rules
 
