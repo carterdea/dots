@@ -175,10 +175,13 @@ dots/
 │   └── config
 └── agents/                 # Claude Code agents configuration
     ├── AGENTS.md           # Global instructions
-    ├── prompts/            # Slash commands
+    ├── prompts/            # Slash commands (17 commands)
+    ├── subagents/          # Subagent definitions (5 agents)
     └── skills/             # Custom skills
         ├── code-review-prompt/
         ├── emil-design-engineering/
+        ├── garry-tan-code-review/
+        ├── humanize-ai-text/
         ├── pair-programming/
         ├── prove-it-bug-fix/
         ├── shopify-liquid-patterns/
@@ -208,6 +211,11 @@ Your dotfiles include prompts (slash commands) and skills that work across Claud
 - `/pre-pr` - Pre-PR validation (security, tests, breaking changes)
 - `/python-qa` - Run Python QA pipeline
 - `/rams` - Accessibility and visual design review
+- `/qa` - Browser-based QA verification against a plan file
+
+**Planning & Execution:**
+- `/execute-plan` - Work through a plan file task-by-task
+- `/handoff` - Generate a continuation prompt for the next session
 
 **Shopify:**
 - `/shopify-dev-theme` - Create dev theme from git branch
@@ -224,11 +232,15 @@ Skills are loaded on-demand to provide specialized context and behaviors.
 - `/pair-programming` - Senior engineer pairing mode with assumption surfacing, pushback, and scope discipline
 - `/prove-it-bug-fix` - Reproduce bugs with failing tests before fixing
 - `/code-review-prompt` - Generate comprehensive code review prompts
+- `/garry-tan-code-review` - Interactive, opinionated code review with options A/B/C and explicit sign-off before changes
 
 **Frontend Development:**
 - `/emil-design-engineering` - Design engineering principles for polished, accessible web interfaces
 - `/web-animation-design` - Animation patterns and implementation guidance
 - `/shopify-liquid-patterns` - Common Liquid code patterns for Shopify themes
+
+**Writing:**
+- `/humanize-ai-text` - Detect and rewrite AI-generated text patterns to sound natural
 
 ### Installation Options
 
