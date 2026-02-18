@@ -175,7 +175,7 @@ dots/
 │   └── config
 └── agents/                 # Claude Code agents configuration
     ├── AGENTS.md           # Global instructions
-    ├── prompts/            # Slash commands (17 commands)
+    ├── prompts/            # Slash commands (18 commands)
     ├── subagents/          # Subagent definitions (5 agents)
     └── skills/             # Custom skills
         ├── code-review-prompt/
@@ -219,6 +219,7 @@ Your dotfiles include prompts (slash commands) and skills that work across Claud
 
 **Shopify:**
 - `/shopify-dev-theme` - Create dev theme from git branch
+- `/shopify-theme-pull` - Pull merchant content from live theme
 
 **Meta:**
 - `/new-cmd` - Create new commands from conversations

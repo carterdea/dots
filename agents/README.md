@@ -25,6 +25,7 @@ agents/
 │   ├── qa.md                      # Browser-based QA against a plan file
 │   ├── rams.md                    # Accessibility and visual design review
 │   ├── shopify-dev-theme.md       # Create dev theme from git branch
+│   ├── shopify-theme-pull.md      # Pull merchant content from live theme
 │   └── work-forever.md            # Autonomous long-running task mode
 ├── subagents/             # Subagent definitions for ~/.claude/agents/
 │   ├── pr-description-gen.md      # Auto-generate PR descriptions
@@ -159,6 +160,9 @@ Accessibility and visual design review against WCAG guidelines.
 
 #### `/shopify-dev-theme`
 Create a dev theme from the current git branch.
+
+#### `/shopify-theme-pull`
+Pull merchant-edited content (`config/settings_data.json` and `templates/`) from a live Shopify theme. Shows a diff summary and optionally commits the changes.
 
 ---
 
