@@ -92,6 +92,7 @@
       "Bash(bundle show:*)"
     ]
   },
+  "model": "opus",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline-command.sh"
@@ -99,7 +100,7 @@
   "enabledPlugins": {
     "commit-commands@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
-    "playwright@claude-plugins-official": true,
+    "playwright@claude-plugins-official": false,
     "security-guidance@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true,
@@ -108,6 +109,5 @@
     "frontend-design@claude-plugins-official": true
   },
   "autoUpdatesChannel": "latest",
-  "effortLevel": "medium",
-  "model": "opus"
+  "effortLevel": "medium"
 }
