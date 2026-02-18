@@ -8,8 +8,24 @@ Claude Code configuration with shared prompts, subagents, and skills.
 agents/
 ├── AGENTS.md              # Global Claude Code instructions
 ├── prompts/               # Slash commands for ~/.claude/commands/
-│   ├── pre-pr.md          # Complete pre-PR validation pipeline
-│   └── python-qa.md       # Python QA pipeline
+│   ├── de-slop.md                 # Remove AI artifacts before PRs
+│   ├── design-doc.md              # Create technical design documents
+│   ├── execute-plan.md            # Work through a plan file task-by-task
+│   ├── gh-address-pr-comments.md  # Resolve PR review comments
+│   ├── gh-commit.md               # Create well-formatted commits
+│   ├── gh-fix-ci.md               # Debug and fix failing CI checks
+│   ├── gh-review-pr.md            # Review PRs thoroughly
+│   ├── gh-ship.md                 # Commit, push, and create PR in one step
+│   ├── handoff.md                 # Generate a continuation prompt for the next session
+│   ├── make-tests.md              # Generate tests for changes
+│   ├── new-cmd.md                 # Create new commands from conversations
+│   ├── new-skill.md               # Create new skills from workflows
+│   ├── pre-pr.md                  # Complete pre-PR validation pipeline
+│   ├── python-qa.md               # Python QA pipeline
+│   ├── qa.md                      # Browser-based QA against a plan file
+│   ├── rams.md                    # Accessibility and visual design review
+│   ├── shopify-dev-theme.md       # Create dev theme from git branch
+│   └── work-forever.md            # Autonomous long-running task mode
 ├── subagents/             # Subagent definitions for ~/.claude/agents/
 │   ├── pr-description-gen.md      # Auto-generate PR descriptions
 │   ├── security-scanner.md        # Scan for security vulnerabilities
@@ -19,6 +35,8 @@ agents/
 └── skills/                # Claude Code skills for ~/.claude/skills/
     ├── code-review-prompt/        # Generate code review prompts
     ├── emil-design-engineering/   # Design engineering principles
+    ├── garry-tan-code-review/     # Interactive opinionated code review
+    ├── humanize-ai-text/          # Detect and transform AI-generated text patterns
     ├── pair-programming/          # Senior engineer pairing mode
     ├── prove-it-bug-fix/          # Bug reproduction workflow
     ├── shopify-liquid-patterns/   # Shopify Liquid patterns
@@ -30,10 +48,10 @@ agents/
 Run from the repo root (`dots/`):
 
 ```bash
-./install.sh --agents
+./install.sh --claude
 ```
 
-### What `--agents` installs
+### What `--claude` installs
 
 - `~/.claude/CLAUDE.md` (symlink to `agents/AGENTS.md`)
 - `~/.claude/commands/*.md` (symlinks to `agents/prompts/*.md`)
@@ -42,7 +60,65 @@ Run from the repo root (`dots/`):
 
 ## Available Commands
 
-### `/pre-pr`
+### Development Workflow
+
+#### `/design-doc`
+Create a technical design document for a feature or system. Produces a plan file with implementation tasks, open questions, and architectural decisions.
+
+#### `/execute-plan`
+Work through a plan file task-by-task, checking off items as they complete.
+
+Options:
+- `--commit-per-task` - Commit after each individual task (default: per-phase)
+- `--commit-end-only` - Commit only when all tasks are done
+- `--dry-run` - Preview tasks, open questions, and detected tooling without executing
+
+#### `/qa`
+Verify completed work in the browser using `- [ ] QA:` items from a plan file. Uses Playwright for browser automation.
+
+```bash
+/qa docs/my_feature_PLAN.md --url http://localhost:3000
+```
+
+#### `/handoff`
+Generate a continuation prompt so the next session can pick up exactly where this one left off. Detects pipeline position, git state, and remaining tasks.
+
+#### `/de-slop`
+Remove AI artifacts before opening a PR — scratch markdown, filler documentation, over-engineered patterns, and other signs of AI-generated code that shouldn't ship.
+
+#### `/make-tests`
+Generate tests for recent changes. Covers happy path and edge cases.
+
+#### `/design-doc`
+Create a technical design document for a feature or system.
+
+#### `/work-forever`
+Autonomous long-running task mode. Keeps working through a task list without stopping for confirmation.
+
+---
+
+### GitHub Workflow
+
+#### `/gh-ship`
+Commit, push, and open a PR in one step.
+
+#### `/gh-commit`
+Create a well-formatted, imperative commit message from staged changes.
+
+#### `/gh-review-pr`
+Thorough PR review covering architecture, code quality, tests, and performance.
+
+#### `/gh-address-pr-comments`
+Read all open review comments on the current PR and resolve them.
+
+#### `/gh-fix-ci`
+Debug and fix failing CI checks.
+
+---
+
+### Code Quality
+
+#### `/pre-pr`
 Complete validation pipeline before creating a pull request:
 - Security scan (secrets, injection risks)
 - Compliance check (project rules)
@@ -61,7 +137,7 @@ Options:
 - `--python-only` - Only check Python code
 - `--typescript-only` - Only check TypeScript code
 
-### `/python-qa`
+#### `/python-qa`
 Python-specific QA pipeline:
 - Security scan
 - Compliance check (PEP rules, type hints)
@@ -73,6 +149,26 @@ Python-specific QA pipeline:
 
 Options:
 - `--quick` - Run only critical checks
+
+#### `/rams`
+Accessibility and visual design review against WCAG guidelines.
+
+---
+
+### Shopify
+
+#### `/shopify-dev-theme`
+Create a dev theme from the current git branch.
+
+---
+
+### Meta
+
+#### `/new-cmd`
+Create a new slash command from the current conversation.
+
+#### `/new-skill`
+Create a new skill from a workflow demonstrated in the current conversation.
 
 ## Available Subagents
 
@@ -130,6 +226,12 @@ Animation patterns and implementation guidance. Includes easing functions, timin
 
 ### `shopify-liquid-patterns`
 Common Liquid code patterns for Shopify theme development. Useful when writing templates, handling translations, or product displays.
+
+### `garry-tan-code-review`
+Interactive, opinionated code review. Works through architecture, code quality, tests, and performance one area at a time — pausing for feedback after each. For each issue, presents 2–3 lettered options with effort/risk/impact analysis and a clear recommendation before making any changes.
+
+### `humanize-ai-text`
+Detect and transform AI-generated writing patterns. Checks 16 pattern categories (citation bugs, chatbot artifacts, AI vocabulary, filler phrases, etc.) and auto-fixes the most detectable signals. Includes three Python scripts: `detect.py`, `transform.py`, and `compare.py`.
 
 ## Adding Custom Content
 
@@ -213,12 +315,12 @@ Install everything:
 ./install.sh --all
 ```
 
-Install only agent config:
+Install only Claude Code config:
 ```bash
-./install.sh --agents
+./install.sh --claude
 ```
 
 Reinstall after updating prompts:
 ```bash
-./install.sh --agents
+./install.sh --claude
 ```
