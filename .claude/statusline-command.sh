@@ -8,18 +8,11 @@ input=$(cat)
 
 # Parse JSON using jq if available, otherwise use basic parsing
 if command -v jq &> /dev/null; then
-  # Extract useful info from JSON
-  model=$(echo "$input" | jq -r '.model // "unknown"')
-  tokens=$(echo "$input" | jq -r '.tokens.used // 0')
-  tokens_max=$(echo "$input" | jq -r '.tokens.max // 200000')
-  cost=$(echo "$input" | jq -r '.cost.total // 0')
-
-  # Calculate token percentage
-  if [ "$tokens_max" -gt 0 ]; then
-    percent=$((tokens * 100 / tokens_max))
-  else
-    percent=0
-  fi
+  model=$(echo "$input" | jq -r '.model.display_name // "unknown"')
+  percent=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
+  used=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
+  max=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
+  cost=$(echo "$input" | jq -r '.cost.total_cost_usd // 0')
 
   # Get git branch if in a repo
   branch=""
@@ -28,10 +21,9 @@ if command -v jq &> /dev/null; then
     branch=" | $branch"
   fi
 
-  # Output status line
-  echo "$model | ${percent}% (${tokens}/${tokens_max}) | \$${cost}${branch}"
+  echo "$model | ${percent}% (${used}/${max}) | \$${cost}${branch}"
 else
-  # Fallback if jq is not available - just show git branch
+  # Fallback if jq is not available
   if git rev-parse --git-dir > /dev/null 2>&1; then
     branch=$(git branch --show-current 2>/dev/null)
     echo "git: $branch"
