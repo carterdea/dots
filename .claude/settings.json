@@ -86,6 +86,7 @@
       "Bash(source:*)",
       "Bash(test:*)",
       "Bash(node:*)",
+      "Bash(playwright-cli:*)",
       "Bash(gt:*)",
       "Bash(DISABLE_ELASTICSEARCH=1 bundle exec rails test:*)",
       "Bash(bundle show:*)"
