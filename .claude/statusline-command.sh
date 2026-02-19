@@ -8,11 +8,18 @@ input=$(cat)
 
 # Parse JSON using jq if available, otherwise use basic parsing
 if command -v jq &> /dev/null; then
-  model=$(echo "$input" | jq -r '.model.display_name // "unknown"')
-  percent=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
-  used=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
-  max=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
-  cost=$(echo "$input" | jq -r '.cost.total_cost_usd // 0')
+  model=$(echo "$input" | jq -r '.model.display_name // "?"')
+  used=$(echo "$input" | jq -r '.context_window.total_input_tokens // empty')
+  max=$(echo "$input" | jq -r '.context_window.context_window_size // empty')
+  cost_raw=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
+  cost=$([[ -n "$cost_raw" ]] && printf "%.2f" "$cost_raw" || echo "?")
+
+  if [[ -n "$used" && -n "$max" && "$max" -gt 0 ]]; then
+    percent=$(awk "BEGIN {printf \"%d\", $used * 100 / $max}")
+    context="${percent}% (${used}/${max})"
+  else
+    context="?"
+  fi
 
   # Get git branch if in a repo
   branch=""
@@ -21,7 +28,7 @@ if command -v jq &> /dev/null; then
     branch=" | $branch"
   fi
 
-  echo "$model | ${percent}% (${used}/${max}) | \$${cost}${branch}"
+  echo "$model | ${context} | \$${cost}${branch}"
 else
   # Fallback if jq is not available
   if git rev-parse --git-dir > /dev/null 2>&1; then

@@ -1,6 +1,6 @@
 ---
 name: emil-design-engineering
-description: Design engineering principles and patterns for building polished, accessible web interfaces. Use this skill when building UI components, reviewing frontend code, implementing forms, handling touch interactions, optimizing performance, or creating marketing pages. Triggers on: design engineering, UI polish, input fields, form validation, button states, touch devices, mobile UX, accessibility, a11y, keyboard navigation, aria labels, font rendering, typography, layout shift, z-index, animations, transitions, easing, hover effects, tap targets, iOS Safari, prefers-reduced-motion, marketing pages, landing pages, dark mode, theme switching, scrollbars, gradients, shadows, virtualization, preloading.
+description: "Design engineering principles and patterns for building polished, accessible web interfaces. Use this skill when building UI components, reviewing frontend code, implementing forms, handling touch interactions, optimizing performance, or creating marketing pages. Triggers on: design engineering, UI polish, input fields, form validation, button states, touch devices, mobile UX, accessibility, a11y, keyboard navigation, aria labels, font rendering, typography, layout shift, z-index, animations, transitions, easing, hover effects, tap targets, iOS Safari, prefers-reduced-motion, marketing pages, landing pages, dark mode, theme switching, scrollbars, gradients, shadows, virtualization, preloading."
 ---
 
 # Emil's Design Engineering Principles
