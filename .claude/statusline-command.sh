@@ -21,10 +21,12 @@ if command -v jq &> /dev/null; then
     context="?"
   fi
 
-  # Get git branch if in a repo
+  # Get git branch and PR number if in a repo
   branch=""
   if git rev-parse --git-dir > /dev/null 2>&1; then
     branch=$(git branch --show-current 2>/dev/null)
+    pr=$(gh pr view --json number -q '.number' 2>/dev/null)
+    [[ -n "$pr" ]] && branch="$branch | #$pr"
     branch=" | $branch"
   fi
 
