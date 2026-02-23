@@ -9,17 +9,26 @@ input=$(cat)
 # Parse JSON using jq if available, otherwise use basic parsing
 if command -v jq &> /dev/null; then
   model=$(echo "$input" | jq -r '.model.display_name // "?"')
-  used=$(echo "$input" | jq -r '.context_window.total_input_tokens // empty')
-  max=$(echo "$input" | jq -r '.context_window.context_window_size // empty')
+  # used_percentage = actual current context fullness (drops after compaction)
+  percent=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
+  # total tokens = cumulative session throughput (input + output, always grows)
+  total_in=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
+  total_out=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
+  total_tok=$(( total_in + total_out ))
   cost_raw=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
   cost=$([[ -n "$cost_raw" ]] && printf "%.2f" "$cost_raw" || echo "?")
 
-  if [[ -n "$used" && -n "$max" && "$max" -gt 0 ]]; then
-    percent=$(awk "BEGIN {printf \"%d\", $used * 100 / $max}")
-    context="${percent}% (${used}/${max})"
+  # Format total tokens as human-readable (e.g. 125k, 1.2m)
+  if [[ "$total_tok" -ge 1000000 ]]; then
+    tokens=$(awk "BEGIN {printf \"%.1fm\", $total_tok / 1000000}")
+  elif [[ "$total_tok" -ge 1000 ]]; then
+    tokens=$(awk "BEGIN {printf \"%.0fk\", $total_tok / 1000}")
   else
-    context="?"
+    tokens="${total_tok}"
   fi
+
+  context=$([[ -n "$percent" ]] && echo "${percent}% context" || echo "? context")
+  tokens="${tokens} tokens"
 
   # Get git branch and PR number if in a repo
   branch=""
@@ -30,7 +39,7 @@ if command -v jq &> /dev/null; then
     branch=" | $branch"
   fi
 
-  echo "$model | ${context} | \$${cost}${branch}"
+  echo "$model | ${context} | ${tokens} | \$${cost}${branch}"
 else
   # Fallback if jq is not available
   if git rev-parse --git-dir > /dev/null 2>&1; then
