@@ -34,19 +34,6 @@ def remove_chatbot_sentences(text: str) -> tuple[str, list]:
             text = pattern.sub("", text)
     return text, changes
 
-def strip_markdown(text: str) -> tuple[str, list]:
-    changes = []
-    if "**" in text:
-        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
-        changes.append("Stripped bold")
-    if re.search(r'^#{1,6}\s', text, re.MULTILINE):
-        text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
-        changes.append("Stripped headers")
-    if "```" in text:
-        text = re.sub(r'```\w*\n?', '', text)
-        changes.append("Stripped code blocks")
-    return text, changes
-
 def reduce_em_dashes(text: str) -> tuple[str, int]:
     count = text.count("—") + text.count(" -- ")
     text = re.sub(r"\s*—\s*", ", ", text)
@@ -85,7 +72,6 @@ def clean(text: str) -> str:
 def transform(text: str, aggressive: bool = False) -> tuple[str, list]:
     all_changes = []
     text, changes = remove_citations(text); all_changes.extend(changes)
-    text, changes = strip_markdown(text); all_changes.extend(changes)
     text, changes = remove_chatbot_sentences(text); all_changes.extend(changes)
     text, changes = apply_replacements(text, PATTERNS["copula_avoidance"]); all_changes.extend(changes)
     text, changes = apply_replacements(text, PATTERNS["filler_replacements"]); all_changes.extend(changes)

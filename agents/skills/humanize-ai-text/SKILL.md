@@ -38,7 +38,6 @@ The analyzer checks for **16 pattern categories** from Wikipedia's guide:
 | Citation Bugs | `oaicite`, `turn0search`, `contentReference` |
 | Knowledge Cutoff | "as of my last training", "based on available information" |
 | Chatbot Artifacts | "I hope this helps", "Great question!", "As an AI" |
-| Markdown | `**bold**`, `## headers`, ``` code blocks ``` |
 
 ### High Signal
 | Category | Examples |
@@ -94,7 +93,6 @@ python scripts/transform.py essay.txt -q  # quiet
 
 **Auto-fixes:**
 - Citation bugs (oaicite, turn0search)
-- Markdown (**, ##, ```)
 - Chatbot sentences
 - Copula avoidance → "is/has"
 - Filler phrases → simpler forms

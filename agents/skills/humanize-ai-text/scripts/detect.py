@@ -22,7 +22,6 @@ class DetectionResult:
     hedging_phrases: list = field(default_factory=list)
     negative_parallelisms: list = field(default_factory=list)
     rule_of_three: list = field(default_factory=list)
-    markdown_artifacts: list = field(default_factory=list)
     citation_bugs: list = field(default_factory=list)
     knowledge_cutoff: list = field(default_factory=list)
     curly_quotes: int = 0
@@ -55,7 +54,6 @@ def detect(text: str) -> DetectionResult:
     r.hedging_phrases = find_matches(text, PATTERNS["hedging_phrases"])
     r.negative_parallelisms = find_matches(text, PATTERNS["negative_parallelisms"])
     r.rule_of_three = find_matches(text, PATTERNS["rule_of_three_patterns"])
-    r.markdown_artifacts = find_matches(text, PATTERNS["markdown_artifacts"])
     r.citation_bugs = find_matches(text, PATTERNS["citation_bugs"])
     r.knowledge_cutoff = find_matches(text, PATTERNS["knowledge_cutoff"])
     r.curly_quotes = len(re.findall(r'[""'']', text))
@@ -68,7 +66,7 @@ def detect(text: str) -> DetectionResult:
         sum(c for _, c in r.ai_vocabulary) + sum(c for _, c in r.copula_avoidance) +
         sum(c for _, c in r.filler_phrases) + sum(c for _, c in r.chatbot_artifacts) * 3 +
         sum(c for _, c in r.hedging_phrases) + sum(c for _, c in r.negative_parallelisms) +
-        sum(c for _, c in r.markdown_artifacts) * 2 + sum(c for _, c in r.citation_bugs) * 5 +
+        sum(c for _, c in r.citation_bugs) * 5 +
         sum(c for _, c in r.knowledge_cutoff) * 3 + r.curly_quotes + (r.em_dashes if r.em_dashes > 3 else 0)
     )
     
@@ -110,10 +108,6 @@ def print_report(r: DetectionResult):
     if r.chatbot_artifacts:
         print("⚠️  HIGH: CHATBOT ARTIFACTS")
         print_section("Artifacts", r.chatbot_artifacts)
-    if r.markdown_artifacts:
-        print("⚠️  MARKDOWN DETECTED")
-        print_section("Markdown", r.markdown_artifacts)
-    
     print_section("SIGNIFICANCE INFLATION", r.significance_inflation)
     print_section("PROMOTIONAL LANGUAGE", r.promotional_language)
     print_section("AI VOCABULARY", r.ai_vocabulary)
