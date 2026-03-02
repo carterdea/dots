@@ -165,10 +165,6 @@
     "create, collaborate, and",
     "learn, grow, and"
   ],
-  "markdown_artifacts": [
-    "**", "##", "###", "```",
-    "* **", "- **", "1. **"
-  ],
   "citation_bugs": [
     "oaicite", "oai_citation", "contentReference",
     "turn0search", "turn0image", "utm_source=chatgpt",
