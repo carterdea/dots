@@ -23,7 +23,13 @@ Ask the user:
 - What's the current state/pain points?
 - Any constraints or requirements?
 
-Research the codebase if needed to understand existing patterns.
+**Then explore the codebase.** Before writing anything, use Glob/Grep/Read to:
+- Identify existing files relevant to the change
+- Note specific line ranges where modifications are needed
+- Understand naming conventions for suggesting new file names
+- Map the dependency chain (what imports what, what calls what)
+
+This research directly feeds the Design and Implementation Plan sections.
 
 ### 2. Generate Design Doc
 
@@ -72,6 +78,18 @@ Add subsections for each major component as needed:
 - Component A
 - Component B
 
+### File Map
+
+**Every design doc must include a file map.** This is the most actionable section — it tells the executing agent exactly where to look.
+
+For existing files that need changes:
+- `path/to/file.ts` (lines 12-45) — what changes and why
+
+For new files:
+- `path/to/new_file.ts` — purpose, follows naming convention from `path/to/similar_file.ts`
+
+Group by phase if helpful. Use line numbers from the codebase research in step 1.
+
 ## Alternatives Considered
 
 | Alternative | Pros | Cons | Why Not Chosen |
@@ -86,16 +104,18 @@ Add subsections for each major component as needed:
 
 ## Implementation Plan
 
+Every task must reference the specific file(s) it touches. Use the file map above — don't leave the executing agent guessing.
+
 ### - [ ] Phase 1: Foundation
-- [ ] Task 1
-- [ ] Task 2
+- [ ] Task 1 — `path/to/file.ts` (lines X-Y)
+- [ ] Task 2 — create `path/to/new_file.ts`
 
 ### - [ ] Phase 2: Core Implementation
-- [ ] Task 3
-- [ ] Task 4
+- [ ] Task 3 — `path/to/file.ts` (lines X-Y), `path/to/other.ts` (lines X-Y)
+- [ ] Task 4 — create `path/to/new_file.ts`
 
 ### - [ ] Phase 3: Polish & Testing
-- [ ] Write tests
+- [ ] Write tests — `path/to/file.test.ts`
 - [ ] Documentation
 
 ## Appendix
@@ -148,6 +168,8 @@ worktree: <worktree-path>  # omit if not in a worktree
 - List unresolved questions at the end
 - Use tables for comparisons
 - Include code snippets or diagrams where helpful
+- **Every task in the Implementation Plan must reference specific files and line ranges** (for existing code) or suggest a file name following project conventions (for new code). A task without a file reference is incomplete.
+- **Always explore the codebase before writing the doc.** The file map and line references must come from actual research, not guesses.
 
 ## Output Format
 
