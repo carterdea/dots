@@ -1,3 +1,10 @@
+---
+name: gh-review-pr
+description: Review a GitHub PR focusing on correctness, tests, and risk
+user-invocable: true
+disable-model-invocation: true
+---
+
 # Review PR
 
 Review a GitHub PR quickly but thoroughly, focusing on correctness, tests, and risk.
@@ -5,18 +12,14 @@ Review a GitHub PR quickly but thoroughly, focusing on correctness, tests, and r
 ## Steps
 
 1. Fetch basics + checks
-```bash
 gh pr view {PR} --json title,author,baseRefName,headRefName,additions,deletions,changedFiles -q .
 gh pr checks {PR}
-```
 
 2. Check out and diff
-```bash
 gh pr checkout {PR}
 BASE=$(gh pr view {PR} --json baseRefName -q .baseRefName)
 git diff --stat "$BASE"...HEAD
 git diff "$BASE"...HEAD
-```
 
 3. Review
 - Summarize what changed and why

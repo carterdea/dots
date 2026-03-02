@@ -1,3 +1,10 @@
+---
+name: new-skill
+description: Create a new skill from conversation history or user description
+user-invocable: true
+disable-model-invocation: true
+---
+
 # New Skill
 
 Create a skill from conversation history or user description.
@@ -16,24 +23,19 @@ Create a skill from conversation history or user description.
    - Proceed unless user rejects or corrects
 
 4. Check existing skills for patterns (host-specific)
-```bash
 ls ~/.codex/skills/
 ls ~/.claude/skills/
 ls ~/.cursor/skills/
 ls agents/skills/
-```
 
 5. Create skill structure:
-```
 {skill-name}/
   SKILL.md
   resources/         # references, samples, templates
   scripts/           # if tools requested
     run.py|ts|sh
-```
 
 6. Write SKILL.md:
-```markdown
 ---
 name: skill-name
 description: one-line
@@ -51,7 +53,6 @@ allowed_tools: [list inferred from context]
 
 ## Tools created
 - scripts/run.py: what it does
-```
 
 7. Report created files
 
@@ -62,25 +63,19 @@ allowed_tools: [list inferred from context]
 ## Script Templates
 
 **Python (uv):**
-```python
 def main() -> int:
     return 0
 
 if __name__ == "__main__":
     raise SystemExit(main())
-```
 
 **TypeScript (bun):**
-```typescript
 console.log("ok");
-```
 
 **Shell:**
-```bash
 #!/usr/bin/env bash
 set -euo pipefail
 echo "ok"
-```
 
 ## Rules
 

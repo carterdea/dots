@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Personal dotfiles and shared agent prompts/skills for macOS.
+Personal dotfiles and shared agent skills for macOS.
 
 ## Structure
 
@@ -10,10 +10,9 @@ Personal dotfiles and shared agent prompts/skills for macOS.
 - `git/` — gitconfig with local override pattern (`~/.gitconfig.local`)
 - `config/` — ripgrep, gh, ghostty
 - `ssh/` — SSH config
-- `agents/` — Claude Code global config (prompts, skills, subagents)
+- `agents/` — Claude Code global config (skills, subagents)
   - `AGENTS.md` — installed to `~/.claude/CLAUDE.md` via symlink
-  - `prompts/` — slash commands (installed to `~/.claude/commands/`)
-  - `skills/` — on-demand skill definitions
+  - `skills/` — user-invocable skills (installed to `~/.claude/skills/`)
   - `subagents/` — subagent definitions
 
 ## Install

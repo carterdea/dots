@@ -1,47 +1,46 @@
 # Agents Configuration
 
-Claude Code configuration with shared prompts, subagents, and skills.
+Claude Code configuration with shared skills, and subagents.
 
 ## Structure
 
 ```
 agents/
 ├── AGENTS.md              # Global Claude Code instructions
-├── prompts/               # Slash commands for ~/.claude/commands/
-│   ├── de-slop.md                 # Remove AI artifacts before PRs
-│   ├── design-doc.md              # Create technical design documents
-│   ├── execute-plan.md            # Work through a plan file task-by-task
-│   ├── gh-address-pr-comments.md  # Resolve PR review comments
-│   ├── gh-commit.md               # Create well-formatted commits
-│   ├── gh-fix-ci.md               # Debug and fix failing CI checks
-│   ├── gh-review-pr.md            # Review PRs thoroughly
-│   ├── gh-ship.md                 # Commit, push, and create PR in one step
-│   ├── handoff.md                 # Generate a continuation prompt for the next session
-│   ├── make-tests.md              # Generate tests for changes
-│   ├── new-cmd.md                 # Create new commands from conversations
-│   ├── new-skill.md               # Create new skills from workflows
-│   ├── pre-pr.md                  # Complete pre-PR validation pipeline
-│   ├── python-qa.md               # Python QA pipeline
-│   ├── qa.md                      # Browser-based QA against a plan file
-│   ├── rams.md                    # Accessibility and visual design review
-│   ├── shopify-dev-theme.md       # Create dev theme from git branch
-│   ├── shopify-theme-pull.md      # Pull merchant content from live theme
-│   └── work-forever.md            # Autonomous long-running task mode
 ├── subagents/             # Subagent definitions for ~/.claude/agents/
 │   ├── pr-description-gen.md      # Auto-generate PR descriptions
 │   ├── security-scanner.md        # Scan for security vulnerabilities
 │   ├── breaking-change-detector.md # Detect API/schema breaking changes
 │   ├── python-type-fixer.md       # Modernize Python type annotations
 │   └── python-code-simplifier.md  # Python refactoring suggestions
-└── skills/                # Claude Code skills for ~/.claude/skills/
+└── skills/                # Skills for ~/.claude/skills/ and ~/.agents/skills/
     ├── code-review-prompt/        # Generate code review prompts
+    ├── de-slop/                   # Remove AI artifacts before PRs
+    ├── design-doc/                # Create technical design documents
     ├── emil-design-engineering/   # Design engineering principles
+    ├── execute-plan/              # Work through a plan file task-by-task
     ├── garry-tan-code-review/     # Interactive opinionated code review
+    ├── gh-address-pr-comments/    # Resolve PR review comments
+    ├── gh-commit/                 # Create well-formatted commits
+    ├── gh-fix-ci/                 # Debug and fix failing CI checks
+    ├── gh-review-pr/              # Review PRs thoroughly
+    ├── gh-ship/                   # Commit, push, and create PR in one step
+    ├── handoff/                   # Generate continuation prompts
     ├── humanize-ai-text/          # Detect and transform AI-generated text patterns
+    ├── make-tests/                # Generate tests for changes
+    ├── new-cmd/                   # Create new skills from conversations
+    ├── new-skill/                 # Create new skills from workflows
     ├── pair-programming/          # Senior engineer pairing mode
+    ├── pre-pr/                    # Complete pre-PR validation pipeline
     ├── prove-it-bug-fix/          # Bug reproduction workflow
+    ├── qa/                        # Browser-based QA against a plan file
+    ├── rams/                      # Accessibility and visual design review
+    ├── shopify-dev-theme/         # Create dev theme from git branch
     ├── shopify-liquid-patterns/   # Shopify Liquid patterns
-    └── web-animation-design/      # Animation patterns
+    ├── shopify-theme-pull/        # Pull merchant content from live theme
+    ├── smart-brevity/             # Smart Brevity writing style
+    ├── web-animation-design/      # Animation patterns
+    └── work-forever/              # Autonomous long-running task mode
 ```
 
 ## Installation
@@ -55,11 +54,10 @@ Run from the repo root (`dots/`):
 ### What `--claude` installs
 
 - `~/.claude/CLAUDE.md` (symlink to `agents/AGENTS.md`)
-- `~/.claude/commands/*.md` (symlinks to `agents/prompts/*.md`)
 - `~/.claude/agents/*.md` (symlinks to `agents/subagents/*.md`)
 - `~/.claude/skills/*` (symlinks to `agents/skills/*`)
 
-## Available Commands
+## Available Skills
 
 ### Development Workflow
 
@@ -85,13 +83,10 @@ Verify completed work in the browser using `- [ ] QA:` items from a plan file. U
 Generate a continuation prompt so the next session can pick up exactly where this one left off. Detects pipeline position, git state, and remaining tasks.
 
 #### `/de-slop`
-Remove AI artifacts before opening a PR — scratch markdown, filler documentation, over-engineered patterns, and other signs of AI-generated code that shouldn't ship.
+Remove AI artifacts before opening a PR -- scratch markdown, filler documentation, over-engineered patterns, and other signs of AI-generated code that shouldn't ship.
 
 #### `/make-tests`
 Generate tests for recent changes. Covers happy path and edge cases.
-
-#### `/design-doc`
-Create a technical design document for a feature or system.
 
 #### `/work-forever`
 Autonomous long-running task mode. Keeps working through a task list without stopping for confirmation.
@@ -138,19 +133,6 @@ Options:
 - `--python-only` - Only check Python code
 - `--typescript-only` - Only check TypeScript code
 
-#### `/python-qa`
-Python-specific QA pipeline:
-- Security scan
-- Compliance check (PEP rules, type hints)
-- Type modernization (PEP 585/604)
-- Architecture validation
-- Performance analysis
-- Code simplification
-- Verification (ruff + basedpyright)
-
-Options:
-- `--quick` - Run only critical checks
-
 #### `/rams`
 Accessibility and visual design review against WCAG guidelines.
 
@@ -166,10 +148,49 @@ Pull merchant-edited content (`config/settings_data.json` and `templates/`) from
 
 ---
 
+### Coding Workflow
+
+#### `/pair-programming`
+Senior engineer pairing mode with assumption surfacing, pushback, scope discipline, and simplicity enforcement.
+
+#### `/prove-it-bug-fix`
+Reproduce bugs with failing tests before fixing.
+
+#### `/code-review-prompt`
+Generate comprehensive code review prompts for another Claude session.
+
+#### `/garry-tan-code-review`
+Interactive, opinionated code review with options A/B/C and explicit sign-off before changes.
+
+---
+
+### Frontend Development
+
+#### `/emil-design-engineering`
+Design engineering principles for polished, accessible web interfaces.
+
+#### `/web-animation-design`
+Animation patterns and implementation guidance.
+
+#### `/shopify-liquid-patterns`
+Common Liquid code patterns for Shopify themes.
+
+---
+
+### Writing
+
+#### `/humanize-ai-text`
+Detect and rewrite AI-generated text patterns to sound natural.
+
+#### `/smart-brevity`
+Rewrite text using Smart Brevity principles -- shorter, sharper, audience-first communication.
+
+---
+
 ### Meta
 
 #### `/new-cmd`
-Create a new slash command from the current conversation.
+Create a new skill from the current conversation.
 
 #### `/new-skill`
 Create a new skill from a workflow demonstrated in the current conversation.
@@ -211,106 +232,43 @@ Suggests Python refactoring:
 - Simplify error handling
 - Improve readability
 
-## Available Skills
-
-### `pair-programming`
-Senior engineer pairing mode with assumption surfacing, pushback, scope discipline, and simplicity enforcement. Invoke at the start of focused coding sessions.
-
-### `prove-it-bug-fix`
-Reproduce bugs with a failing test before attempting fixes. Ensures bugs are properly captured and fixes are verified.
-
-### `code-review-prompt`
-Generates comprehensive code review prompts that can be copied into another Claude session. Automatically detects your tech stack and tailors the review checklist.
-
-### `emil-design-engineering`
-Design engineering principles for building polished, accessible web interfaces. Covers animations, UI polish, forms, touch/accessibility, and performance.
-
-### `web-animation-design`
-Animation patterns and implementation guidance. Includes easing functions, timing, and practical tips for web animations.
-
-### `shopify-liquid-patterns`
-Common Liquid code patterns for Shopify theme development. Useful when writing templates, handling translations, or product displays.
-
-### `garry-tan-code-review`
-Interactive, opinionated code review. Works through architecture, code quality, tests, and performance one area at a time — pausing for feedback after each. For each issue, presents 2–3 lettered options with effort/risk/impact analysis and a clear recommendation before making any changes.
-
-### `humanize-ai-text`
-Detect and transform AI-generated writing patterns. Checks 16 pattern categories (citation bugs, chatbot artifacts, AI vocabulary, filler phrases, etc.) and auto-fixes the most detectable signals. Includes three Python scripts: `detect.py`, `transform.py`, and `compare.py`.
-
 ## Adding Custom Content
 
-### New Slash Command
+### New Skill
 ```bash
-# Create a new command file
-echo "---
-description: My custom command
+# Create skill directory and definition
+mkdir -p agents/skills/my-skill
+cat > agents/skills/my-skill/SKILL.md << 'EOF'
+---
+name: my-skill
+description: What this skill does
+user-invocable: true
 ---
 
-# My Command
-
-Your command instructions here..." > agents/prompts/my-command.md
+Your skill instructions...
+EOF
 
 # Reinstall
-./install.sh --agents
+./install.sh --claude
 ```
-
-The command will be available as `/my-command`.
 
 ### New Subagent
 ```bash
 # Create subagent definition
-echo "---
+cat > agents/subagents/my-agent.md << 'EOF'
+---
 name: my-agent
 description: What this agent does
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
-Your agent instructions..." > agents/subagents/my-agent.md
+Your agent instructions...
+EOF
 
 # Reinstall
-./install.sh --agents
+./install.sh --claude
 ```
-
-### New Skill
-```bash
-# Create skill directory and definition
-mkdir -p agents/skills/my-skill
-echo "---
-name: my-skill
-description: What this skill does
-allowed-tools: Bash
-user-invocable: true
----
-
-Your skill instructions..." > agents/skills/my-skill/SKILL.md
-
-# Reinstall
-./install.sh --agents
-```
-
-## Usage Examples
-
-### Before Creating a PR
-```bash
-# Run complete validation
-/pre-pr
-
-# Or quick mode
-/pre-pr --quick
-```
-
-### Python Code Review
-```bash
-# Full pipeline
-/python-qa
-
-# Quick check
-/python-qa --quick
-```
-
-### Generate Code Review
-Run the `code-review-prompt` skill to generate a review prompt, then paste it into a fresh Claude session for an unbiased review.
 
 ## Common Install Recipes
 
@@ -324,7 +282,7 @@ Install only Claude Code config:
 ./install.sh --claude
 ```
 
-Reinstall after updating prompts:
+Reinstall after updating skills:
 ```bash
 ./install.sh --claude
 ```

@@ -90,10 +90,10 @@ cd ~/dots
 - `--git` - Install git configurations
 - `--config` - Install tool configs (ripgrep, gh, ghostty)
 - `--ssh` - Install SSH config
-- `--claude` - Install prompts/skills to Claude Code (~/.claude)
-- `--codex` / `--openai` - Install prompts/skills to Codex (~/.codex)
-- `--cursor` - Install prompts to Cursor global (~/.cursor)
-- `--cursor-project` - Install prompts to Cursor project (.cursor)
+- `--claude` - Install skills to Claude Code (~/.claude)
+- `--codex` / `--openai` - Install skills to Codex (~/.agents)
+- `--cursor` - Install skills to Cursor global (~/.cursor)
+- `--cursor-project` - Install skills to Cursor project (.cursor)
 - `--no-backup` - Skip backing up existing files
 - `--dry-run` - Preview changes without applying them
 
@@ -175,29 +175,23 @@ dots/
 │   └── config
 └── agents/                 # Claude Code agents configuration
     ├── AGENTS.md           # Global instructions
-    ├── prompts/            # Slash commands (18 commands)
     ├── subagents/          # Subagent definitions (5 agents)
-    └── skills/             # Custom skills
-        ├── code-review-prompt/
-        ├── emil-design-engineering/
-        ├── garry-tan-code-review/
-        ├── humanize-ai-text/
-        ├── pair-programming/
-        ├── prove-it-bug-fix/
-        ├── shopify-liquid-patterns/
-        └── web-animation-design/
+    └── skills/             # Skills (27 skills)
 ```
 
 ## AI Assistant Configuration
 
-Your dotfiles include prompts (slash commands) and skills that work across Claude Code, Codex, and Cursor.
+Your dotfiles include skills that work across Claude Code, Codex, and Cursor.
 
-### Available Prompts
+### Available Skills
 
 **Development Workflow:**
+- `/design-doc` - Create technical design documents
+- `/execute-plan` - Work through a plan file task-by-task
+- `/qa` - Browser-based QA verification against a plan file
+- `/handoff` - Generate a continuation prompt for the next session
 - `/de-slop` - Remove AI artifacts before PRs
 - `/make-tests` - Generate tests for your changes
-- `/design-doc` - Create technical design documents
 - `/work-forever` - Autonomous long-running task mode
 
 **GitHub Workflow:**
@@ -209,25 +203,7 @@ Your dotfiles include prompts (slash commands) and skills that work across Claud
 
 **Code Quality:**
 - `/pre-pr` - Pre-PR validation (security, tests, breaking changes)
-- `/python-qa` - Run Python QA pipeline
 - `/rams` - Accessibility and visual design review
-- `/qa` - Browser-based QA verification against a plan file
-
-**Planning & Execution:**
-- `/execute-plan` - Work through a plan file task-by-task
-- `/handoff` - Generate a continuation prompt for the next session
-
-**Shopify:**
-- `/shopify-dev-theme` - Create dev theme from git branch
-- `/shopify-theme-pull` - Pull merchant content from live theme
-
-**Meta:**
-- `/new-cmd` - Create new commands from conversations
-- `/new-skill` - Create new skills from workflows
-
-### Available Skills
-
-Skills are loaded on-demand to provide specialized context and behaviors.
 
 **Coding Workflow:**
 - `/pair-programming` - Senior engineer pairing mode with assumption surfacing, pushback, and scope discipline
@@ -240,8 +216,17 @@ Skills are loaded on-demand to provide specialized context and behaviors.
 - `/web-animation-design` - Animation patterns and implementation guidance
 - `/shopify-liquid-patterns` - Common Liquid code patterns for Shopify themes
 
+**Shopify:**
+- `/shopify-dev-theme` - Create dev theme from git branch
+- `/shopify-theme-pull` - Pull merchant content from live theme
+
 **Writing:**
 - `/humanize-ai-text` - Detect and rewrite AI-generated text patterns to sound natural
+- `/smart-brevity` - Rewrite text using Smart Brevity principles
+
+**Meta:**
+- `/new-cmd` - Create new skills from conversations
+- `/new-skill` - Create new skills from workflows
 
 ### Installation Options
 
