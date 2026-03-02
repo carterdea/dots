@@ -25,14 +25,28 @@ Work through a plan file task-by-task, checking off items as they complete.
 - If neither found, stop and ask
 - If some tasks are already checked, report resume point: "Resuming from Phase 2, Task 3 (5/12 tasks complete)"
 
-### 2. Check for Blockers
+### 2. Load File Map
+
+If the plan has a `### File Map` section, use it to front-load context:
+
+- Read every file listed (or the specific line range if given)
+- Validate that referenced lines still match what the design doc describes
+- **Stale references are expected, not failures.** If lines have shifted, find the correct location with Grep, update the line range in the File Map and the corresponding Implementation Plan task, and continue
+- If a referenced file no longer exists (renamed or deleted), search for it. Update the plan if found; flag to the user if truly gone
+- For new files listed in the map, just note the intended path and naming convention -- nothing to read yet
+
+**On Sonnet or smaller models:** use Explore subagents to read and validate the file map in parallel. Give each subagent a batch of files (e.g., "Read these 3 files and confirm the line ranges match the descriptions"). Collect results before proceeding.
+
+This step gives you most of the context you need before executing a single task.
+
+### 3. Check for Blockers
 
 - Scan `## Open Questions` for unchecked `- [ ]` items
 - For each, attempt to resolve by reading the codebase, CLAUDE.md, or project context
 - If resolved, check it off and state the answer: "Resolved: 'Which ORM?' -- SQLAlchemy, based on existing models in `src/db/`"
 - If unresolvable, list remaining open questions and ask: "Proceed anyway or resolve first?"
 
-### 3. Detect Environment
+### 4. Detect Environment
 
 Auto-detect validation and tooling -- don't ask, just state:
 
@@ -42,7 +56,7 @@ Auto-detect validation and tooling -- don't ask, just state:
 - Identify package manager (`bun`, `uv`, `cargo`, etc.)
 - State assumptions: "Using `bun test` for tests, `eslint` for lint, `bun` for dependencies."
 
-### 4. Execute Tasks
+### 5. Execute Tasks
 
 Default commit cadence: **per-phase**. Override with `--commit-per-task` or `--commit-end-only`.
 
@@ -52,15 +66,16 @@ Find the next unchecked `- [ ]` task under `## Implementation Plan` and execute 
 
 For each task:
 
-1. Read the task description
-2. Research the codebase as needed to understand context
-3. Implement the change
-4. Validate (run tests, lint)
-5. Update the plan file: `- [ ]` becomes `- [x]`
-6. Add a QA note as a nested item under the completed task (see QA Notes below)
-7. If all tasks in a phase are checked, check off the phase heading too: `### - [x]`
-8. Commit if cadence requires it (never `git add .` -- stage files individually)
-9. Move to the next unchecked task
+1. Read the task description -- it should reference specific files and line ranges from the file map
+2. Read the referenced files (they may already be in context from step 2, but re-read if needed)
+3. If the task requires files **not** in the file map, find them. On Sonnet, use Explore subagents. Add any newly discovered files to the File Map in the plan so future tasks benefit
+4. Implement the change
+5. Validate (run tests, lint)
+6. Update the plan file: `- [ ]` becomes `- [x]`
+7. Add a QA note as a nested item under the completed task (see QA Notes below)
+8. If all tasks in a phase are checked, check off the phase heading too: `### - [x]`
+9. Commit if cadence requires it (never `git add .` -- stage files individually)
+10. Move to the next unchecked task
 
 State assumptions instead of asking. User can interrupt if they disagree.
 
@@ -82,7 +97,7 @@ After checking off each task, add a nested `QA:` line describing how to verify t
 
 Keep QA notes brief -- one line, focused on what to do and what to expect. The `/qa` command will use these as its test instructions.
 
-### 5. Failure Triage
+### 6. Failure Triage
 
 **Simple failures** -- handle autonomously:
 - Test failures, lint errors, type errors
@@ -101,7 +116,7 @@ Fix the issue, re-validate, and continue. If the fix doesn't work after one retr
 
 Stop execution, report what failed and why, and wait for user input before continuing. Suggest running `/handoff` if the user wants to continue in a new session.
 
-### 6. Close Out
+### 7. Close Out
 
 When all tasks are checked off (or all tasks in a phase are checked off):
 - Run a final validation (tests, lint)
@@ -145,10 +160,11 @@ worktree: <worktree-path>  # omit if not in a worktree
 
 ## Dry Run
 
-With `--dry-run`, run steps 1-3 only (Load Plan, Check Blockers, Detect Environment) and report:
+With `--dry-run`, run steps 1-4 only (Load Plan, Load File Map, Check Blockers, Detect Environment) and report:
 - Tasks remaining (with phase grouping)
+- File map validation: which files/lines still match, which have drifted
 - Open questions found
 - Detected tooling
 - Resume point if applicable
 
-Do not execute any tasks or modify any files.
+Do not execute any tasks. The only file you may modify is the plan itself (to fix stale line references found during file map validation).
