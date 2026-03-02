@@ -23,13 +23,16 @@ Ask the user:
 - What's the current state/pain points?
 - Any constraints or requirements?
 
-**Then explore the codebase.** Before writing anything, use Glob/Grep/Read to:
-- Identify existing files relevant to the change
-- Note specific line ranges where modifications are needed
-- Understand naming conventions for suggesting new file names
-- Map the dependency chain (what imports what, what calls what)
+**Then explore the codebase.** Before writing anything, research:
+- Existing files relevant to the change, with specific line ranges
+- Naming conventions for suggesting new file names
+- The dependency chain (what imports what, what calls what)
 
-This research directly feeds the Design and Implementation Plan sections.
+**How to explore depends on the model:**
+- **Opus or high-capacity models:** Use Glob/Grep/Read directly — you have the context to hold it all.
+- **Sonnet or smaller models:** Delegate to Explore subagents (Agent tool with `subagent_type: "Explore"`) to keep your main context clean. Give each subagent a focused query (e.g., "find all files that handle cart state" or "what's the naming convention in src/components/"). Collect their results, then synthesize.
+
+This research directly feeds the File Map and Implementation Plan sections.
 
 ### 2. Generate Design Doc
 
