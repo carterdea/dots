@@ -1,10 +1,17 @@
+---
+name: de-slop
+description: Remove AI artifacts and cleanup noise before a PR
+user-invocable: true
+disable-model-invocation: true
+---
+
 # De-Slop
 
 Before a PR, remove obvious AI artifacts and cleanup noise.
 
 ## Checklist
 
-- Delete pointless scratch markdown (NOTES/PLAN/IDEAS/TODO) unless it’s real docs
+- Delete pointless scratch markdown (NOTES/PLAN/IDEAS/TODO) unless it's real docs
 - Remove redundant comments and filler docstrings
 - Replace mock-heavy tests with real assertions where possible
 - Remove fake/uncited metrics

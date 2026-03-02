@@ -1,13 +1,18 @@
+---
+name: design-doc
+description: Format implementation plans as structured design documents for technical review
+user-invocable: true
+disable-model-invocation: true
+---
+
 # Design Doc Command
 
 Format implementation plans as structured design documents for technical review and discussion.
 
 ## Usage
 
-```bash
 /design-doc                    # Start a new design doc
 /design-doc "feature name"     # Start with a specific feature
-```
 
 ## Workflow
 
@@ -57,9 +62,7 @@ High-level summary of the proposed solution:
 
 Overall summary of the design and major components.
 
-```
 [Include diagram if helpful - ASCII or mermaid]
-```
 
 ### Key Components
 
@@ -122,24 +125,18 @@ After generating (and optionally saving):
 
 Once the design doc is finalized and saved, output a **Next Step** block so the user can quickly kick off execution. Gather git context first:
 
-```bash
 git branch --show-current
 git worktree list
-```
 
 Then output:
 
-````
-```
 /execute-plan <plan-file-path>
 
 branch: <current-branch>
 worktree: <worktree-path>  # omit if not in a worktree
-```
-````
 
-- `<plan-file-path>` — the path where the doc was saved (e.g., `docs/cart_upsell_PLAN.md`)
-- `worktree` line — only include if the current directory is a git worktree (not the main working tree)
+- `<plan-file-path>` -- the path where the doc was saved (e.g., `docs/cart_upsell_PLAN.md`)
+- `worktree` line -- only include if the current directory is a git worktree (not the main working tree)
 - Keep it copy-pastable with no extra commentary inside the block
 
 ## Rules
@@ -154,7 +151,6 @@ worktree: <worktree-path>  # omit if not in a worktree
 
 ## Output Format
 
-```
 # {Project Name} Design Doc
 
 [Full document as specified above]
@@ -168,4 +164,3 @@ Open questions to discuss:
 Ready to refine any section or proceed to implementation?
 
 [After finalization and save, output the Next Step block]
-```

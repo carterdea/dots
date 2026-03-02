@@ -1,5 +1,8 @@
 ---
-description: Run accessibility and visual design review
+name: rams
+description: Run accessibility and visual design review against WCAG guidelines
+user-invocable: true
+disable-model-invocation: true
 ---
 
 # Rams Design Review
@@ -38,7 +41,7 @@ If `$ARGUMENTS` is empty, ask the user which file(s) to review, or offer to scan
 
 | Check | WCAG | What to look for |
 |-------|------|------------------|
-| Heading hierarchy | 1.3.1 | Skipped heading levels (h1 → h3) |
+| Heading hierarchy | 1.3.1 | Skipped heading levels (h1 -> h3) |
 | Positive tabIndex | 2.4.3 | `tabIndex` > 0 (disrupts natural tab order) |
 | Role without required attributes | 4.1.2 | `role="button"` without `tabIndex="0"` |
 
@@ -70,27 +73,19 @@ If `$ARGUMENTS` is empty, ask the user which file(s) to review, or offer to scan
 
 ## Output Format
 
-```
-═══════════════════════════════════════════════════
 RAMS DESIGN REVIEW: [filename]
-═══════════════════════════════════════════════════
 
 CRITICAL (X issues)
-───────────────────
 [A11Y] Line 24: Button missing accessible name
   <button><CloseIcon /></button>
   Fix: Add aria-label="Close"
   WCAG: 4.1.2
 
 SERIOUS (X issues)
-──────────────────
 ...
 
-═══════════════════════════════════════════════════
 SUMMARY: X critical, X serious, X moderate
 Score: XX/100
-═══════════════════════════════════════════════════
-```
 
 ---
 

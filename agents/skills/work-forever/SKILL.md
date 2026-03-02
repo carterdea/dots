@@ -1,3 +1,10 @@
+---
+name: work-forever
+description: Run in highly autonomous mode for long-running tasks with minimal questions
+user-invocable: true
+disable-model-invocation: true
+---
+
 # Work Forever
 
 Run in highly autonomous mode for long-running tasks with minimal questions.
@@ -26,19 +33,16 @@ Run in highly autonomous mode for long-running tasks with minimal questions.
 
 ## Rules/Safety
 - Prefer action over questions; only ask if blocked by missing credentials or permissions.
-- Avoid destructive commands (e.g., `rm -rf`, `git reset --hard`) unless explicitly requested.
+- Avoid destructive commands unless explicitly requested.
 - Stay autonomous: avoid follow-ups, explain assumptions instead.
 - Prefer local reasoning over external dependencies; install packages only if required.
 
 ## Usage
 
-```bash
 /work-forever "Implement feature X and verify tests"
-```
 
 ## Output Format
 
-```
 Autonomy report:
 - Goal:
 - Assumptions:
@@ -47,4 +51,3 @@ Autonomy report:
 - Results:
 - Tests:
 - Next steps:
-```

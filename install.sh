@@ -52,10 +52,10 @@ OPTIONS:
     --config        Install tool configs (ripgrep, gh, ghostty)
     --ssh           Install SSH config
     --agents        Install Claude Code agents config (legacy, use --claude)
-    --claude        Install prompts/skills to Claude Code (~/.claude)
-    --codex         Install prompts/skills to Codex (~/.codex)
-    --cursor        Install prompts to Cursor global (~/.cursor)
-    --cursor-project Install prompts to Cursor project (.cursor)
+    --claude        Install skills to Claude Code (~/.claude)
+    --codex         Install skills to Codex (~/.agents)
+    --cursor        Install skills to Cursor global (~/.cursor)
+    --cursor-project Install skills to Cursor project (.cursor)
     --no-backup     Skip backing up existing files
     --dry-run       Show what would be done without making changes
     -h, --help      Show this help message
@@ -178,15 +178,6 @@ install_claude() {
         fi
     fi
 
-    # Install prompts as commands
-    if [[ -d "$DOTFILES_DIR/agents/prompts" ]]; then
-        for prompt in "$DOTFILES_DIR/agents/prompts"/*.md; do
-            if [[ -f "$prompt" ]] && [[ "$(basename "$prompt")" != ".gitkeep" ]]; then
-                create_symlink "$prompt" "$HOME/.claude/commands/$(basename "$prompt")"
-            fi
-        done
-    fi
-
     # Install subagents
     if [[ -d "$DOTFILES_DIR/agents/subagents" ]]; then
         for subagent in "$DOTFILES_DIR/agents/subagents"/*.md; do
@@ -222,20 +213,11 @@ install_codex() {
         fi
     fi
 
-    # Install prompts
-    if [[ -d "$DOTFILES_DIR/agents/prompts" ]]; then
-        for prompt in "$DOTFILES_DIR/agents/prompts"/*.md; do
-            if [[ -f "$prompt" ]] && [[ "$(basename "$prompt")" != ".gitkeep" ]]; then
-                create_symlink "$prompt" "$HOME/.codex/prompts/$(basename "$prompt")"
-            fi
-        done
-    fi
-
     # Install skills
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             if [[ -d "$skill_dir" ]] && [[ "$(basename "$skill_dir")" != ".gitkeep" ]]; then
-                create_symlink "$skill_dir" "$HOME/.codex/skills/$(basename "$skill_dir")"
+                create_symlink "$skill_dir" "$HOME/.agents/skills/$(basename "$skill_dir")"
             fi
         done
     fi
@@ -243,15 +225,6 @@ install_codex() {
 
 install_cursor() {
     info "Installing Cursor (global) configuration..."
-
-    # Install prompts to global Cursor commands
-    if [[ -d "$DOTFILES_DIR/agents/prompts" ]]; then
-        for prompt in "$DOTFILES_DIR/agents/prompts"/*.md; do
-            if [[ -f "$prompt" ]] && [[ "$(basename "$prompt")" != ".gitkeep" ]]; then
-                create_symlink "$prompt" "$HOME/.cursor/commands/$(basename "$prompt")"
-            fi
-        done
-    fi
 
     # Install skills
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
@@ -266,16 +239,15 @@ install_cursor() {
 install_cursor_project() {
     info "Installing Cursor (project) configuration..."
 
-    # Install prompts to project-local .cursor/commands
-    if [[ -d "$DOTFILES_DIR/agents/prompts" ]]; then
-        for prompt in "$DOTFILES_DIR/agents/prompts"/*.md; do
-            if [[ -f "$prompt" ]] && [[ "$(basename "$prompt")" != ".gitkeep" ]]; then
-                create_symlink "$prompt" ".cursor/commands/$(basename "$prompt")"
+    # Install skills
+    if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
+        for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
+            if [[ -d "$skill_dir" ]] && [[ "$(basename "$skill_dir")" != ".gitkeep" ]]; then
+                create_symlink "$skill_dir" ".cursor/skills/$(basename "$skill_dir")"
             fi
         done
     fi
 }
-
 # Parse arguments
 if [[ $# -eq 0 ]]; then
     print_usage

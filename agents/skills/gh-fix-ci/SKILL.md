@@ -1,3 +1,10 @@
+---
+name: gh-fix-ci
+description: Find the first failing CI check, fix it, and re-run verification
+user-invocable: true
+disable-model-invocation: true
+---
+
 # Fix CI
 
 Find the first failing check, fix it, and re-run the smallest verification command.
@@ -5,16 +12,14 @@ Find the first failing check, fix it, and re-run the smallest verification comma
 ## Steps
 
 1. Identify failures
-```bash
 gh pr checks {PR} 2>/dev/null || true
 gh run list --limit 10 2>/dev/null || true
-```
 
 2. Open logs (or paste the failure output). Focus on the root error.
 
 3. Fix
 - Prefer minimal, correct changes
-- Do not “fix” by skipping tests
+- Do not "fix" by skipping tests
 
 4. Verify locally (the narrowest command that covers the failure), then summarize:
 - what failed
