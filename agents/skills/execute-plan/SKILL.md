@@ -14,7 +14,6 @@ Work through a plan file task-by-task, checking off items as they complete.
 /execute-plan docs/my_feature_PLAN.md       # Execute from a plan file
 /execute-plan                                # Look for a plan in conversation history
 /execute-plan docs/plan.md --commit-per-task # Override default commit cadence
-/execute-plan docs/plan.md --dry-run         # Preview what would happen without executing
 
 ## Workflow
 
@@ -158,13 +157,3 @@ worktree: <worktree-path>  # omit if not in a worktree
 - If the plan file doesn't exist at the given path, stop and ask
 - State assumptions, don't ask -- the user will interrupt if something is wrong
 
-## Dry Run
-
-With `--dry-run`, run steps 1-4 only (Load Plan, Load File Map, Check Blockers, Detect Environment) and report:
-- Tasks remaining (with phase grouping)
-- File map validation: which files/lines still match, which have drifted
-- Open questions found
-- Detected tooling
-- Resume point if applicable
-
-Do not execute any tasks. The only file you may modify is the plan itself (to fix stale line references found during file map validation).
