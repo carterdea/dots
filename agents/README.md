@@ -70,7 +70,6 @@ Work through a plan file task-by-task, checking off items as they complete.
 Options:
 - `--commit-per-task` - Commit after each individual task (default: per-phase)
 - `--commit-end-only` - Commit only when all tasks are done
-- `--dry-run` - Preview tasks, open questions, and detected tooling without executing
 
 #### `/qa`
 Verify completed work in the browser using `- [ ] QA:` items from a plan file. Uses Playwright for browser automation.
