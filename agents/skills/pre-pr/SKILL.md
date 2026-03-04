@@ -2,7 +2,6 @@
 name: pre-pr
 description: Run complete validation before creating a PR - security, tests, breaking changes, and generate PR description
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Pre-PR Validation Pipeline
