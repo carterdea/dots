@@ -2,7 +2,6 @@
 name: de-slop
 description: Remove AI artifacts and cleanup noise before a PR
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # De-Slop
