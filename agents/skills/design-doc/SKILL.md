@@ -2,7 +2,6 @@
 name: design-doc
 description: Format implementation plans as structured design documents for technical review
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Design Doc Command
