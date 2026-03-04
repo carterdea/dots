@@ -2,6 +2,7 @@
 name: gh-ship
 description: Commit, push, and create PR in one step
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # Ship
