@@ -2,7 +2,6 @@
 name: qa
 description: Verify completed work in the browser using QA notes from a plan file
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # QA
