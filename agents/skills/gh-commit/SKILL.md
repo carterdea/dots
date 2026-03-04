@@ -2,7 +2,6 @@
 name: gh-commit
 description: Create small, logical commits with conventional commit messages
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Commit

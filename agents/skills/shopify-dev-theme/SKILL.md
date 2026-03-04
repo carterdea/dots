@@ -2,7 +2,6 @@
 name: shopify-dev-theme
 description: Create an unpublished Shopify theme named after the current git branch
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Shopify Dev Theme

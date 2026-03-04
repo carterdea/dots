@@ -2,7 +2,6 @@
 name: make-tests
 description: Add tests for the change you're working on
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Make Tests
