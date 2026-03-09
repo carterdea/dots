@@ -89,10 +89,10 @@
       "Bash(playwright-cli:*)",
       "Bash(gt:*)",
       "Bash(DISABLE_ELASTICSEARCH=1 bundle exec rails test:*)",
-      "Bash(bundle show:*)"
+      "Bash(bundle show:*)",
+      "Bash(cd /Users/carterdeangelis/Sites/:*)"
     ]
   },
-  "model": "opus",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline-command.sh"
@@ -109,5 +109,5 @@
     "frontend-design@claude-plugins-official": true
   },
   "autoUpdatesChannel": "latest",
-  "effortLevel": "medium"
+  "model": "opus"
 }
