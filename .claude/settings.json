@@ -90,7 +90,8 @@
       "Bash(gt:*)",
       "Bash(DISABLE_ELASTICSEARCH=1 bundle exec rails test:*)",
       "Bash(bundle show:*)",
-      "Bash(cd /Users/carterdeangelis/Sites/:*)"
+      "Bash(cd /Users/carterdeangelis/Sites/:*)",
+      "Bash(agent-browser:*)"
     ]
   },
   "statusLine": {
