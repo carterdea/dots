@@ -87,11 +87,11 @@
       "Bash(test:*)",
       "Bash(node:*)",
       "Bash(playwright-cli:*)",
-      "Bash(gt:*)",
       "Bash(DISABLE_ELASTICSEARCH=1 bundle exec rails test:*)",
       "Bash(bundle show:*)",
       "Bash(cd /Users/carterdeangelis/Sites/:*)",
-      "Bash(agent-browser:*)"
+      "Bash(agent-browser:*)",
+      "mcp__pencil"
     ]
   },
   "statusLine": {
@@ -110,5 +110,7 @@
     "frontend-design@claude-plugins-official": true
   },
   "autoUpdatesChannel": "latest",
+  "effortLevel": "medium",
+  "voiceEnabled": true
   "model": "opus"
 }
