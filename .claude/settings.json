@@ -94,7 +94,6 @@
       "mcp__pencil"
     ]
   },
-  "model": "opus",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline-command.sh"
@@ -113,4 +112,5 @@
   "autoUpdatesChannel": "latest",
   "effortLevel": "medium",
   "voiceEnabled": true
+  "model": "opus"
 }
