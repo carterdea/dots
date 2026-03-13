@@ -12,7 +12,7 @@ Create an unpublished Shopify theme named after the current git branch.
 
 1. Check for `shopify.theme.toml`
 - Look for `shopify.theme.toml` in the current directory
-- If it does NOT exist, warn the user and wait for confirmation before proceeding
+- If it does NOT exist, **stop immediately** — inform the user that the file is required (it defines the store and environment) and do not proceed
 
 2. Determine the `--environment` flag
 - Parse all `[environments.<name>]` sections from `shopify.theme.toml`
