@@ -111,6 +111,6 @@
   },
   "autoUpdatesChannel": "latest",
   "effortLevel": "medium",
-  "voiceEnabled": true
+  "voiceEnabled": true,
   "model": "opus"
 }
