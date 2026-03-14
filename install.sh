@@ -187,11 +187,14 @@ install_claude() {
         done
     fi
 
-    # Install skills
+    # Install skills (skip skills meant for other agents)
+    local CLAUDE_SKIP_SKILLS=("claude-review")
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
-            if [[ -d "$skill_dir" ]] && [[ "$(basename "$skill_dir")" != ".gitkeep" ]]; then
-                create_symlink "$skill_dir" "$HOME/.claude/skills/$(basename "$skill_dir")"
+            local skill_name
+            skill_name="$(basename "$skill_dir")"
+            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ ! " ${CLAUDE_SKIP_SKILLS[*]} " =~ " ${skill_name} " ]]; then
+                create_symlink "$skill_dir" "$HOME/.claude/skills/$skill_name"
             fi
         done
     fi
@@ -213,11 +216,14 @@ install_codex() {
         fi
     fi
 
-    # Install skills
+    # Install skills (skip skills meant for other agents)
+    local CODEX_SKIP_SKILLS=("codex-review")
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
-            if [[ -d "$skill_dir" ]] && [[ "$(basename "$skill_dir")" != ".gitkeep" ]]; then
-                create_symlink "$skill_dir" "$HOME/.agents/skills/$(basename "$skill_dir")"
+            local skill_name
+            skill_name="$(basename "$skill_dir")"
+            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ ! " ${CODEX_SKIP_SKILLS[*]} " =~ " ${skill_name} " ]]; then
+                create_symlink "$skill_dir" "$HOME/.agents/skills/$skill_name"
             fi
         done
     fi
