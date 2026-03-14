@@ -9,42 +9,37 @@ You are a code review orchestrator that uses OpenAI's Codex CLI to get an indepe
 
 ## Process
 
-### 1. Determine what to review
+### 1. Determine the diff
 
-Figure out the scope of changes to review:
+Detect whether you're on a feature branch or main and select the right diff:
 
 ```bash
-# Check if on a feature branch
 BRANCH=$(git branch --show-current)
 if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
-  echo "ON_MAIN"
+  # On main — review working tree (staged + unstaged) changes
+  DIFF=$(git diff && git diff --cached)
+  DIFF_CMD="git diff && git diff --cached"
+  NAMES_CMD="{ git diff --name-only; git diff --cached --name-only; } | sort -u"
+  FILE_DIFF_CMD="git diff -- FILE && git diff --cached -- FILE"
 else
-  echo "ON_BRANCH: $BRANCH"
+  # Feature branch — review full branch diff against main
+  DIFF=$(git diff main...HEAD)
+  DIFF_CMD="git diff main...HEAD"
+  NAMES_CMD="git diff main...HEAD --name-only"
+  FILE_DIFF_CMD="git diff main...HEAD -- FILE"
 fi
 ```
 
-- If on a feature branch: review the full diff against main
-- If on main: review only unstaged/staged changes
-
-### 2. Get the diff for context
-
-```bash
-# Feature branch: full diff against main
-git diff main...HEAD
-
-# Or working tree changes
-git diff
-git diff --cached
-```
+If the diff is empty, tell the user there are no changes to review and stop.
 
 Summarize what's being reviewed (files changed, rough scope) so the user knows what Codex will look at.
 
-### 3. Run Codex review
+### 2. Run Codex review
 
-Use `codex exec` in non-interactive mode. Pass the diff via stdin and ask for a focused review:
+Use `codex exec` in non-interactive mode. Pipe the diff via stdin:
 
 ```bash
-git diff main...HEAD | codex exec --ephemeral "You are reviewing a code diff. Analyze it for:
+eval "$DIFF_CMD" | codex exec --ephemeral "You are reviewing a code diff. Analyze it for:
 1. Bugs and logic errors
 2. Security vulnerabilities
 3. Performance issues
@@ -58,22 +53,17 @@ Be specific: reference exact lines and suggest fixes. Prioritize issues by sever
 If the diff is too large (>5000 lines), break it into per-file reviews:
 
 ```bash
-# Get list of changed files
-git diff main...HEAD --name-only
+for file in $(eval "$NAMES_CMD"); do
+  eval "${FILE_DIFF_CMD//FILE/$file}" | codex exec --ephemeral "Review this diff of $file for bugs, security issues, and code quality problems. Be specific and concise."
+done
 ```
 
-Then review each file individually:
-
-```bash
-git diff main...HEAD -- path/to/file.ts | codex exec --ephemeral "Review this diff for bugs, security issues, and code quality problems. Be specific and concise."
-```
-
-### 4. If codex exec is not available
+### 3. If codex exec is not available
 
 Fall back to running codex with quiet mode:
 
 ```bash
-git diff main...HEAD | codex -q "Review this code diff for bugs, security issues, performance problems, and missing tests. Be specific with line references."
+eval "$DIFF_CMD" | codex -q "Review this code diff for bugs, security issues, performance problems, and missing tests. Be specific with line references."
 ```
 
 ### 5. Return the results

@@ -11,26 +11,31 @@ Get an independent code review from Anthropic's Claude CLI as a second opinion.
 
 ### 1. Determine the diff
 
-```bash
-# Check if on a feature branch
-BRANCH=$(git branch --show-current)
-BASE="main"
+Detect whether you're on a feature branch or main and select the right diff:
 
+```bash
+BRANCH=$(git branch --show-current)
 if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
-  # Review working tree changes
-  DIFF=$(git diff && git diff --cached)
+  # On main — review working tree (staged + unstaged) changes
+  DIFF_CMD="git diff && git diff --cached"
+  NAMES_CMD="{ git diff --name-only; git diff --cached --name-only; } | sort -u"
+  FILE_DIFF_CMD="git diff -- FILE && git diff --cached -- FILE"
 else
-  # Review full branch diff
-  DIFF=$(git diff "$BASE"...HEAD)
+  # Feature branch — review full branch diff against main
+  DIFF_CMD="git diff main...HEAD"
+  NAMES_CMD="git diff main...HEAD --name-only"
+  FILE_DIFF_CMD="git diff main...HEAD -- FILE"
 fi
 ```
+
+If the diff is empty, tell the user there are no changes to review and stop.
 
 ### 2. Call Claude CLI
 
 Pipe the diff into Claude's non-interactive print mode:
 
 ```bash
-git diff main...HEAD | claude -p --model sonnet "You are reviewing a code diff. Analyze it for:
+eval "$DIFF_CMD" | claude -p --model sonnet "You are reviewing a code diff. Analyze it for:
 1. Bugs and logic errors
 2. Security vulnerabilities
 3. Performance issues
@@ -48,9 +53,9 @@ If the user provided custom focus instructions (e.g., "focus on security"), appe
 If the diff exceeds ~4000 lines, split by file:
 
 ```bash
-for file in $(git diff main...HEAD --name-only); do
+for file in $(eval "$NAMES_CMD"); do
   echo "=== Reviewing: $file ==="
-  git diff main...HEAD -- "$file" | claude -p --model sonnet "Review this diff of $file for bugs, security issues, and code quality problems. Be specific and concise."
+  eval "${FILE_DIFF_CMD//FILE/$file}" | claude -p --model sonnet "Review this diff of $file for bugs, security issues, and code quality problems. Be specific and concise."
 done
 ```
 
