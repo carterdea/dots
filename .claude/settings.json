@@ -94,6 +94,7 @@
       "mcp__pencil"
     ]
   },
+  "model": "opus[1m]",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline-command.sh"
@@ -109,8 +110,7 @@
     "figma@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true
   },
-  "autoUpdatesChannel": "latest",
   "effortLevel": "medium",
-  "voiceEnabled": true,
-  "model": "opus"
+  "autoUpdatesChannel": "latest",
+  "voiceEnabled": true
 }
