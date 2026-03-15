@@ -22,16 +22,11 @@ Ask the user:
 - What's the current state/pain points?
 - Any constraints or requirements?
 
-**Then explore the codebase.** Before writing anything, research:
-- Existing files relevant to the change, with specific line ranges
-- Naming conventions for suggesting new file names
+**Then do a lightweight codebase scan** to understand structure:
+- Project layout, naming conventions, key directories
 - The dependency chain (what imports what, what calls what)
 
-**How to explore depends on the model:**
-- **Opus or high-capacity models:** Use Glob/Grep/Read directly — you have the context to hold it all.
-- **Sonnet or smaller models:** Delegate to Explore subagents (Agent tool with `subagent_type: "Explore"`) to keep your main context clean. Give each subagent a focused query (e.g., "find all files that handle cart state" or "what's the naming convention in src/components/"). Collect their results, then synthesize.
-
-This research directly feeds the File Map and Implementation Plan sections.
+This gives you enough context to draft the plan structure. The deep file-level research happens in step 3.
 
 ### 2. Generate Design Doc
 
@@ -82,15 +77,20 @@ Add subsections for each major component as needed:
 
 ### File Map
 
-**Every design doc must include a file map.** This is the most actionable section — it tells the executing agent exactly where to look.
+**Every design doc must include a file map.** This is the most actionable section -- it tells the executing agent exactly where to look. Built in step 3 using subagent research.
 
-For existing files that need changes:
-- `path/to/file.ts` (lines 12-45) — what changes and why
+Existing files needing changes:
+- `path/to/file.ts` (lines 12-45) -- what changes and why
+- `path/to/file.test.ts` (lines 80-95) -- where new test cases go
 
-For new files:
-- `path/to/new_file.ts` — purpose, follows naming convention from `path/to/similar_file.ts`
+New files:
+- `path/to/new_file.ts` -- purpose, follows naming convention from `path/to/similar_file.ts`
+- `path/to/new_dir/new_file.ts` (new directory) -- purpose
 
-Group by phase if helpful. Use line numbers from the codebase research in step 1.
+Config/schema/migration files:
+- `path/to/config.json` (lines 5-8) -- what gets added or changed
+
+Group by phase if the plan is large. Every entry must come from actual codebase research, not guesses.
 
 ## Alternatives Considered
 
@@ -126,7 +126,31 @@ Relevant links, detailed figures, or additional context.
 
 ---
 
-### 3. Offer to Save
+### 3. Build the File Map
+
+After drafting the Implementation Plan, systematically find every file that needs to be touched or created. Use subagents to search in parallel -- one per phase or logical grouping.
+
+**Launch Explore subagents** (Agent tool with `subagent_type: "Explore"`), each with a focused query derived from the tasks:
+- "Find the files that handle [feature area]. Return file paths and the specific line ranges where [change] would land."
+- "What test files exist for [module]? Where would new tests be added?"
+- "Does `path/to/suggested/dir/` exist? What naming conventions do sibling files use?"
+
+Give each subagent enough context about *what* you're planning to change so it can identify the right lines, not just the right files.
+
+**What to include in the file map:**
+- **Existing files needing changes:** path, line range, and a brief note on what changes and why
+- **Existing test files:** where new test cases would be added
+- **Config files:** if any config, schema, or migration files need updating
+- **New files:** intended path following project conventions. If the parent directory exists, just list the path. If it doesn't, annotate with `(new directory)`
+
+**Validate directory existence** for every new file path. Run `ls` or use Glob to confirm parent directories exist before listing them in the map.
+
+**After collecting subagent results:**
+1. Assemble the `### File Map` section in the design doc
+2. Cross-reference every task in the Implementation Plan -- each task must reference its file map entries
+3. If a task has no file reference, either find the file or flag it as an open question
+
+### 4. Offer to Save
 
 After generating, ask the user:
 
@@ -136,14 +160,14 @@ If yes:
 - Save to `docs/{PROJECT_NAME}_PLAN.md` (snake_case, lowercase)
 - Create the `docs/` directory if it doesn't exist
 
-### 4. Iterate
+### 5. Iterate
 
 After generating (and optionally saving):
 - Ask if any sections need expansion
 - Clarify open questions
 - Refine based on feedback
 
-### 5. Next Step Block
+### 6. Next Step Block
 
 Once the design doc is finalized and saved, output a **Next Step** block so the user can quickly kick off execution. Gather git context first:
 
