@@ -1,6 +1,6 @@
 ---
 name: design-doc
-description: Format implementation plans as structured design documents for technical review
+description: Format implementation plans as structured design documents for technical review. Use when planning multi-step features, refactors, migrations, or architectural changes before coding. Produces a design doc with problem context, proposed solution, file map with verified line references, alternatives considered, and phased implementation tasks. Trigger on: "plan this out", "write a design doc", "help me plan the approach", "think through the tradeoffs", or any request to reason about how to build something before building it.
 user-invocable: true
 ---
 
@@ -120,9 +120,9 @@ Every task must reference the specific file(s) it touches. Use the file map abov
 - [ ] Write tests — `path/to/file.test.ts`
 - [ ] Documentation
 
-## Appendix
+## Appendix (optional — skip if empty)
 
-Relevant links, detailed figures, or additional context.
+External links, research data, or large diagrams that would break flow in the Design section. Do not repeat file paths or line numbers already in the File Map.
 
 ---
 
