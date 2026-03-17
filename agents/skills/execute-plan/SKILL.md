@@ -2,7 +2,6 @@
 name: execute-plan
 description: Work through a plan file task-by-task, checking off items as they complete
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Execute Plan
