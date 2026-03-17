@@ -115,15 +115,15 @@ Group by phase if the plan is large. Every entry must come from actual codebase 
 
 Every task must reference the specific file(s) it touches. Use the file map above — don't leave the executing agent guessing.
 
-### - [ ] Phase 1: Foundation
+### Phase 1: Foundation
 - [ ] Task 1 — `path/to/file.ts` (lines X-Y)
 - [ ] Task 2 — create `path/to/new_file.ts`
 
-### - [ ] Phase 2: Core Implementation
+### Phase 2: Core Implementation
 - [ ] Task 3 — `path/to/file.ts` (lines X-Y), `path/to/other.ts` (lines X-Y)
 - [ ] Task 4 — create `path/to/new_file.ts`
 
-### - [ ] Phase 3: Polish & Testing
+### Phase 3: Polish & Testing
 - [ ] Write tests — `path/to/file.test.ts`
 - [ ] Documentation
 
