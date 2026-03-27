@@ -40,7 +40,7 @@ git rebase origin/<default-branch>
 
 5. Force-push the rebased branch
 ```bash
-git push --force-with-lease
+git push --force-with-lease origin HEAD
 ```
 
 6. Report
