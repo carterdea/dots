@@ -201,6 +201,7 @@ worktree: <worktree-path>  # omit if not in a worktree
 - List unresolved questions at the end
 - Use tables for comparisons
 - Include code snippets or diagrams where helpful
+- **Every task in the Implementation Plan MUST use markdown checkboxes (`- [ ]`).** No exceptions. Do not use plain `- ` bullets for tasks. Every task line starts with `- [ ] `.
 - **Every task in the Implementation Plan must reference specific files and line ranges** (for existing code) or suggest a file name following project conventions (for new code). A task without a file reference is incomplete.
 - **Always explore the codebase before writing the doc.** The file map and line references must come from actual research, not guesses.
 
