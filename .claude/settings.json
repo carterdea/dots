@@ -108,7 +108,16 @@
     "pyright-lsp@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
     "figma@claude-plugins-official": true,
-    "frontend-design@claude-plugins-official": true
+    "frontend-design@claude-plugins-official": true,
+    "honcho@honcho": true
+  },
+  "extraKnownMarketplaces": {
+    "honcho": {
+      "source": {
+        "source": "github",
+        "repo": "plastic-labs/claude-honcho"
+      }
+    }
   },
   "effortLevel": "medium",
   "autoUpdatesChannel": "latest",
