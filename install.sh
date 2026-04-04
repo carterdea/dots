@@ -190,7 +190,7 @@ install_claude() {
     fi
 
     # Install skills (skip skills meant for other agents)
-    local CLAUDE_SKIP_SKILLS=("claude-review" "code-simplifier")
+    local CLAUDE_SKIP_SKILLS=("claude-review" "codex-review" "code-simplifier")
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
@@ -219,7 +219,7 @@ install_codex() {
     fi
 
     # Install skills (skip skills meant for other agents)
-    local CODEX_SKIP_SKILLS=("codex-review")
+    local CODEX_SKIP_SKILLS=()
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
