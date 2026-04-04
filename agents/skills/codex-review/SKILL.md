@@ -39,7 +39,9 @@ If the diff is empty, tell the user there are no changes to review and stop.
 Pipe the diff into Codex in non-interactive mode:
 
 ```bash
-eval "$DIFF_CMD" | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto "You are reviewing a code diff. Analyze it for:
+{
+  cat <<'EOF'
+You are reviewing a code diff. Analyze it for:
 1. Bugs and logic errors
 2. Security vulnerabilities
 3. Performance issues
@@ -47,7 +49,12 @@ eval "$DIFF_CMD" | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto 
 5. Test coverage gaps
 6. Code style and readability concerns
 
-Be specific: reference exact file paths and line contexts. Suggest fixes. Prioritize by severity (critical > warning > suggestion). Skip praise and only report problems."
+Be specific: reference exact file paths and line contexts. Suggest fixes. Prioritize by severity (critical > warning > suggestion). Skip praise and only report problems.
+
+Diff to review:
+EOF
+  eval "$DIFF_CMD"
+} | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto -
 ```
 
 If the user provided custom focus instructions such as security, tests, architecture, or performance, append those to the review prompt.
@@ -60,9 +67,16 @@ If the diff exceeds roughly 4000 lines, split by file:
 eval "$NAMES_CMD" | while IFS= read -r file; do
   [ -n "$file" ] || continue
   if [ "$BRANCH" = "$BASE_BRANCH" ] || [ "$BRANCH" = "master" ] || [ "$BRANCH" = "main" ]; then
-    { git diff -- "$file" && git diff --cached -- "$file"; } | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto "Review this diff of $file for bugs, security issues, and code quality problems. Be specific and concise."
+    {
+      printf 'Review this diff of %s for bugs, security issues, and code quality problems. Be specific and concise.\n\nDiff to review:\n' "$file"
+      git diff -- "$file"
+      git diff --cached -- "$file"
+    } | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto -
   else
-    git diff "${BASE_BRANCH}...HEAD" -- "$file" | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto "Review this diff of $file for bugs, security issues, and code quality problems. Be specific and concise."
+    {
+      printf 'Review this diff of %s for bugs, security issues, and code quality problems. Be specific and concise.\n\nDiff to review:\n' "$file"
+      git diff "${BASE_BRANCH}...HEAD" -- "$file"
+    } | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto -
   fi
 done
 ```
