@@ -24,11 +24,9 @@ if [ -z "$BASE_BRANCH" ]; then
 fi
 
 if [ "$BRANCH" = "$BASE_BRANCH" ] || [ "$BRANCH" = "master" ] || [ "$BRANCH" = "main" ]; then
-  DIFF_CMD="git diff && git diff --cached"
-  NAMES_CMD="{ git diff --name-only; git diff --cached --name-only; } | sort -u"
+  REVIEW_WORKTREE=true
 else
-  DIFF_CMD="git diff ${BASE_BRANCH}...HEAD"
-  NAMES_CMD="git diff ${BASE_BRANCH}...HEAD --name-only"
+  REVIEW_WORKTREE=false
 fi
 ```
 
@@ -53,7 +51,12 @@ Be specific: reference exact file paths and line contexts. Suggest fixes. Priori
 
 Diff to review:
 EOF
-  eval "$DIFF_CMD"
+  if [ "$REVIEW_WORKTREE" = true ]; then
+    git diff
+    git diff --cached
+  else
+    git diff "${BASE_BRANCH}...HEAD"
+  fi
 } | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto -
 ```
 
@@ -64,21 +67,24 @@ If the user provided custom focus instructions such as security, tests, architec
 If the diff exceeds roughly 4000 lines, split by file:
 
 ```bash
-eval "$NAMES_CMD" | while IFS= read -r file; do
-  [ -n "$file" ] || continue
-  if [ "$BRANCH" = "$BASE_BRANCH" ] || [ "$BRANCH" = "master" ] || [ "$BRANCH" = "main" ]; then
+if [ "$REVIEW_WORKTREE" = true ]; then
+  { git diff --name-only; git diff --cached --name-only; } | sort -u | while IFS= read -r file; do
+    [ -n "$file" ] || continue
     {
       printf 'Review this diff of %s for bugs, security issues, and code quality problems. Be specific and concise.\n\nDiff to review:\n' "$file"
       git diff -- "$file"
       git diff --cached -- "$file"
     } | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto -
-  else
+  done
+else
+  git diff "${BASE_BRANCH}...HEAD" --name-only | while IFS= read -r file; do
+    [ -n "$file" ] || continue
     {
       printf 'Review this diff of %s for bugs, security issues, and code quality problems. Be specific and concise.\n\nDiff to review:\n' "$file"
       git diff "${BASE_BRANCH}...HEAD" -- "$file"
     } | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto -
-  fi
-done
+  done
+fi
 ```
 
 ### 4. Fallback
@@ -86,7 +92,11 @@ done
 If `codex exec` is unavailable, fall back to quiet mode:
 
 ```bash
-eval "$DIFF_CMD" | codex -q "Review this code diff for bugs, security issues, performance problems, and missing tests. Be specific with file references."
+if [ "$REVIEW_WORKTREE" = true ]; then
+  { git diff; git diff --cached; } | codex -q "Review this code diff for bugs, security issues, performance problems, and missing tests. Be specific with file references."
+else
+  git diff "${BASE_BRANCH}...HEAD" | codex -q "Review this code diff for bugs, security issues, performance problems, and missing tests. Be specific with file references."
+fi
 ```
 
 ### 5. Present findings
