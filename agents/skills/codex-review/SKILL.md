@@ -11,18 +11,24 @@ Get an independent code review from OpenAI Codex CLI as a second opinion.
 
 ### 1. Determine the diff
 
-Detect whether you're on a feature branch or `main` and select the right diff:
+Detect whether you're on the default branch and select the right diff:
 
 ```bash
 BRANCH=$(git branch --show-current)
-if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+if [ -z "$BASE_BRANCH" ]; then
+  BASE_BRANCH=$(git remote show origin 2>/dev/null | sed -n '/HEAD branch/s/.*: //p')
+fi
+if [ -z "$BASE_BRANCH" ]; then
+  BASE_BRANCH=main
+fi
+
+if [ "$BRANCH" = "$BASE_BRANCH" ] || [ "$BRANCH" = "master" ] || [ "$BRANCH" = "main" ]; then
   DIFF_CMD="git diff && git diff --cached"
   NAMES_CMD="{ git diff --name-only; git diff --cached --name-only; } | sort -u"
-  FILE_DIFF_CMD="git diff -- FILE && git diff --cached -- FILE"
 else
-  DIFF_CMD="git diff main...HEAD"
-  NAMES_CMD="git diff main...HEAD --name-only"
-  FILE_DIFF_CMD="git diff main...HEAD -- FILE"
+  DIFF_CMD="git diff ${BASE_BRANCH}...HEAD"
+  NAMES_CMD="git diff ${BASE_BRANCH}...HEAD --name-only"
 fi
 ```
 
@@ -51,8 +57,13 @@ If the user provided custom focus instructions such as security, tests, architec
 If the diff exceeds roughly 4000 lines, split by file:
 
 ```bash
-for file in $(eval "$NAMES_CMD"); do
-  eval "${FILE_DIFF_CMD//FILE/$file}" | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto "Review this diff of $file for bugs, security issues, and code quality problems. Be specific and concise."
+eval "$NAMES_CMD" | while IFS= read -r file; do
+  [ -n "$file" ] || continue
+  if [ "$BRANCH" = "$BASE_BRANCH" ] || [ "$BRANCH" = "master" ] || [ "$BRANCH" = "main" ]; then
+    { git diff -- "$file" && git diff --cached -- "$file"; } | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto "Review this diff of $file for bugs, security issues, and code quality problems. Be specific and concise."
+  else
+    git diff "${BASE_BRANCH}...HEAD" -- "$file" | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto "Review this diff of $file for bugs, security issues, and code quality problems. Be specific and concise."
+  fi
 done
 ```
 
