@@ -10,16 +10,18 @@ Personal dotfiles and shared agent skills for macOS.
 - `git/` — gitconfig with local override pattern (`~/.gitconfig.local`)
 - `config/` — ripgrep, gh, ghostty
 - `ssh/` — SSH config
-- `agents/` — Claude Code global config (skills, subagents)
-  - `AGENTS.md` — installed to `~/.claude/CLAUDE.md` via symlink
-  - `skills/` — user-invocable skills (installed to `~/.claude/skills/`)
+- `agents/` — shared agent instructions and skills
+  - `AGENTS.md` — installed to Claude, OpenCode, and other agent configs via symlink
+  - `skills/` — shared user-invocable skills
   - `subagents/` — subagent definitions
+- `.opencode/` — OpenCode config examples
 
 ## Install
 
 ```bash
 ./install.sh --all          # everything
 ./install.sh --claude       # just Claude Code config
+./install.sh --opencode     # just OpenCode config
 ./install.sh --all --dry-run # preview
 ```
 
@@ -27,4 +29,5 @@ Personal dotfiles and shared agent skills for macOS.
 
 - Use `--dry-run` before real installs
 - After install, verify symlinks: `ls -la ~/.claude/CLAUDE.md`
+- After OpenCode install, verify: `ls -la ~/.config/opencode/AGENTS.md`
 - Shell changes need `source ~/.zshrc` or a new terminal

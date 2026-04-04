@@ -23,6 +23,7 @@ INSTALL_SSH=false
 INSTALL_AGENTS=false
 INSTALL_CLAUDE=false
 INSTALL_CODEX=false
+INSTALL_OPENCODE=false
 INSTALL_CURSOR=false
 INSTALL_CURSOR_PROJECT=false
 
@@ -54,6 +55,7 @@ OPTIONS:
     --agents        Install Claude Code agents config (legacy, use --claude)
     --claude        Install skills to Claude Code (~/.claude)
     --codex         Install skills to Codex (~/.agents)
+    --opencode      Install config to OpenCode (~/.config/opencode)
     --cursor        Install skills to Cursor global (~/.cursor)
     --cursor-project Install skills to Cursor project (.cursor)
     --no-backup     Skip backing up existing files
@@ -229,6 +231,34 @@ install_codex() {
     fi
 }
 
+install_opencode() {
+    info "Installing OpenCode configuration..."
+
+    # Install global instructions file
+    create_symlink "$DOTFILES_DIR/agents/AGENTS.md" "$HOME/.config/opencode/AGENTS.md"
+
+    # Create config from example if it doesn't exist
+    if [[ ! -f "$HOME/.config/opencode/opencode.json" ]]; then
+        if [[ "$DRY_RUN" == false ]]; then
+            cp "$DOTFILES_DIR/.opencode/opencode.json.example" "$HOME/.config/opencode/opencode.json"
+            info "Created ~/.config/opencode/opencode.json from example"
+        else
+            info "[DRY RUN] Would create ~/.config/opencode/opencode.json from example"
+        fi
+    else
+        warn "Existing ~/.config/opencode/opencode.json left unchanged; ensure it includes ~/.config/opencode/AGENTS.md in instructions"
+    fi
+
+    # Install skills
+    if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
+        for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
+            if [[ -d "$skill_dir" ]] && [[ "$(basename "$skill_dir")" != ".gitkeep" ]]; then
+                create_symlink "$skill_dir" "$HOME/.config/opencode/skills/$(basename "$skill_dir")"
+            fi
+        done
+    fi
+}
+
 install_cursor() {
     info "Installing Cursor (global) configuration..."
 
@@ -294,6 +324,10 @@ while [[ $# -gt 0 ]]; do
             INSTALL_CODEX=true
             shift
             ;;
+        --opencode)
+            INSTALL_OPENCODE=true
+            shift
+            ;;
         --cursor)
             INSTALL_CURSOR=true
             shift
@@ -335,6 +369,7 @@ if [[ "$INSTALL_ALL" == true ]]; then
     install_ssh
     install_claude
     install_codex
+    install_opencode
     install_cursor
 else
     [[ "$INSTALL_SHELL" == true ]] && install_shell
@@ -344,6 +379,7 @@ else
     [[ "$INSTALL_AGENTS" == true ]] && install_agents
     [[ "$INSTALL_CLAUDE" == true ]] && install_claude
     [[ "$INSTALL_CODEX" == true ]] && install_codex
+    [[ "$INSTALL_OPENCODE" == true ]] && install_opencode
     [[ "$INSTALL_CURSOR" == true ]] && install_cursor
     [[ "$INSTALL_CURSOR_PROJECT" == true ]] && install_cursor_project
 fi
