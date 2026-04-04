@@ -20,7 +20,17 @@ if [ -z "$BASE_BRANCH" ]; then
   BASE_BRANCH=$(git remote show origin 2>/dev/null | sed -n '/HEAD branch/s/.*: //p')
 fi
 if [ -z "$BASE_BRANCH" ]; then
-  BASE_BRANCH=main
+  for candidate in main master trunk; do
+    if git show-ref --verify --quiet "refs/heads/$candidate"; then
+      BASE_BRANCH=$candidate
+      break
+    fi
+  done
+fi
+if [ -z "$BASE_BRANCH" ]; then
+  echo "Unable to determine the repository default branch for review." >&2
+  echo "Set an origin HEAD, check out a branch with an upstream, or review the working tree diff manually." >&2
+  exit 1
 fi
 
 if [ "$BRANCH" = "$BASE_BRANCH" ] || [ "$BRANCH" = "master" ] || [ "$BRANCH" = "main" ]; then
