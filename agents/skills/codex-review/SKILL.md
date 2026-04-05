@@ -20,6 +20,13 @@ if [ -z "$BASE_BRANCH" ]; then
   BASE_BRANCH=$(git remote show origin 2>/dev/null | sed -n '/HEAD branch/s/.*: //p')
 fi
 if [ -z "$BASE_BRANCH" ]; then
+  case "$BRANCH" in
+    main|master|trunk)
+      BASE_BRANCH=$BRANCH
+      ;;
+  esac
+fi
+if [ -z "$BASE_BRANCH" ]; then
   for candidate in main master trunk; do
     if git show-ref --verify --quiet "refs/heads/$candidate"; then
       BASE_BRANCH=$candidate
