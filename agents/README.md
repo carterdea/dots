@@ -28,7 +28,6 @@ agents/
     ├── handoff/                   # Generate continuation prompts
     ├── humanize-ai-text/          # Detect and transform AI-generated text patterns
     ├── make-tests/                # Generate tests for changes
-    ├── new-cmd/                   # Create new skills from conversations
     ├── new-skill/                 # Create new skills from workflows
     ├── pair-programming/          # Senior engineer pairing mode
     ├── pre-pr/                    # Complete pre-PR validation pipeline
@@ -187,9 +186,6 @@ Rewrite text using Smart Brevity principles -- shorter, sharper, audience-first 
 ---
 
 ### Meta
-
-#### `/new-cmd`
-Create a new skill from the current conversation.
 
 #### `/new-skill`
 Create a new skill from a workflow demonstrated in the current conversation.

@@ -225,7 +225,6 @@ Your dotfiles include skills that work across Claude Code, Codex, and Cursor.
 - `/smart-brevity` - Rewrite text using Smart Brevity principles
 
 **Meta:**
-- `/new-cmd` - Create new skills from conversations
 - `/new-skill` - Create new skills from workflows
 
 ### Installation Options
