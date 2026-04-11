@@ -14,6 +14,21 @@ Verify completed work in the browser using QA notes from a plan file.
 /qa docs/my_feature_PLAN.md
 /qa
 
+## Browser Tool Selection
+
+**Default to `agent-browser` CLI.** Before using any browser tool, detect what's available:
+
+```bash
+command -v agent-browser 2>/dev/null && echo "FOUND:agent-browser" || echo "MISSING:agent-browser"
+```
+
+**Priority order:**
+1. **agent-browser** (preferred) -- use `agent-browser open`, `agent-browser snapshot -i`, `agent-browser click`, `agent-browser fill`, `agent-browser screenshot`, etc. Invoke the `/agent-browser` skill for full command reference.
+2. **Playwright CLI** (fallback) -- use if agent-browser is not installed
+3. **Chrome MCP** (last resort) -- only if neither CLI tool is available
+
+Do NOT use Chrome MCP (mcp__claude-in-chrome__*) when agent-browser is installed.
+
 ## Steps
 
 1. Find the plan (file path or conversation history). Scan for unchecked `- [ ] QA:` items. If none, stop.
@@ -22,21 +37,31 @@ Verify completed work in the browser using QA notes from a plan file.
 
 3. List the QA items grouped by phase and confirm before starting.
 
-4. Launch the browser with Playwright CLI:
+4. Launch the browser using the selected tool (see Browser Tool Selection above):
+
+   **agent-browser:**
+   ```bash
+   agent-browser open <dev-server-url>
+   agent-browser snapshot -i
+   ```
+
+   **Playwright CLI (fallback):**
+   ```bash
    playwright-cli open <dev-server-url> --headed
+   ```
 
    If auth is needed, check for cached state:
-   playwright-cli state-load .playwright/.auth/qa-state.json
+   - agent-browser: `agent-browser state-load .playwright/.auth/qa-state.json`
+   - playwright-cli: `playwright-cli state-load .playwright/.auth/qa-state.json`
 
-   If no cached state exists, ask the user for credentials, log in via CLI commands, then persist:
-   playwright-cli state-save .playwright/.auth/qa-state.json
+   If no cached state exists, ask the user for credentials, log in via CLI commands, then persist state.
 
-   If Playwright CLI can't complete auth (MFA, CAPTCHA, OAuth), fall back to Chrome MCP and have the user log in manually.
+   If neither CLI tool can complete auth (MFA, CAPTCHA, OAuth), fall back to Chrome MCP and have the user log in manually.
 
 5. For each `- [ ] QA:` item:
    - Read the instruction and relevant source code
-   - Navigate and interact using Playwright CLI commands (goto, click, fill, snapshot, etc.)
-   - Take a snapshot to inspect page state
+   - Navigate and interact using the selected browser tool (agent-browser or Playwright CLI)
+   - Take a snapshot to inspect page state (`agent-browser snapshot -i` or equivalent)
    - Screenshot the result and save to qa/
    - Pass: check it off `- [x] QA:`
    - Fail: leave unchecked, add a `> FAIL:` annotation describing what went wrong
