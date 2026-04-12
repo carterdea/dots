@@ -51,7 +51,7 @@ Do NOT use Chrome MCP (mcp__claude-in-chrome__*) when agent-browser is installed
    ```
 
    If auth is needed, check for cached state:
-   - agent-browser: `agent-browser state-load .playwright/.auth/qa-state.json`
+   - agent-browser: `agent-browser state load .playwright/.auth/qa-state.json`
    - playwright-cli: `playwright-cli state-load .playwright/.auth/qa-state.json`
 
    If no cached state exists, ask the user for credentials, log in via CLI commands, then persist state.
