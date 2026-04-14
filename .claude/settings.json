@@ -94,7 +94,6 @@
       "mcp__pencil"
     ]
   },
-  "model": "opus[1m]",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline-command.sh"
@@ -109,7 +108,8 @@
     "code-simplifier@claude-plugins-official": true,
     "figma@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
-    "honcho@honcho": true
+    "honcho@honcho": true,
+    "shopify-plugin@shopify-ai-toolkit": true
   },
   "extraKnownMarketplaces": {
     "honcho": {
@@ -117,9 +117,18 @@
         "source": "github",
         "repo": "plastic-labs/claude-honcho"
       }
+    },
+    "shopify-ai-toolkit": {
+      "source": {
+        "source": "github",
+        "repo": "Shopify/shopify-ai-toolkit"
+      }
     }
   },
   "effortLevel": "medium",
   "autoUpdatesChannel": "latest",
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
 }
