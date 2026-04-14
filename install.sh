@@ -190,7 +190,7 @@ install_claude() {
     fi
 
     # Install skills (skip skills meant for other agents)
-    local CLAUDE_SKIP_SKILLS=("claude-review" "codex-review" "code-simplifier")
+    local CLAUDE_SKIP_SKILLS=("claude-review" "codex-review" "code-simplifier" "self-improve")
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
@@ -249,11 +249,14 @@ install_opencode() {
         warn "Existing ~/.config/opencode/opencode.json left unchanged; ensure it includes ~/.config/opencode/AGENTS.md in instructions"
     fi
 
-    # Install skills
+    # Install skills (skip skills meant for other agents)
+    local OPENCODE_SKIP_SKILLS=("self-improve")
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
-            if [[ -d "$skill_dir" ]] && [[ "$(basename "$skill_dir")" != ".gitkeep" ]]; then
-                create_symlink "$skill_dir" "$HOME/.config/opencode/skills/$(basename "$skill_dir")"
+            local skill_name
+            skill_name="$(basename "$skill_dir")"
+            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ ! " ${OPENCODE_SKIP_SKILLS[*]} " =~ " ${skill_name} " ]]; then
+                create_symlink "$skill_dir" "$HOME/.config/opencode/skills/$skill_name"
             fi
         done
     fi
@@ -262,11 +265,14 @@ install_opencode() {
 install_cursor() {
     info "Installing Cursor (global) configuration..."
 
-    # Install skills
+    # Install skills (skip skills meant for other agents)
+    local CURSOR_SKIP_SKILLS=("self-improve")
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
-            if [[ -d "$skill_dir" ]] && [[ "$(basename "$skill_dir")" != ".gitkeep" ]]; then
-                create_symlink "$skill_dir" "$HOME/.cursor/skills/$(basename "$skill_dir")"
+            local skill_name
+            skill_name="$(basename "$skill_dir")"
+            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ ! " ${CURSOR_SKIP_SKILLS[*]} " =~ " ${skill_name} " ]]; then
+                create_symlink "$skill_dir" "$HOME/.cursor/skills/$skill_name"
             fi
         done
     fi
@@ -275,11 +281,14 @@ install_cursor() {
 install_cursor_project() {
     info "Installing Cursor (project) configuration..."
 
-    # Install skills
+    # Install skills (skip skills meant for other agents)
+    local CURSOR_PROJECT_SKIP_SKILLS=("self-improve")
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
-            if [[ -d "$skill_dir" ]] && [[ "$(basename "$skill_dir")" != ".gitkeep" ]]; then
-                create_symlink "$skill_dir" ".cursor/skills/$(basename "$skill_dir")"
+            local skill_name
+            skill_name="$(basename "$skill_dir")"
+            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ ! " ${CURSOR_PROJECT_SKIP_SKILLS[*]} " =~ " ${skill_name} " ]]; then
+                create_symlink "$skill_dir" ".cursor/skills/$skill_name"
             fi
         done
     fi
