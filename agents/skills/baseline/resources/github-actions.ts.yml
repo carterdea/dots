@@ -1,0 +1,35 @@
+# Single-package TypeScript / JavaScript workflow.
+# Mirrors pre-push hooks so local and CI enforce the same gate.
+# Rename to .github/workflows/baseline.yml at install time.
+
+name: baseline
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Lint (biome)
+        run: bunx biome check .
+
+      - name: Typecheck
+        run: bunx tsc --noEmit
+
+      - name: Dead code (knip)
+        run: bunx knip
+
+      - name: Test
+        run: bun run test

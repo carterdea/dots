@@ -1,0 +1,18 @@
+# Lefthook config for Ruby projects.
+# Fast staged-only checks on commit. Full-repo checks on push.
+
+pre-commit:
+  parallel: true
+  commands:
+    rubocop:
+      glob: "*.rb"
+      run: bundle exec rubocop -a {staged_files}
+      stage_fixed: true
+
+pre-push:
+  parallel: false
+  commands:
+    rubocop:
+      run: bundle exec rubocop
+    test:
+      run: bundle exec rake test

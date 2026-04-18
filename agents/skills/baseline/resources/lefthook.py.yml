@@ -1,0 +1,22 @@
+# Lefthook config for Python projects (uv).
+# Fast staged-only checks on commit. Full-repo checks on push.
+
+pre-commit:
+  parallel: true
+  commands:
+    ruff-format:
+      glob: "*.py"
+      run: uv run ruff format {staged_files}
+      stage_fixed: true
+    ruff-check:
+      glob: "*.py"
+      run: uv run ruff check --fix {staged_files}
+      stage_fixed: true
+
+pre-push:
+  parallel: false
+  commands:
+    ruff:
+      run: uv run ruff check .
+    test:
+      run: uv run pytest

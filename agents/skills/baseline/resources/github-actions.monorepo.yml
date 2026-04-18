@@ -1,0 +1,71 @@
+# Monorepo workflow template — one job per workspace.
+# Replace workspace names / paths to match the target repo.
+# Rename to .github/workflows/baseline.yml at install time.
+#
+# Principle: each workspace runs its OWN full quality suite.
+# Add a job per detected workspace. Don't share steps across stacks.
+
+name: baseline
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  # --- TypeScript workspace example (apps/web) ---
+  ts-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Lint (biome)
+        run: bunx biome check .
+      - name: Typecheck
+        run: bunx tsc --noEmit
+      - name: Dead code (knip)
+        run: bunx knip
+      - name: Test
+        run: bun run test
+
+  # --- Python workspace example (chat-services) ---
+  py-chat:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chat-services
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --all-extras --dev
+      - name: Lint (ruff)
+        run: uv run ruff check .
+      - name: Format check (ruff)
+        run: uv run ruff format --check .
+      - name: Typecheck (basedpyright)
+        run: uv run basedpyright
+      - name: Test (pytest)
+        run: uv run pytest
+
+  # --- Ruby workspace example (apps/admin) ---
+  # rb-admin:
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: apps/admin
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: ruby/setup-ruby@v1
+  #       with:
+  #         bundler-cache: true
+  #         working-directory: apps/admin
+  #     - run: bundle exec rubocop
+  #     - run: bundle exec rake test
