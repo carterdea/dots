@@ -15,5 +15,6 @@ pre-push:
     rubocop:
       run: bundle exec rubocop
     test:
+      # Default: `bundle exec rake test` (minitest convention).
       # Swap to `bundle exec rspec` if your repo uses RSpec.
       run: bundle exec rake test
