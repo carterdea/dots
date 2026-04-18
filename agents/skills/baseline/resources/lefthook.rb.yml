@@ -5,7 +5,7 @@ pre-commit:
   parallel: true
   commands:
     rubocop:
-      glob: "*.rb"
+      glob: "**/*.rb"
       run: bundle exec rubocop -a {staged_files}
       stage_fixed: true
 

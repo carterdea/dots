@@ -5,11 +5,11 @@ pre-commit:
   parallel: true
   commands:
     ruff-format:
-      glob: "*.py"
+      glob: "**/*.py"
       run: uv run ruff format {staged_files}
       stage_fixed: true
     ruff-check:
-      glob: "*.py"
+      glob: "**/*.py"
       run: uv run ruff check --fix {staged_files}
       stage_fixed: true
 
@@ -18,5 +18,7 @@ pre-push:
   commands:
     ruff:
       run: uv run ruff check .
+    typecheck:
+      run: uv run basedpyright
     test:
       run: uv run pytest
