@@ -21,6 +21,7 @@ jobs:
       - name: Lint (rubocop)
         run: bundle exec rubocop
 
+      # Default: `bundle exec rake test` (minitest convention).
       # Swap to `bundle exec rspec` if your repo uses RSpec.
       - name: Test
         run: bundle exec rake test
