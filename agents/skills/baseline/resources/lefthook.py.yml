@@ -2,7 +2,9 @@
 # Fast staged-only checks on commit. Full-repo checks on push.
 
 pre-commit:
-  parallel: true
+  # piped: format then lint --fix sequentially against the same files
+  # to avoid races where both writers compete on `stage_fixed: true`.
+  piped: true
   commands:
     ruff-format:
       glob: "**/*.py"
@@ -19,6 +21,7 @@ pre-push:
     ruff:
       run: uv run ruff check .
     typecheck:
+      # Swap to `uv run pyright` if your repo uses pyright instead of basedpyright.
       run: uv run basedpyright
     test:
       run: uv run pytest

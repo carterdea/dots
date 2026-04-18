@@ -15,7 +15,8 @@ pre-push:
     biome:
       run: bunx biome check .
     typecheck:
-      run: bunx tsc --noEmit
+      # Skipped automatically on JS-only repos (no tsconfig.json).
+      run: if [ -f tsconfig.json ]; then bunx tsc --noEmit; fi
     knip:
       run: bunx knip
     test:

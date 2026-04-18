@@ -191,6 +191,13 @@ bundle exec lefthook install
 
 Copy the matching template from `resources/` to `lefthook.yml` at repo root. For monorepos, merge templates — see Monorepos section.
 
+**Substitute at install time** based on detection (don't ship the raw template if any of these apply):
+
+- **TypeScript typecheck**: remove the tsc step entirely if no `tsconfig.json` exists anywhere in the target (the template already wraps it in `if [ -f tsconfig.json ]`, but for monorepo jobs prefer pruning the step outright).
+- **Python typecheck**: detect whether the target uses `basedpyright` or `pyright` (check `pyproject.toml` dev deps). Swap the hook command to match.
+- **Ruby test runner**: inspect `Gemfile` for `rspec` / `minitest` / neither, and write `bundle exec rspec`, `bundle exec rake test`, or omit the step accordingly.
+- **TS package manager**: if `bun.lockb` absent and `package-lock.json` / `pnpm-lock.yaml` / `yarn.lock` present, rewrite every `bun` / `bunx` call to `npm` / `pnpm` / `yarn` equivalents before writing the hook.
+
 ### 6. Hook layout
 
 Principle: fast + staged on commit, slow + full-repo on push.
@@ -249,6 +256,18 @@ Build the workflow from detected tools — lint + format-check + typecheck + dea
 **Monorepo**: use `resources/github-actions.monorepo.yml` as a base; add one job per workspace with `defaults.run.working-directory` scoped to the package path. Each job runs its own full suite — lint, typecheck, dead-code, tests. Don't share steps across stacks (TS and Py need different setup actions).
 
 **Runners**: `ubuntu-latest`. **Triggers**: `pull_request` + `push` to default branch only (not every push — prevents duplicate runs on PRs).
+
+**Detect the default branch** at install time:
+
+```bash
+git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|origin/||'
+```
+
+Substitute the result into `branches: [<detected>]` before writing the workflow. Don't ship `main` if the remote default is `master` / `trunk` / something else.
+
+**Package manager substitution** for the TS workflow: same rule as lefthook — detect via lockfile, rewrite `bun install` + setup action to the match (`npm ci` + `actions/setup-node@v4`, `pnpm install --frozen-lockfile` + `pnpm/action-setup@v4`, etc.). Templates carry inline comments showing the swaps.
+
+**Python typecheck substitution**: same basedpyright ↔ pyright rule. **Ruby test runner substitution**: same rspec ↔ rake test rule.
 
 **Caching**: `astral-sh/setup-uv@v5` and `oven-sh/setup-bun@v2` handle caching via their own flags. Don't hand-roll `actions/cache`.
 
