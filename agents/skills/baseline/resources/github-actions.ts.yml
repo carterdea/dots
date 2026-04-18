@@ -7,6 +7,7 @@ name: baseline
 on:
   pull_request:
   push:
+    # Replace `main` with your default branch (e.g. `master`, `trunk`) if different.
     branches: [main]
 
 jobs:
@@ -15,6 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Swap setup + install for the repo's package manager:
+      #   npm   -> actions/setup-node@v4   + `npm ci`
+      #   pnpm  -> pnpm/action-setup@v4    + `pnpm install --frozen-lockfile`
+      #   yarn  -> actions/setup-node@v4   + `yarn install --immutable`
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest

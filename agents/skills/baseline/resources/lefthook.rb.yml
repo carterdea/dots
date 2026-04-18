@@ -15,4 +15,5 @@ pre-push:
     rubocop:
       run: bundle exec rubocop
     test:
+      # Swap to `bundle exec rspec` if your repo uses RSpec.
       run: bundle exec rake test
