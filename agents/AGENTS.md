@@ -5,6 +5,10 @@
 ## JavaScript/TypeScript
 - Use `bun` instead of `npm` or `node` when possible
 
+## Dependencies
+- Never assume the latest version of a dependency — check context7 or exa for the current version before installing, pinning, or upgrading
+- Applies to all ecosystems: npm/bun, PyPI/uv, RubyGems, Homebrew, GitHub Actions, etc.
+
 ## Testing
 - Do not mock tests just to make them pass
 - When in plan mode, always include writing tests
