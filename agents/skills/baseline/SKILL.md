@@ -216,6 +216,16 @@ Copy `scripts/run_silent.sh` into the target repo at `scripts/run_silent.sh` (cr
 
 Skip if the file already exists.
 
+**Make it discoverable to agents.** Append the pointer snippet from `resources/agent-instructions.snippet.md` to any of these files that already exist at the target repo root:
+
+- `CLAUDE.md` (Claude Code)
+- `AGENTS.md` (Codex, OpenCode, and the emerging cross-agent convention)
+- `.cursor/rules/*.mdc` (Cursor) — only if the user already uses rules
+
+Skip append if the target file already contains the string `run_silent.sh` (idempotent). Do **not** create `CLAUDE.md` / `AGENTS.md` from scratch — only append when one already exists; otherwise the repo may not have opted in to agent instructions.
+
+Why: the wrapper is invisible unless agents know to use it. Putting a short pointer in the target repo's agent-instructions file means any agent that reads them (Claude Code, Codex, OpenCode, Cursor) discovers the helper on first pass.
+
 ### 8. GitHub Actions (quality gate)
 
 Only runs if the remote is GitHub. Check:
@@ -349,4 +359,5 @@ Light-touch only. For each file above: if it exists, log `already configured: <p
 - `resources/github-actions.py.yml` — CI workflow (single Python package)
 - `resources/github-actions.rb.yml` — CI workflow (single Ruby package)
 - `resources/github-actions.monorepo.yml` — CI workflow (multi-workspace base)
+- `resources/agent-instructions.snippet.md` — pointer appended to target repo's `CLAUDE.md` / `AGENTS.md` so agents discover `run_silent.sh`
 - `scripts/run_silent.sh` — backpressure wrapper to drop into target repo
