@@ -28,6 +28,7 @@ jobs:
       - name: Format check (ruff)
         run: uv run ruff format --check .
 
+      # Swap to `uv run pyright` (and rename the step) if your repo uses pyright.
       - name: Typecheck (basedpyright)
         run: uv run basedpyright
 

@@ -50,6 +50,7 @@ jobs:
         run: uv run ruff check .
       - name: Format check (ruff)
         run: uv run ruff format --check .
+      # Swap to `uv run pyright` if the workspace uses pyright.
       - name: Typecheck (basedpyright)
         run: uv run basedpyright
       - name: Test (pytest)
