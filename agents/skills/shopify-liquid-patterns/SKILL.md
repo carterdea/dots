@@ -1,5 +1,5 @@
 ---
-name: liquid-patterns
+name: shopify-liquid-patterns
 description: Common Liquid code patterns for Shopify theme development. Use when writing Liquid templates, handling translations, product displays, or theme customizations.
 ---
 
