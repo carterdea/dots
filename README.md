@@ -94,6 +94,7 @@ cd ~/dots
 - `--codex` / `--openai` - Install skills to Codex (~/.agents)
 - `--cursor` - Install skills to Cursor global (~/.cursor)
 - `--cursor-project` - Install skills to Cursor project (.cursor)
+- `--pi` - Install skills to pi coding agent (~/.pi/agent)
 - `--no-backup` - Skip backing up existing files
 - `--dry-run` - Preview changes without applying them
 
@@ -242,8 +243,11 @@ Your dotfiles include skills that work across Claude Code, Codex, and Cursor.
 # Install to Codex
 ./install.sh --codex
 
-# Install to all (Claude, Cursor, Codex)
-./install.sh --claude --cursor --codex
+# Install to pi coding agent
+./install.sh --pi
+
+# Install to all (Claude, Cursor, Codex, pi)
+./install.sh --claude --cursor --codex --pi
 ```
 
 ## Features

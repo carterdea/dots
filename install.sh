@@ -26,6 +26,7 @@ INSTALL_CODEX=false
 INSTALL_OPENCODE=false
 INSTALL_CURSOR=false
 INSTALL_CURSOR_PROJECT=false
+INSTALL_PI=false
 
 # Helper functions
 info() {
@@ -58,6 +59,7 @@ OPTIONS:
     --opencode      Install config to OpenCode (~/.config/opencode)
     --cursor        Install skills to Cursor global (~/.cursor)
     --cursor-project Install skills to Cursor project (.cursor)
+    --pi            Install skills to pi coding agent (~/.pi/agent)
     --no-backup     Skip backing up existing files
     --dry-run       Show what would be done without making changes
     -h, --help      Show this help message
@@ -278,6 +280,71 @@ install_cursor() {
     fi
 }
 
+install_pi() {
+    info "Installing pi coding agent configuration..."
+
+    # Install global AGENTS.md
+    create_symlink "$DOTFILES_DIR/agents/AGENTS.md" "$HOME/.pi/agent/AGENTS.md"
+
+    # Install skills (skip skills meant for other agents)
+    local PI_SKIP_SKILLS=()
+    if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
+        for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
+            local skill_name
+            skill_name="$(basename "$skill_dir")"
+            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ ! " ${PI_SKIP_SKILLS[*]} " =~ " ${skill_name} " ]]; then
+                create_symlink "$skill_dir" "$HOME/.pi/agent/skills/$skill_name"
+            fi
+        done
+    fi
+
+    install_pi_agents
+}
+
+# Translate Claude subagent frontmatter (tools: Bash,Read,Grep,Glob; model: sonnet)
+# into pi-compatible form (tools: bash,read,grep,find; model: dropped to inherit session).
+# Pi subagent extension (badlogic/pi-mono examples) loads from ~/.pi/agent/agents/.
+install_pi_agents() {
+    if [[ ! -d "$DOTFILES_DIR/agents/subagents" ]]; then
+        return
+    fi
+
+    if [[ "$DRY_RUN" == true ]]; then
+        for src in "$DOTFILES_DIR/agents/subagents"/*.md; do
+            [[ -f "$src" ]] || continue
+            info "[DRY RUN] Would translate + install pi agent: ~/.pi/agent/agents/$(basename "$src")"
+        done
+        return
+    fi
+
+    mkdir -p "$HOME/.pi/agent/agents"
+    local count=0
+    for src in "$DOTFILES_DIR/agents/subagents"/*.md; do
+        [[ -f "$src" ]] || continue
+        local name dest
+        name="$(basename "$src")"
+        dest="$HOME/.pi/agent/agents/$name"
+        awk '
+            BEGIN { fm_count = 0 }
+            /^---$/ { fm_count++; print; next }
+            fm_count == 1 && /^tools:/ {
+                gsub(/Bash/, "bash"); gsub(/Read/, "read"); gsub(/Grep/, "grep");
+                gsub(/Glob/, "find"); gsub(/Edit/, "edit"); gsub(/Write/, "write");
+                print; next
+            }
+            fm_count == 1 && /^model:/ { next }
+            { print }
+        ' "$src" > "$dest"
+        count=$((count + 1))
+    done
+    info "Translated $count Claude subagent(s) -> ~/.pi/agent/agents/"
+    warn "Subagent host extension required. Install via:"
+    warn "  git clone https://github.com/badlogic/pi-mono ~/code/pi-mono"
+    warn "  mkdir -p ~/.pi/agent/extensions/subagent"
+    warn "  ln -sf ~/code/pi-mono/packages/coding-agent/examples/extensions/subagent/index.ts ~/.pi/agent/extensions/subagent/index.ts"
+    warn "  ln -sf ~/code/pi-mono/packages/coding-agent/examples/extensions/subagent/agents.ts ~/.pi/agent/extensions/subagent/agents.ts"
+}
+
 install_cursor_project() {
     info "Installing Cursor (project) configuration..."
 
@@ -345,6 +412,10 @@ while [[ $# -gt 0 ]]; do
             INSTALL_CURSOR_PROJECT=true
             shift
             ;;
+        --pi)
+            INSTALL_PI=true
+            shift
+            ;;
         --no-backup)
             BACKUP=false
             shift
@@ -380,6 +451,7 @@ if [[ "$INSTALL_ALL" == true ]]; then
     install_codex
     install_opencode
     install_cursor
+    install_pi
 else
     [[ "$INSTALL_SHELL" == true ]] && install_shell
     [[ "$INSTALL_GIT" == true ]] && install_git
@@ -391,6 +463,7 @@ else
     [[ "$INSTALL_OPENCODE" == true ]] && install_opencode
     [[ "$INSTALL_CURSOR" == true ]] && install_cursor
     [[ "$INSTALL_CURSOR_PROJECT" == true ]] && install_cursor_project
+    [[ "$INSTALL_PI" == true ]] && install_pi
 fi
 
 if [[ "$DRY_RUN" == false ]]; then
