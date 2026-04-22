@@ -1,5 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
   "permissions": {
     "allow": [
       "Read",
@@ -92,7 +95,8 @@
       "Bash(cd /Users/carterdeangelis/Sites/:*)",
       "Bash(agent-browser:*)",
       "mcp__pencil"
-    ]
+    ],
+    "defaultMode": "auto"
   },
   "statusLine": {
     "type": "command",
@@ -109,7 +113,8 @@
     "figma@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "honcho@honcho": true,
-    "shopify-plugin@shopify-ai-toolkit": true
+    "shopify-plugin@shopify-ai-toolkit": true,
+    "caveman@caveman": true
   },
   "extraKnownMarketplaces": {
     "honcho": {
@@ -123,12 +128,16 @@
         "source": "github",
         "repo": "Shopify/shopify-ai-toolkit"
       }
+    },
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
+      }
     }
   },
   "effortLevel": "medium",
   "autoUpdatesChannel": "latest",
-  "voiceEnabled": true,
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  }
+  "skipAutoPermissionPrompt": true,
+  "voiceEnabled": true
 }
