@@ -182,54 +182,78 @@ dots/
 
 ## AI Assistant Configuration
 
-Your dotfiles include skills that work across Claude Code, Codex, and Cursor.
+Your dotfiles include skills that work across Claude Code, Codex, OpenCode, Cursor, and pi.
 
 ### Available Skills
 
 **Development Workflow:**
-- `/design-doc` - Create technical design documents
+- `/design-doc` - Technical design documents
 - `/execute-plan` - Work through a plan file task-by-task
-- `/qa` - Browser-based QA verification against a plan file
-- `/handoff` - Generate a continuation prompt for the next session
+- `/qa` - Browser-based QA against a plan file
+- `/handoff` - Continuation prompt for the next session
 - `/de-slop` - Remove AI artifacts before PRs
-- `/make-tests` - Generate tests for your changes
-- `/work-forever` - Autonomous long-running task mode
+- `/make-tests` - Generate tests for current changes
+- `/work-forever` - Highly autonomous long-running task mode
+- `/iterate-forever` - Visual-reference-to-app loop with screenshot comparison
+- `/dogfood` - Exploratory test web app, structured bug report
+- `/qa-gstack` - QA test + fix loop with health scores
+- `/qa-gstack-only` - Report-only QA, no code changes
+- `/merge-conflicts` - Rebase onto main, resolve conflicts, force-push
 
 **GitHub Workflow:**
-- `/gh-ship` - Commit, push, and create PR in one step
-- `/gh-commit` - Create well-formatted commits
-- `/gh-review-pr` - Review PRs thoroughly
+- `/gh-ship` - Commit, push, PR in one step
+- `/gh-commit` - Conventional commit messages
+- `/gh-review-pr` - Thorough PR review
 - `/gh-address-pr-comments` - Resolve PR review comments
-- `/gh-fix-ci` - Debug and fix failing CI checks
+- `/gh-fix-ci` - Fix first failing CI check
+- `/clean-gone` - Remove local branches gone from remote
+- `/clean-worktrees` - Audit and clean agent worktrees safely
 
-**Code Quality:**
-- `/pre-pr` - Pre-PR validation (security, tests, breaking changes)
+**Code Quality and Review:**
+- `/pre-pr` - Pre-PR validation pipeline (security, types, tests, breaking changes)
 - `/rams` - Accessibility and visual design review
-- `/improve-codebase-architecture` - Find deepening opportunities and refactor toward deep modules
+- `/code-review-prompt` - Generate review prompt for another Claude session
+- `/garry-tan-code-review` - Interactive opinionated code review with sign-off
+- `/codex-review` - Second opinion via OpenAI Codex CLI
+- `/claude-review` - Second opinion via Claude Code CLI
+- `/code-simplifier` - Simplify recently modified code
+- `/baseline` - Install quality baseline (linter, hooks, dead-code scan)
+- `/react-doctor` - Catch React issues after changes
+- `/vercel-react-best-practices` - React/Next.js performance patterns
+- `/audit-ai-code` - Triage AI-shaped backend code (duplicate helpers, broad excepts, hallucinated APIs)
+- `/audit-ai-frontend` - Triage AI-looking UI (generic aesthetics, weak copy, a11y gaps)
+- `/audit-ai-writing` - AI-writing residue checks and citation triage
+- `/improve-codebase-architecture` - Find deepening opportunities toward deep modules
 
-**Coding Workflow:**
-- `/pair-programming` - Senior engineer pairing mode with assumption surfacing, pushback, and scope discipline
-- `/prove-it-bug-fix` - Reproduce bugs with failing tests before fixing
-- `/code-review-prompt` - Generate comprehensive code review prompts
-- `/garry-tan-code-review` - Interactive, opinionated code review with options A/B/C and explicit sign-off before changes
-- `/grill-me` - Stress-test a plan or design by interviewing the user until each branch resolves
-- `/zoom-out` - Get broader context or higher-level perspective on a section of code
+**Planning and Thinking:**
+- `/grill-me` - Stress-test plan via relentless interview
+- `/zoom-out` - Higher-level perspective on a section of code
+- `/office-hours` - YC-style forcing questions / brainstorm mode
+- `/subagent-orchestrator` - Coordinate sub-agents on long-horizon tasks
+- `/pair-programming` - Senior engineer pairing with pushback and scope discipline
+- `/prove-it-bug-fix` - Failing reproduction test before fix
 
-**Frontend Development:**
-- `/emil-design-engineering` - Design engineering principles for polished, accessible web interfaces
-- `/web-animation-design` - Animation patterns and implementation guidance
-- `/shopify-liquid-patterns` - Common Liquid code patterns for Shopify themes
+**Frontend and Design:**
+- `/emil-design-engineering` - Polished, accessible web interface principles
+- `/web-animation-design` - Animation patterns and performance
+- `/shopify-liquid-patterns` - Liquid code patterns
 
 **Shopify:**
-- `/shopify-dev-theme` - Create dev theme from git branch
+- `/shopify-dev-theme` - Dev theme from current branch
 - `/shopify-theme-pull` - Pull merchant content from live theme
 
 **Writing:**
-- `/humanize-ai-text` - Detect and rewrite AI-generated text patterns to sound natural
-- `/smart-brevity` - Rewrite text using Smart Brevity principles
+- `/humanize-ai-text` - Rewrite AI text to sound natural / pass detectors
+- `/smart-brevity` - Smart Brevity rewriting
+
+**Browser Automation:**
+- `/agent-browser` - Standalone browser CLI for navigation, forms, scraping, screenshots
 
 **Meta:**
-- `/new-skill` - Create new skills from workflows
+- `/new-skill` - Create skill from current conversation
+- `/skill-creator` - Create, edit, evaluate, benchmark skills
+- `/self-improve` - Codex session-driven self-improvement
+- `/clean-coder` - Invoked when user swears or is upset
 
 ### Installation Options
 
@@ -249,8 +273,11 @@ Your dotfiles include skills that work across Claude Code, Codex, and Cursor.
 # Install to pi coding agent
 ./install.sh --pi
 
-# Install to all (Claude, Cursor, Codex, pi)
-./install.sh --claude --cursor --codex --pi
+# Install to OpenCode
+./install.sh --opencode
+
+# Install to all (Claude, Cursor, Codex, OpenCode, pi)
+./install.sh --all
 ```
 
 ## Features
