@@ -177,7 +177,7 @@ dots/
 └── agents/                 # Claude Code agents configuration
     ├── AGENTS.md           # Global instructions
     ├── subagents/          # Subagent definitions (5 agents)
-    └── skills/             # Skills (27 skills)
+    └── skills/             # Skills (51 skills)
 ```
 
 ## AI Assistant Configuration
@@ -205,12 +205,15 @@ Your dotfiles include skills that work across Claude Code, Codex, and Cursor.
 **Code Quality:**
 - `/pre-pr` - Pre-PR validation (security, tests, breaking changes)
 - `/rams` - Accessibility and visual design review
+- `/improve-codebase-architecture` - Find deepening opportunities and refactor toward deep modules
 
 **Coding Workflow:**
 - `/pair-programming` - Senior engineer pairing mode with assumption surfacing, pushback, and scope discipline
 - `/prove-it-bug-fix` - Reproduce bugs with failing tests before fixing
 - `/code-review-prompt` - Generate comprehensive code review prompts
 - `/garry-tan-code-review` - Interactive, opinionated code review with options A/B/C and explicit sign-off before changes
+- `/grill-me` - Stress-test a plan or design by interviewing the user until each branch resolves
+- `/zoom-out` - Get broader context or higher-level perspective on a section of code
 
 **Frontend Development:**
 - `/emil-design-engineering` - Design engineering principles for polished, accessible web interfaces

@@ -20,6 +20,7 @@ agents/
     ├── emil-design-engineering/   # Design engineering principles
     ├── execute-plan/              # Work through a plan file task-by-task
     ├── garry-tan-code-review/     # Interactive opinionated code review
+    ├── grill-me/                  # Stress-test plans by relentless interview
     ├── gh-address-pr-comments/    # Resolve PR review comments
     ├── gh-commit/                 # Create well-formatted commits
     ├── gh-fix-ci/                 # Debug and fix failing CI checks
@@ -27,6 +28,7 @@ agents/
     ├── gh-ship/                   # Commit, push, and create PR in one step
     ├── handoff/                   # Generate continuation prompts
     ├── humanize-ai-text/          # Detect and transform AI-generated text patterns
+    ├── improve-codebase-architecture/ # Find deepening opportunities to refactor toward deep modules
     ├── make-tests/                # Generate tests for changes
     ├── new-skill/                 # Create new skills from workflows
     ├── pair-programming/          # Senior engineer pairing mode
@@ -39,7 +41,8 @@ agents/
     ├── shopify-theme-pull/        # Pull merchant content from live theme
     ├── smart-brevity/             # Smart Brevity writing style
     ├── web-animation-design/      # Animation patterns
-    └── work-forever/              # Autonomous long-running task mode
+    ├── work-forever/              # Autonomous long-running task mode
+    └── zoom-out/                  # Higher-level perspective on a section of code
 ```
 
 ## Installation
@@ -159,6 +162,15 @@ Generate comprehensive code review prompts for another Claude session.
 
 #### `/garry-tan-code-review`
 Interactive, opinionated code review with options A/B/C and explicit sign-off before changes.
+
+#### `/grill-me`
+Stress-test a plan or design. The agent interviews you relentlessly, resolving each branch of the decision tree until shared understanding is reached.
+
+#### `/zoom-out`
+Ask the agent to give broader context or a higher-level perspective on a section of code. Useful when unfamiliar with how code fits the bigger picture.
+
+#### `/improve-codebase-architecture`
+Find deepening opportunities — refactors that turn shallow modules into deep ones for testability and AI-navigability. Informed by domain language in `CONTEXT.md` and `docs/adr/`.
 
 ---
 
