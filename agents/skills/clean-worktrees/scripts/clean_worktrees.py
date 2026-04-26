@@ -108,7 +108,7 @@ def pr_lookup(repo: Path, branch: str) -> list[dict[str, object]]:
 def backup_dirty(worktree: Path, backup_dir: Path, label: str) -> None:
     backup_dir.mkdir(parents=True, exist_ok=True)
     (backup_dir / f"{label}.status.txt").write_text(run(["git", "-C", str(worktree), "status", "--porcelain"]).stdout)
-    (backup_dir / f"{label}.diff").write_text(run(["git", "-C", str(worktree), "diff", "--binary"]).stdout)
+    (backup_dir / f"{label}.diff").write_text(run(["git", "-C", str(worktree), "diff", "HEAD", "--binary"]).stdout)
     untracked = run(["git", "-C", str(worktree), "ls-files", "--others", "--exclude-standard", "-z"]).stdout
     names = [name for name in untracked.split("\0") if name]
     if names:
@@ -183,7 +183,7 @@ def main() -> int:
         dirty = dirty_count(wt) if wt.exists() else -1
         size = du_kb(wt) if wt.exists() else 0
         recent = is_recent(wt, args.min_age_hours) if wt.exists() else False
-        eligible = (not prs or args.force_pr_backed) and (dirty == 0 or args.include_dirty) and not recent
+        eligible = (not prs or args.force_pr_backed) and dirty >= 0 and (dirty == 0 or args.include_dirty) and not recent
         reason = "eligible"
         if recent:
             reason = "skip_recent"
@@ -200,7 +200,8 @@ def main() -> int:
         })
         if args.apply and eligible:
             if dirty > 0:
-                backup_dirty(wt, backup_dir, wt.parent.name)
+                label = str(wt).strip("/").replace("/", "_")
+                backup_dirty(wt, backup_dir, label)
             proc = run(["git", "-C", str(repo), "worktree", "remove", "--force", str(wt)])
             if proc.returncode == 0:
                 removed += 1
