@@ -227,6 +227,7 @@ Your dotfiles include skills that work across Claude Code, Codex, OpenCode, Curs
 
 **Planning and Thinking:**
 - `/grill-me` - Stress-test plan via relentless interview
+- `/domain-model` - Grilling session that maintains CONTEXT.md (glossary) and docs/adr/ inline
 - `/zoom-out` - Higher-level perspective on a section of code
 - `/office-hours` - YC-style forcing questions / brainstorm mode
 - `/subagent-orchestrator` - Coordinate sub-agents on long-horizon tasks
