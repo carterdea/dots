@@ -13,7 +13,7 @@ agents/
 │   ├── breaking-change-detector.md
 │   ├── python-type-fixer.md
 │   └── python-code-simplifier.md
-└── skills/                  # Skills (51 total)
+└── skills/                  # Skills (52 total)
     ├── agent-browser/                    # Browser automation CLI for AI agents
     ├── audit-ai-code/                    # Audit AI-shaped backend code diffs for slop
     ├── audit-ai-frontend/                # Audit AI-looking frontend implementations
@@ -29,6 +29,7 @@ agents/
     ├── de-slop/                          # Remove AI artifacts before PR
     ├── design-doc/                       # Create technical design documents
     ├── dogfood/                          # Exploratory test web app, structured bug report
+    ├── domain-model/                     # Grilling session that maintains CONTEXT.md + ADRs
     ├── emil-design-engineering/          # Design engineering principles
     ├── execute-plan/                     # Work through plan file task-by-task
     ├── garry-tan-code-review/            # Interactive opinionated code review
@@ -135,6 +136,7 @@ Run from repo root:
 ### Planning and Thinking
 
 - `/grill-me` — Stress-test a plan via relentless interview until each branch resolves
+- `/domain-model` — Grilling session that updates `CONTEXT.md` (glossary) and `docs/adr/` inline as decisions crystallize. Pairs with `/improve-codebase-architecture`
 - `/zoom-out` — Higher-level perspective on a section of code
 - `/office-hours` — YC-style forcing questions or brainstorm mode
 - `/subagent-orchestrator` — Coordinate sub-agents on complex long-horizon tasks
