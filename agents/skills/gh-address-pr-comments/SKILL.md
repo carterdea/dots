@@ -11,6 +11,13 @@ Resolve actionable review comments for a PR, one-by-one.
 
 ## Steps
 
+0. Resolve PR_NUMBER
+- If user supplied a PR number/URL, use it.
+- Otherwise look up the open PR for the current branch:
+  `gh pr view --json number,state,headRefName -q 'select(.state=="OPEN") | .number'`
+- If that returns nothing, try: `gh pr list --head "$(git branch --show-current)" --state open --json number -q '.[0].number'`
+- Only ask user if both lookups fail or return multiple PRs.
+
 1. Checkout PR
 gh pr checkout {PR_NUMBER}
 
