@@ -26,7 +26,11 @@ gh pr view {PR_NUMBER} --json title,body,state,author,headRefName,baseRefName,ur
 gh api repos/{OWNER}/{REPO}/pulls/{PR_NUMBER}/comments --jq '.[] | {id, path, line, body, user: .user.login, user_type: .user.type}'
 gh api repos/{OWNER}/{REPO}/issues/{PR_NUMBER}/comments --jq '.[] | {id, body, user: .user.login, user_type: .user.type}'
 
-3. Classify each comment by author:
+3. Filter out noise before classifying. Skip entirely (do not list, do not act on):
+- Vercel bot comments (login matches `vercel[bot]`, `vercel-bot`, or body mentions Vercel preview/deployment status)
+- Bare agent mentions: body is just `@claude`, `@codex`, or short variants like `@codex review`, `@claude please review`, `@claude take a look` (no actionable content beyond the tag). Heuristic: strip mentions + whitespace; if <= ~3 words remain and none describe a change, skip.
+
+4. Classify each comment by author:
 - **Human** (`user_type == "User"`): trust default. Assume correct unless obviously wrong. Verify scope + intent, then apply.
 - **Bot** (`user_type == "Bot"` OR login matches `cursor[bot]`, `chatgpt-codex-connector`, `claude[bot]`, `coderabbitai[bot]`, `github-actions[bot]`, `*-bot`, `*[bot]`): skeptical default. Bots hallucinate, flag non-issues, miss context. For each bot comment:
   - Read cited code + surrounding context before acting
@@ -34,15 +38,15 @@ gh api repos/{OWNER}/{REPO}/issues/{PR_NUMBER}/comments --jq '.[] | {id, body, u
   - Reject if: false positive, stylistic noise, conflicts with project patterns, suggests broken refactor
   - If rejected, note reason in summary. Do not "address" via no-op reply commit.
 
-4. Present numbered list grouped by author type (Human first, Bot second). Flag bot items with `[BOT: skeptical]`. Ask user which to handle.
+5. Present numbered list grouped by author type (Human first, Bot second). Flag bot items with `[BOT: skeptical]`. Ask user which to handle.
 
-5. For each selected item:
+6. For each selected item:
 - Show relevant code context
 - For bot items: state verdict (valid / false positive / partial) before coding
 - Make smallest correct change
 - Add/update tests when needed
 - Skip silently-rejected bot items — list in final summary
 
-6. Summary
+7. Summary
 git status --short
 git diff --stat
