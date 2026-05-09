@@ -21,12 +21,13 @@ Resolve actionable review comments for a PR, one-by-one.
 1. Checkout PR
 gh pr checkout {PR_NUMBER}
 
-2. Fetch PR data + comments (include author info)
+2. Fetch PR data + comments (include author + position info)
 gh pr view {PR_NUMBER} --json title,body,state,author,headRefName,baseRefName,url,reviews
-gh api repos/{OWNER}/{REPO}/pulls/{PR_NUMBER}/comments --jq '.[] | {id, path, line, body, user: .user.login, user_type: .user.type}'
+gh api repos/{OWNER}/{REPO}/pulls/{PR_NUMBER}/comments --jq '.[] | {id, path, line, position, body, user: .user.login, user_type: .user.type}'
 gh api repos/{OWNER}/{REPO}/issues/{PR_NUMBER}/comments --jq '.[] | {id, body, user: .user.login, user_type: .user.type}'
 
 3. Filter out noise before classifying. Skip entirely (do not list, do not act on):
+- Outdated review comments: review comments where `position` is `null` (line no longer exists in diff — GitHub UI labels these "Outdated"). Issue comments don't have position; only applies to pulls/comments endpoint.
 - Vercel bot comments (login matches `vercel[bot]`, `vercel-bot`, or body mentions Vercel preview/deployment status)
 - Bare agent mentions: body is just `@claude`, `@codex`, or short variants like `@codex review`, `@claude please review`, `@claude take a look` (no actionable content beyond the tag). Heuristic: strip mentions + whitespace; if <= ~3 words remain and none describe a change, skip.
 
