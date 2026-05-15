@@ -212,7 +212,6 @@ Your dotfiles include skills that work across Claude Code, Codex, OpenCode, Curs
 **Code Quality and Review:**
 - `/pre-pr` - Pre-PR validation pipeline (security, types, tests, breaking changes)
 - `/rams` - Accessibility and visual design review
-- `/code-review-prompt` - Generate review prompt for another Claude session
 - `/garry-tan-code-review` - Interactive opinionated code review with sign-off
 - `/codex-review` - Second opinion via OpenAI Codex CLI
 - `/claude-review` - Second opinion via Claude Code CLI

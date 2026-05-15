@@ -23,7 +23,6 @@ agents/
     ├── clean-coder/                      # Invoked when user swears or is upset
     ├── clean-gone/                       # Delete local branches gone from remote
     ├── clean-worktrees/                  # Audit/clean agent worktrees safely
-    ├── code-review-prompt/               # Generate code review prompt for current branch
     ├── code-simplifier/                  # Simplify recently modified code
     ├── codex-review/                     # Second opinion via OpenAI Codex CLI
     ├── de-slop/                          # Remove AI artifacts before PR
@@ -120,7 +119,6 @@ Run from repo root:
 
 - `/pre-pr` — Full validation pipeline (security, types, tests, breaking changes)
 - `/rams` — Accessibility and visual design review against WCAG
-- `/code-review-prompt` — Generate review prompt for another Claude session
 - `/garry-tan-code-review` — Interactive opinionated review with sign-off
 - `/codex-review` — Second opinion via OpenAI Codex CLI
 - `/claude-review` — Second opinion via Claude Code CLI
