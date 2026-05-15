@@ -114,7 +114,7 @@
     "frontend-design@claude-plugins-official": true,
     "honcho@honcho": true,
     "shopify-plugin@shopify-ai-toolkit": true,
-    "caveman@caveman": true
+    "ralph-loop@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "honcho": {
@@ -128,15 +128,9 @@
         "source": "github",
         "repo": "Shopify/shopify-ai-toolkit"
       }
-    },
-    "caveman": {
-      "source": {
-        "source": "github",
-        "repo": "JuliusBrussee/caveman"
-      }
     }
   },
-  "effortLevel": "medium",
+  "effortLevel": "high",
   "autoUpdatesChannel": "latest",
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true
