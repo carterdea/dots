@@ -193,7 +193,6 @@ Your dotfiles include skills that work across Claude Code, Codex, OpenCode, Curs
 - `/handoff` - Continuation prompt for the next session
 - `/de-slop` - Remove AI artifacts before PRs
 - `/make-tests` - Generate tests for current changes
-- `/work-forever` - Highly autonomous long-running task mode
 - `/iterate-forever` - Visual-reference-to-app loop with screenshot comparison
 - `/dogfood` - Exploratory test web app, structured bug report
 - `/qa-gstack` - QA test + fix loop with health scores

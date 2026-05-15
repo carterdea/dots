@@ -63,7 +63,6 @@ agents/
     ├── subagent-orchestrator/            # Orchestrate sub-agents for long tasks
     ├── vercel-react-best-practices/      # React/Next.js performance patterns
     ├── web-animation-design/             # Web animation patterns
-    ├── work-forever/                     # Highly autonomous long-running mode
     └── zoom-out/                         # Higher-level perspective on code
 ```
 
@@ -98,7 +97,6 @@ Run from repo root:
 - `/handoff` — Continuation prompt for the next session
 - `/de-slop` — Remove AI artifacts before PR
 - `/make-tests` — Generate tests for current changes
-- `/work-forever` — Highly autonomous long-running task mode
 - `/iterate-forever` — Visual-reference-to-app loop with screenshot comparison
 - `/dogfood` — Systematic bug hunt with structured repro evidence
 - `/qa-gstack` — QA test + fix loop with before/after health scores
