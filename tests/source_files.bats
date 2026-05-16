@@ -35,12 +35,10 @@ setup() {
     [ -f "$DOTFILES_DIR/agents/AGENTS.md" ]
 }
 
-@test "agents/prompts directory exists and has files" {
-    [ -d "$DOTFILES_DIR/agents/prompts" ]
-    count=$(find "$DOTFILES_DIR/agents/prompts" -name "*.md" | wc -l)
-    [ "$count" -gt 0 ]
-}
-
 @test "agents/skills directory exists" {
     [ -d "$DOTFILES_DIR/agents/skills" ]
+}
+
+@test "agents/pi-packages.txt exists" {
+    [ -f "$DOTFILES_DIR/agents/pi-packages.txt" ]
 }

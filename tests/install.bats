@@ -41,3 +41,10 @@ setup() {
     [ "$status" -eq 0 ]
     [[ "$output" == *".codex"* ]]
 }
+
+@test "install.sh --dry-run --pi-packages shows package installs" {
+    run "$INSTALL_SCRIPT" --dry-run --pi-packages
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"pi-manual-compact"* ]]
+    [[ "$output" == *"pi-autoresearch"* ]]
+}

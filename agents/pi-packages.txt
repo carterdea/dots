@@ -1,0 +1,7 @@
+# Pi packages installed by ./install.sh --pi-packages and ./install.sh --pi.
+# One package source per line. Blank lines and comments are ignored.
+
+https://github.com/davebcn87/pi-autoresearch
+git:github.com/badlogic/pi-skills
+npm:pi-mcp-adapter
+git:git@github.com:carterdea/pi-manual-compact.git

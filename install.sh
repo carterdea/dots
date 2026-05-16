@@ -27,6 +27,7 @@ INSTALL_OPENCODE=false
 INSTALL_CURSOR=false
 INSTALL_CURSOR_PROJECT=false
 INSTALL_PI=false
+INSTALL_PI_PACKAGES=false
 
 # Helper functions
 info() {
@@ -59,7 +60,8 @@ OPTIONS:
     --opencode      Install config to OpenCode (~/.config/opencode)
     --cursor        Install skills to Cursor global (~/.cursor)
     --cursor-project Install skills to Cursor project (.cursor)
-    --pi            Install skills to pi coding agent (~/.pi/agent)
+    --pi            Install skills and packages to pi coding agent (~/.pi/agent)
+    --pi-packages   Install pi packages listed in agents/pi-packages.txt
     --no-backup     Skip backing up existing files
     --dry-run       Show what would be done without making changes
     -h, --help      Show this help message
@@ -197,7 +199,7 @@ install_claude() {
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
             skill_name="$(basename "$skill_dir")"
-            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ ! " ${CLAUDE_SKIP_SKILLS[*]} " =~ " ${skill_name} " ]]; then
+            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ " ${CLAUDE_SKIP_SKILLS[*]} " != *" $skill_name "* ]]; then
                 create_symlink "$skill_dir" "$HOME/.claude/skills/$skill_name"
             fi
         done
@@ -226,7 +228,7 @@ install_codex() {
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
             skill_name="$(basename "$skill_dir")"
-            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ ! " ${CODEX_SKIP_SKILLS[*]} " =~ " ${skill_name} " ]]; then
+            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ " ${CODEX_SKIP_SKILLS[*]} " != *" $skill_name "* ]]; then
                 create_symlink "$skill_dir" "$HOME/.agents/skills/$skill_name"
             fi
         done
@@ -257,7 +259,7 @@ install_opencode() {
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
             skill_name="$(basename "$skill_dir")"
-            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ ! " ${OPENCODE_SKIP_SKILLS[*]} " =~ " ${skill_name} " ]]; then
+            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ " ${OPENCODE_SKIP_SKILLS[*]} " != *" $skill_name "* ]]; then
                 create_symlink "$skill_dir" "$HOME/.config/opencode/skills/$skill_name"
             fi
         done
@@ -273,7 +275,7 @@ install_cursor() {
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
             skill_name="$(basename "$skill_dir")"
-            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ ! " ${CURSOR_SKIP_SKILLS[*]} " =~ " ${skill_name} " ]]; then
+            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ " ${CURSOR_SKIP_SKILLS[*]} " != *" $skill_name "* ]]; then
                 create_symlink "$skill_dir" "$HOME/.cursor/skills/$skill_name"
             fi
         done
@@ -292,13 +294,40 @@ install_pi() {
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
             skill_name="$(basename "$skill_dir")"
-            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ ! " ${PI_SKIP_SKILLS[*]} " =~ " ${skill_name} " ]]; then
+            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ " ${PI_SKIP_SKILLS[*]} " != *" $skill_name "* ]]; then
                 create_symlink "$skill_dir" "$HOME/.pi/agent/skills/$skill_name"
             fi
         done
     fi
 
+    install_pi_packages
     install_pi_agents
+}
+
+install_pi_packages() {
+    local packages_file="$DOTFILES_DIR/agents/pi-packages.txt"
+
+    if [[ ! -f "$packages_file" ]]; then
+        return
+    fi
+
+    info "Installing pi packages..."
+
+    if [[ "$DRY_RUN" == false ]] && ! command -v pi >/dev/null 2>&1; then
+        warn "pi command not found; skipping pi package installation"
+        return
+    fi
+
+    while IFS= read -r package || [[ -n "$package" ]]; do
+        [[ -n "$package" ]] || continue
+        [[ "$package" != \#* ]] || continue
+
+        if [[ "$DRY_RUN" == true ]]; then
+            info "[DRY RUN] Would install pi package: $package"
+        else
+            pi install "$package"
+        fi
+    done < "$packages_file"
 }
 
 # Translate Claude subagent frontmatter (tools: Bash,Read,Grep,Glob; model: sonnet)
@@ -354,7 +383,7 @@ install_cursor_project() {
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
             skill_name="$(basename "$skill_dir")"
-            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ ! " ${CURSOR_PROJECT_SKIP_SKILLS[*]} " =~ " ${skill_name} " ]]; then
+            if [[ -d "$skill_dir" ]] && [[ "$skill_name" != ".gitkeep" ]] && [[ " ${CURSOR_PROJECT_SKIP_SKILLS[*]} " != *" $skill_name "* ]]; then
                 create_symlink "$skill_dir" ".cursor/skills/$skill_name"
             fi
         done
@@ -416,6 +445,10 @@ while [[ $# -gt 0 ]]; do
             INSTALL_PI=true
             shift
             ;;
+        --pi-packages)
+            INSTALL_PI_PACKAGES=true
+            shift
+            ;;
         --no-backup)
             BACKUP=false
             shift
@@ -464,6 +497,7 @@ else
     [[ "$INSTALL_CURSOR" == true ]] && install_cursor
     [[ "$INSTALL_CURSOR_PROJECT" == true ]] && install_cursor_project
     [[ "$INSTALL_PI" == true ]] && install_pi
+    [[ "$INSTALL_PI_PACKAGES" == true ]] && install_pi_packages
 fi
 
 if [[ "$DRY_RUN" == false ]]; then
