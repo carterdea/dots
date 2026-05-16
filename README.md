@@ -94,7 +94,8 @@ cd ~/dots
 - `--codex` / `--openai` - Install skills to Codex (~/.agents)
 - `--cursor` - Install skills to Cursor global (~/.cursor)
 - `--cursor-project` - Install skills to Cursor project (.cursor)
-- `--pi` - Install skills to pi coding agent (~/.pi/agent)
+- `--pi` - Install skills and packages to pi coding agent (~/.pi/agent)
+- `--pi-packages` - Install pi packages listed in `agents/pi-packages.txt`
 - `--no-backup` - Skip backing up existing files
 - `--dry-run` - Preview changes without applying them
 
@@ -184,6 +185,8 @@ dots/
 
 Your dotfiles include skills that work across Claude Code, Codex, OpenCode, Cursor, and pi.
 
+Pi package sources live in `agents/pi-packages.txt`. `./install.sh --pi` and `./install.sh --pi-packages` install those packages through `pi install`, so pi can keep extension package sources in `~/.pi/agent/settings.json` without symlinking local extension code.
+
 ### Available Skills
 
 **Development Workflow:**
@@ -271,6 +274,9 @@ Your dotfiles include skills that work across Claude Code, Codex, OpenCode, Curs
 
 # Install to pi coding agent
 ./install.sh --pi
+
+# Install only pi packages
+./install.sh --pi-packages
 
 # Install to OpenCode
 ./install.sh --opencode
