@@ -48,3 +48,9 @@ setup() {
     [[ "$output" == *"pi-manual-compact"* ]]
     [[ "$output" == *"pi-autoresearch"* ]]
 }
+
+@test "install.sh --dry-run --pi --pi-packages installs packages once" {
+    run "$INSTALL_SCRIPT" --dry-run --pi --pi-packages
+    [ "$status" -eq 0 ]
+    [ "$(grep -c "pi-manual-compact" <<< "$output")" -eq 1 ]
+}

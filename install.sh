@@ -497,7 +497,7 @@ else
     [[ "$INSTALL_CURSOR" == true ]] && install_cursor
     [[ "$INSTALL_CURSOR_PROJECT" == true ]] && install_cursor_project
     [[ "$INSTALL_PI" == true ]] && install_pi
-    [[ "$INSTALL_PI_PACKAGES" == true ]] && install_pi_packages
+    [[ "$INSTALL_PI_PACKAGES" == true && "$INSTALL_PI" == false ]] && install_pi_packages
 fi
 
 if [[ "$DRY_RUN" == false ]]; then
