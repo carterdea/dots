@@ -1,12 +1,12 @@
 ---
 name: baseline
-description: Install a quality baseline on a repo — linter, formatter, dead-code scanner, lefthook hooks, and a context-efficient backpressure wrapper.
+description: Install a quality baseline on a repo — linter, formatter, dead-code scanner, lefthook hooks, named local URLs (portless), and a context-efficient backpressure wrapper.
 user-invocable: true
 ---
 
 # Baseline
 
-First-pass guardrails for vibe-coded repos. Detects the stack and framework, installs the standard toolchain with sane defaults, wires git hooks, drops in a backpressure helper for agent-friendly output.
+First-pass guardrails for vibe-coded repos. Detects the stack and framework, installs the standard toolchain with sane defaults, wires git hooks, installs portless for stable local-dev URLs, drops in a backpressure helper for agent-friendly output.
 
 ## When to use
 
@@ -22,11 +22,11 @@ First-pass guardrails for vibe-coded repos. Detects the stack and framework, ins
 
 ## Toolchain by stack
 
-| Stack   | Package manager | Tools installed                              |
-|---------|-----------------|----------------------------------------------|
-| TS / JS | `bun`           | `@biomejs/biome`, `knip`, `lefthook`         |
-| Python  | `uv`            | `ruff`, `basedpyright` (or `pyright`), `lefthook` |
-| Ruby    | `bundler`       | `rubocop` (+ framework gems), `lefthook`     |
+| Stack   | Package manager | Tools installed                                        |
+|---------|-----------------|--------------------------------------------------------|
+| TS / JS | `bun`           | `@biomejs/biome`, `fallow`, `lefthook`, `portless` (global) |
+| Python  | `uv`            | `ruff`, `basedpyright` (or `pyright`), `lefthook`      |
+| Ruby    | `bundler`       | `rubocop` (+ framework gems), `lefthook`               |
 
 Different manager (npm, pnpm, yarn, pip, poetry): fall back to its idiomatic install command. Do not rewrite lockfiles.
 
@@ -44,21 +44,21 @@ Marker files:
 
 | Framework         | Marker                                              | Preset applied                                                      |
 |-------------------|-----------------------------------------------------|---------------------------------------------------------------------|
-| Next.js           | `next.config.{js,ts,mjs}` or `next` in deps         | Biome recommended + `nextjs` + `react` domains; Knip plugin (auto)  |
-| React Router v7   | `react-router.config.*` or `@react-router/*`        | Biome recommended + `react` domain; Knip plugin (auto)              |
-| Remix             | `remix.config.*` or `@remix-run/*`                  | Biome recommended + `react` domain; Knip plugin (auto)              |
-| Vite              | `vite.config.*`                                     | Biome recommended; Knip `vite` + `vitest` plugins (auto)            |
-| NestJS            | `@nestjs/*` in deps or `nest-cli.json`              | Biome recommended; Knip `nest` plugin (auto)                        |
-| Hono              | `hono` in deps                                      | Biome recommended; Knip auto-detects via entry points               |
-| Astro             | `astro.config.*`                                    | Biome `astro` plugin; Knip `astro` plugin (auto)                    |
-| Bun runtime       | `bun` in deps or `bunfig.toml`                      | Biome recommended; Knip `bun` plugin (auto)                         |
+| Next.js           | `next.config.{js,ts,mjs}` or `next` in deps         | Biome recommended + `nextjs` + `react` domains; Fallow plugin (auto)|
+| React Router v7   | `react-router.config.*` or `@react-router/*`        | Biome recommended + `react` domain; Fallow plugin (auto)            |
+| Remix             | `remix.config.*` or `@remix-run/*`                  | Biome recommended + `react` domain; Fallow plugin (auto)            |
+| Vite              | `vite.config.*`                                     | Biome recommended; Fallow `vite` + `vitest` plugins (auto)          |
+| NestJS            | `@nestjs/*` in deps or `nest-cli.json`              | Biome recommended; Fallow `nest` plugin (auto)                      |
+| Hono              | `hono` in deps                                      | Biome recommended; Fallow auto-detects via entry points             |
+| Astro             | `astro.config.*`                                    | Biome `astro` plugin; Fallow `astro` plugin (auto)                  |
+| Bun runtime       | `bun` in deps or `bunfig.toml`                      | Biome recommended; Fallow auto-detects                              |
 | Django            | `manage.py` or `django` in deps                     | Ruff preset: `DJ` + `ASYNC` + `B` + `SIM` + `UP` + `I`              |
 | FastAPI           | `fastapi` in deps                                   | Ruff preset: `FAST` + `ASYNC` + `B` + `SIM` + `UP` + `I` + `S`      |
 | Rails             | `config/application.rb`                             | `rubocop-rails` gem; `require: rubocop-rails` in config             |
 
-Knip auto-detects most framework plugins — no config needed if plugin exists.
+Fallow auto-detects most framework plugins from `package.json` — no config needed if a plugin exists. It covers 90+ frameworks (Next, Nuxt, Remix, SvelteKit, Astro, Vite, Vitest, Nest, Storybook, Tailwind, ESLint, TypeScript, etc.).
 
-Biome has first-class `nextjs`/`react`/`test`/`solid` domains in v2+. For NestJS and Hono, Biome recommended is enough — no dedicated domain exists; Knip handles dead-code detection there.
+Biome has first-class `nextjs`/`react`/`test`/`solid` domains in v2+. For NestJS and Hono, Biome recommended is enough — no dedicated domain exists; Fallow handles dead-code detection there.
 
 ### 3. Install linter (skip if present)
 
@@ -157,15 +157,19 @@ bundle exec rubocop --auto-gen-config
 
 `--auto-gen-config` writes `.rubocop_todo.yml` so legacy code doesn't block commits. Include via `inherit_from: .rubocop_todo.yml` in `.rubocop.yml`.
 
-### 4. Install knip (TS / JS only)
+### 4. Install fallow (TS / JS only)
 
-Skip if `knip.json`, `knip.jsonc`, `.knip.json`, or `knip` key in `package.json` exists.
+Skip if `fallow.json`, `fallow.jsonc`, `fallow.toml`, or `fallow` key in `package.json` exists. Also skip — and log a migration hint — if an existing `knip.json` / `knip.jsonc` / `.knip.json` or `knip` key in `package.json` is present; suggest the user run `bunx fallow migrate` to convert.
 
 ```bash
-bun add -d knip
+bun add -d fallow
 ```
 
-Knip auto-detects common frameworks (Next, Nuxt, Remix, Vite, Vitest, Nest, Astro, SvelteKit, Storybook, Tailwind, ESLint, Playwright, Cypress, Bun). For Hono and other frameworks without a named plugin, Knip still works via entry-point detection from `package.json` `bin` / `main` / `exports`.
+Fallow is a Rust-native codebase analyzer (the same niche as knip, ~3–14× faster, no Node runtime overhead at exec time). It finds unused files, exports, dependencies, types, enum / class members, circular dependencies, duplicate exports, and unresolved imports. It also offers duplication detection (`fallow dupes`) and a complexity report (`fallow health`) — baseline doesn't wire those into hooks by default but they're available.
+
+Fallow auto-detects common frameworks (Next, Nuxt, Remix, Vite, Vitest, Nest, Astro, SvelteKit, Storybook, Tailwind, ESLint, Playwright, Cypress). For Hono and other frameworks without a named plugin, fallow still works via entry-point detection from `package.json` `bin` / `main` / `exports`.
+
+Hook / CI commands use `bunx fallow` (full audit: dead code + duplication + circular deps + complexity). Runs sub-second on most projects and matches the "comprehensive checks on push" principle. Use `bunx fallow dead-code` if a repo needs to scope down (legacy code with high duplication that would flood the report).
 
 ### 5. Install lefthook
 
@@ -209,13 +213,13 @@ Principle: fast + staged on commit, slow + full-repo on push.
 | Rubocop              | `-a` staged               | full repo check          |
 | Typecheck (tsc)      | —                         | `tsc --noEmit`           |
 | Typecheck (basedpyright / pyright) | —           | full project check       |
-| Knip                 | —                         | full scan                |
+| Fallow               | —                         | `fallow` (full audit)    |
 | Vitest               | `--changed` (if fast)     | full suite               |
 | `bun test`           | `--changed` (if fast)     | full suite               |
 | Pytest               | —                         | full suite               |
 | RSpec / Minitest     | —                         | full suite               |
 
-Rule of thumb: if a staged-files mode exists and the command returns in under a few seconds, move to pre-commit. Otherwise pre-push. Typecheckers, knip, and full test suites have no staged mode → always pre-push.
+Rule of thumb: if a staged-files mode exists and the command returns in under a few seconds, move to pre-commit. Otherwise pre-push. Typecheckers, fallow, and full test suites have no staged mode → always pre-push.
 
 ### 7. Drop in the backpressure wrapper
 
@@ -233,7 +237,42 @@ Skip append if the target file already contains the string `run_silent.sh` (idem
 
 Why: the wrapper is invisible unless agents know to use it. Putting a short pointer in the target repo's agent-instructions file means any agent that reads them (Claude Code, Codex, OpenCode, Cursor) discovers the helper on first pass.
 
-### 8. GitHub Actions (quality gate)
+### 8. Install portless (TS / JS only — runtime ports)
+
+Portless replaces `localhost:<random-port>` with stable `https://<project>.localhost` URLs for local dev. It runs an HTTPS reverse proxy and auto-discovers the `"dev"` script in `package.json`, so package.json scripts stay clean — no `dev:portless` alias.
+
+**Why we install it by default:**
+
+- Stable URL across restarts → cookies, `localStorage`, OAuth redirect URIs, CORS allowlists, and `.env` files don't break when ports shuffle.
+- Deterministic for AI agents — `https://myapp.localhost` is unambiguous, while "I think the server is on 3000? or 3001?" is not.
+- Git worktrees get auto-prefixed subdomains (`fix-ui.myapp.localhost`) with zero config. Each worktree is independently addressable.
+- Auto-injects `PORT` into the child process; for frameworks that ignore `PORT` (Vite, Astro, React Router, Angular, Expo, RN), portless injects `--port` and `--host` correctly.
+- HTTPS by default with a locally-trusted CA — first run does `portless trust` automatically (sudo on macOS / Linux for port 443).
+
+**Skip condition**: `portless` is already on `$PATH` (`command -v portless`) **and** the user's shell history or `package.json` shows it in use. Otherwise:
+
+```bash
+bun add -g portless           # global; recommended in the portless docs
+portless trust                # one-time: trust the local CA
+```
+
+If global install isn't acceptable for some reason (corporate dev container, locked-down host), fall back to `bun add -D portless` and run via `bunx portless`.
+
+**Do not rewrite `package.json`.** Keep `"dev": "next dev"` (or whatever it is) as-is. Portless reads that script and proxies it. The change is to the **invocation**: run `portless` instead of `bun run dev`. The agent-instructions snippet (step 7) tells agents to do exactly that.
+
+**Docker compatibility.** Portless works alongside Docker. For each published container port, register a static route once:
+
+```bash
+docker run -d -p 5432:5432 postgres:16
+portless alias db 5432              # -> https://db.localhost
+portless alias --remove db          # to undo
+```
+
+Aliases persist across stale-route cleanup, so they survive proxy restarts. For Docker Compose stacks, drop a small `scripts/portless-aliases.sh` that runs `portless alias` for each container after `docker compose up -d`. Don't auto-generate this file from the skill — leave it to the user since the alias names are project-specific.
+
+**Pre-1.0 caveat.** Portless is pre-1.0 and the state directory format can change between releases. If a contributor's `portless trust` warning appears after an upgrade, re-run it. Log a single-line note about this when installing.
+
+### 9. GitHub Actions (quality gate)
 
 Only runs if the remote is GitHub. Check:
 
@@ -243,7 +282,7 @@ git remote get-url origin 2>/dev/null | grep -q github.com
 
 Skip condition: if **any** file exists under `.github/workflows/` → log `GitHub Actions already configured, skipping.` Do not overwrite or merge. User opted in manually or via a different skill.
 
-If no workflows exist → write `.github/workflows/baseline.yml` using the matching template from `resources/github-actions.*.yml`.
+If no workflows exist → write `.github/workflows/ci.yml` using the matching template from `resources/github-actions.*.yml`. The workflow's `name:` is `CI` (the conventional OSS name — what GitHub displays in the Actions tab and on PR checks), not `baseline`.
 
 **Scope of the workflow: full quality suite for every detected workspace, not just tools this skill installed.** If the repo already has vitest, playwright, pytest, basedpyright, etc., include them. Detect by scanning:
 
@@ -271,7 +310,7 @@ Substitute the result into `branches: [<detected>]` before writing the workflow.
 
 **Caching**: `astral-sh/setup-uv@v5` and `oven-sh/setup-bun@v2` handle caching via their own flags. Don't hand-roll `actions/cache`.
 
-### 9. Verify
+### 10. Verify
 
 Run each hook once to confirm wiring:
 
@@ -318,15 +357,15 @@ Rules:
           stage_fixed: true
     ```
 
-4. **Pre-push: run each workspace's own suite.** One command per workspace for typecheck / knip / tests, so failures isolate:
+4. **Pre-push: run each workspace's own suite.** One command per workspace for typecheck / fallow / tests, so failures isolate:
 
     ```yaml
     pre-push:
       commands:
         typecheck-web:
           run: cd apps/web && bunx tsc --noEmit
-        knip-web:
-          run: cd apps/web && bunx knip
+        fallow-web:
+          run: cd apps/web && bunx fallow
         test-web:
           run: cd apps/web && bun run test
         pytest-chat:
@@ -360,10 +399,11 @@ Source: https://www.humanlayer.dev/blog/context-efficient-backpressure
 - `[tool.ruff]` block in `pyproject.toml` — Python linter
 - `[tool.basedpyright]` block in `pyproject.toml` — Python typecheck
 - `.rubocop.yml` + `.rubocop_todo.yml` — Ruby linter
-- `knip.json` — only if Knip can't infer from framework
+- `fallow.json` — only if fallow can't infer from framework
 - `lefthook.yml` — hook definitions
-- `.github/workflows/baseline.yml` — CI quality gate (only if GitHub remote + no existing workflows)
+- `.github/workflows/ci.yml` — CI quality gate (only if GitHub remote + no existing workflows; workflow `name: CI`)
 - `scripts/run_silent.sh` — backpressure wrapper
+- portless is installed **globally** (`bun add -g portless`), not in the repo, so it produces no project file. `portless.json` is opt-in only when the user wants to override the inferred app name.
 
 ## Idempotency rule
 
