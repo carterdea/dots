@@ -1,8 +1,8 @@
 # Single-package Python workflow.
 # Mirrors pre-push hooks so local and CI enforce the same gate.
-# Rename to .github/workflows/baseline.yml at install time.
+# Rename to .github/workflows/ci.yml at install time.
 
-name: baseline
+name: CI
 
 on:
   pull_request:

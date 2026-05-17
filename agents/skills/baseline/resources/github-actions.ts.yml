@@ -1,8 +1,8 @@
 # Single-package TypeScript / JavaScript workflow.
 # Mirrors pre-push hooks so local and CI enforce the same gate.
-# Rename to .github/workflows/baseline.yml at install time.
+# Rename to .github/workflows/ci.yml at install time.
 
-name: baseline
+name: CI
 
 on:
   pull_request:
@@ -33,8 +33,8 @@ jobs:
       - name: Typecheck
         run: bunx tsc --noEmit
 
-      - name: Dead code (knip)
-        run: bunx knip
+      - name: Fallow
+        run: bunx fallow
 
       - name: Test
         run: bun run test

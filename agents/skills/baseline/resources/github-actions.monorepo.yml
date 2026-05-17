@@ -1,11 +1,11 @@
 # Monorepo workflow template — one job per workspace.
 # Replace workspace names / paths to match the target repo.
-# Rename to .github/workflows/baseline.yml at install time.
+# Rename to .github/workflows/ci.yml at install time.
 #
 # Principle: each workspace runs its OWN full quality suite.
 # Add a job per detected workspace. Don't share steps across stacks.
 
-name: baseline
+name: CI
 
 on:
   pull_request:
@@ -29,8 +29,8 @@ jobs:
         run: bunx biome check .
       - name: Typecheck
         run: bunx tsc --noEmit
-      - name: Dead code (knip)
-        run: bunx knip
+      - name: Fallow
+        run: bunx fallow
       - name: Test
         run: bun run test
 
