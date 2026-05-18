@@ -1,3 +1,4 @@
+<!-- baseline:portless:ts -->
 ## Local dev server
 
 Start the dev server with `portless` — not `bun run dev` / `npm run dev`. Portless reads the `"dev"` script from `package.json` and serves it on a stable `https://<project>.localhost` URL behind an HTTPS reverse proxy. Git worktrees automatically get a branch-prefixed subdomain (e.g. `fix-ui.<project>.localhost`).

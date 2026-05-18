@@ -160,11 +160,13 @@ bundle exec rubocop --auto-gen-config
 
 ### 4. Install fallow (TS / JS only)
 
-Skip if `fallow.json`, `fallow.jsonc`, `fallow.toml`, or `fallow` key in `package.json` exists. Also skip — and log a migration hint — if an existing `knip.json` / `knip.jsonc` / `.knip.json` or `knip` key in `package.json` is present; suggest the user run `bunx fallow migrate` to convert.
+Skip if `fallow.json`, `fallow.jsonc`, `fallow.toml`, or `fallow` key in `package.json` exists (fallow already configured).
 
 ```bash
 bun add -d fallow
 ```
+
+**Always install fallow even when a knip config exists.** The hook and CI templates this skill writes call `bunx fallow`, so a pre-existing `knip.json` does not exempt the repo from needing `fallow` in `devDependencies`. Log a one-line migration hint pointing the user at `bunx fallow migrate` to convert their existing knip config, but proceed with the fallow install regardless. Leave the knip config in place — the user can delete it (and the `knip` dev dep) after they're satisfied with the migration. Don't auto-remove `knip`.
 
 Fallow is a Rust-native codebase analyzer (the same niche as knip, ~3–14× faster, no Node runtime overhead at exec time). It finds unused files, exports, dependencies, types, enum / class members, circular dependencies, duplicate exports, and unresolved imports. It also offers duplication detection (`fallow dupes`) and a complexity report (`fallow health`) — baseline doesn't wire those into hooks by default but they're available.
 
@@ -236,13 +238,13 @@ Skip if the file already exists.
 
 Skip append if the target file already contains the string `run_silent.sh` (idempotent). Do **not** create `CLAUDE.md` / `AGENTS.md` from scratch — only append when one already exists; otherwise the repo may not have opted in to agent instructions.
 
-**Also append the portless snippet that matches the detected stack** to the same files. This adds stack-specific `portless` dev-server invocations and the docker-alias recipe. Idempotency string: `portless`.
+**Also append the portless snippet that matches the detected stack** to the same files. This adds stack-specific `portless` dev-server invocations and the docker-alias recipe.
 
 - TS / JS → `resources/agent-instructions.portless.ts.snippet.md` (zero-arg `portless` reads `package.json` "dev")
 - Python → `resources/agent-instructions.portless.py.snippet.md` (`portless run uv run uvicorn ... --port $PORT`)
 - Ruby   → `resources/agent-instructions.portless.rb.snippet.md` (`portless run bundle exec rails server -p $PORT`)
 
-For monorepos with mixed stacks, append the snippet for each detected stack (TS + Python both, etc.) so agents working in either subtree get the right guidance.
+**Per-stack idempotency**: each snippet starts with a hidden HTML-comment sentinel — `<!-- baseline:portless:ts -->`, `<!-- baseline:portless:py -->`, `<!-- baseline:portless:rb -->`. Skip the append for a given stack only if that exact sentinel is already in the target file. This matters in **mixed-stack monorepos**: with a generic `portless` marker, the first stack's snippet would block every subsequent stack's snippet. Per-stack sentinels let TS + Python (or any combination) coexist in the same `AGENTS.md`.
 
 Why: the wrapper is invisible unless agents know to use it. Putting a short pointer in the target repo's agent-instructions file means any agent that reads them (Claude Code, Codex, OpenCode, Cursor) discovers the helper on first pass.
 

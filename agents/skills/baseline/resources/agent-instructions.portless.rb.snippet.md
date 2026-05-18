@@ -1,3 +1,4 @@
+<!-- baseline:portless:rb -->
 ## Local dev server
 
 Start the dev server through `portless` so it gets a stable `https://<project>.localhost` URL. Pass the command explicitly — Ruby frameworks don't have a zero-arg `portless` mode like JS does, because there's no `package.json` "dev" script for portless to read.
