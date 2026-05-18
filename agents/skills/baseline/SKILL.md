@@ -235,6 +235,8 @@ Skip if the file already exists.
 
 Skip append if the target file already contains the string `run_silent.sh` (idempotent). Do **not** create `CLAUDE.md` / `AGENTS.md` from scratch — only append when one already exists; otherwise the repo may not have opted in to agent instructions.
 
+**TS / JS only — also append the portless snippet** from `resources/agent-instructions.portless.snippet.md` to the same files. This adds the `portless` dev-server invocation and the docker-alias recipe. Idempotency string: `portless`. Skip on Python / Ruby repos — they don't have portless installed and `package.json` references would be invalid.
+
 Why: the wrapper is invisible unless agents know to use it. Putting a short pointer in the target repo's agent-instructions file means any agent that reads them (Claude Code, Codex, OpenCode, Cursor) discovers the helper on first pass.
 
 ### 8. Install portless (TS / JS only — runtime ports)
@@ -258,7 +260,7 @@ portless trust                # one-time: trust the local CA
 
 If global install isn't acceptable for some reason (corporate dev container, locked-down host), fall back to `bun add -D portless` and run via `bunx portless`.
 
-**Do not rewrite `package.json`.** Keep `"dev": "next dev"` (or whatever it is) as-is. Portless reads that script and proxies it. The change is to the **invocation**: run `portless` instead of `bun run dev`. The agent-instructions snippet (step 7) tells agents to do exactly that.
+**Do not rewrite `package.json`.** Keep `"dev": "next dev"` (or whatever it is) as-is. Portless reads that script and proxies it. The change is to the **invocation**: run `portless` instead of `bun run dev`. The TS/JS-only portless snippet appended in step 7 (`resources/agent-instructions.portless.snippet.md`) tells agents to do exactly that.
 
 **Docker compatibility.** Portless works alongside Docker. For each published container port, register a static route once:
 
@@ -418,5 +420,6 @@ Light-touch only. For each file above: if it exists, log `already configured: <p
 - `resources/github-actions.py.yml` — CI workflow (single Python package)
 - `resources/github-actions.rb.yml` — CI workflow (single Ruby package)
 - `resources/github-actions.monorepo.yml` — CI workflow (multi-workspace base)
-- `resources/agent-instructions.snippet.md` — pointer appended to target repo's `CLAUDE.md` / `AGENTS.md` so agents discover `run_silent.sh`
+- `resources/agent-instructions.snippet.md` — pointer appended to target repo's `CLAUDE.md` / `AGENTS.md` so agents discover `run_silent.sh` (all stacks)
+- `resources/agent-instructions.portless.snippet.md` — portless dev-server + docker-alias guidance, appended only on TS / JS repos
 - `scripts/run_silent.sh` — backpressure wrapper to drop into target repo
