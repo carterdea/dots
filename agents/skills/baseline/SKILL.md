@@ -24,9 +24,10 @@ First-pass guardrails for vibe-coded repos. Detects the stack and framework, ins
 
 | Stack   | Package manager | Tools installed                                        |
 |---------|-----------------|--------------------------------------------------------|
-| TS / JS | `bun`           | `@biomejs/biome`, `fallow`, `lefthook`, `portless` (global) |
+| TS / JS | `bun`           | `@biomejs/biome`, `fallow`, `lefthook`                 |
 | Python  | `uv`            | `ruff`, `basedpyright` (or `pyright`), `lefthook`      |
 | Ruby    | `bundler`       | `rubocop` (+ framework gems), `lefthook`               |
+| All     | n/a (global)    | `portless` (one install serves every stack + worktree) |
 
 Different manager (npm, pnpm, yarn, pip, poetry): fall back to its idiomatic install command. Do not rewrite lockfiles.
 
@@ -235,34 +236,40 @@ Skip if the file already exists.
 
 Skip append if the target file already contains the string `run_silent.sh` (idempotent). Do **not** create `CLAUDE.md` / `AGENTS.md` from scratch — only append when one already exists; otherwise the repo may not have opted in to agent instructions.
 
-**TS / JS only — also append the portless snippet** from `resources/agent-instructions.portless.snippet.md` to the same files. This adds the `portless` dev-server invocation and the docker-alias recipe. Idempotency string: `portless`. Skip on Python / Ruby repos — they don't have portless installed and `package.json` references would be invalid.
+**Also append the portless snippet that matches the detected stack** to the same files. This adds stack-specific `portless` dev-server invocations and the docker-alias recipe. Idempotency string: `portless`.
+
+- TS / JS → `resources/agent-instructions.portless.ts.snippet.md` (zero-arg `portless` reads `package.json` "dev")
+- Python → `resources/agent-instructions.portless.py.snippet.md` (`portless run uv run uvicorn ... --port $PORT`)
+- Ruby   → `resources/agent-instructions.portless.rb.snippet.md` (`portless run bundle exec rails server -p $PORT`)
+
+For monorepos with mixed stacks, append the snippet for each detected stack (TS + Python both, etc.) so agents working in either subtree get the right guidance.
 
 Why: the wrapper is invisible unless agents know to use it. Putting a short pointer in the target repo's agent-instructions file means any agent that reads them (Claude Code, Codex, OpenCode, Cursor) discovers the helper on first pass.
 
-### 8. Install portless (TS / JS only — runtime ports)
+### 8. Install portless (runtime ports — all stacks)
 
-Portless replaces `localhost:<random-port>` with stable `https://<project>.localhost` URLs for local dev. It runs an HTTPS reverse proxy and auto-discovers the `"dev"` script in `package.json`, so package.json scripts stay clean — no `dev:portless` alias.
+Portless replaces `localhost:<random-port>` with stable `https://<project>.localhost` URLs for local dev. It's a global binary (Node), so it works across TS/JS, Python, and Ruby projects from the same install.
 
 **Why we install it by default:**
 
 - Stable URL across restarts → cookies, `localStorage`, OAuth redirect URIs, CORS allowlists, and `.env` files don't break when ports shuffle.
 - Deterministic for AI agents — `https://myapp.localhost` is unambiguous, while "I think the server is on 3000? or 3001?" is not.
-- Git worktrees get auto-prefixed subdomains (`fix-ui.myapp.localhost`) with zero config. Each worktree is independently addressable.
-- Auto-injects `PORT` into the child process; for frameworks that ignore `PORT` (Vite, Astro, React Router, Angular, Expo, RN), portless injects `--port` and `--host` correctly.
+- Git worktrees get auto-prefixed subdomains (`fix-ui.myapp.localhost`) with zero config. Each worktree is independently addressable — critical for parallel agent workflows.
+- Auto-injects `PORT=<random 4000–4999>` and `HOST=127.0.0.1` into the child process. JS frameworks (Next, Express, Nuxt) read `PORT` automatically; Vite / Astro / React Router / Angular / Expo / RN get `--port` and `--host` injected directly. Python / Ruby commands must reference `$PORT` explicitly on the command line — see the per-stack snippets in step 7.
 - HTTPS by default with a locally-trusted CA — first run does `portless trust` automatically (sudo on macOS / Linux for port 443).
 
-**Skip condition**: `portless` is already on `$PATH` (`command -v portless`) **and** the user's shell history or `package.json` shows it in use. Otherwise:
+**Skip condition**: `portless` already on `$PATH` (`command -v portless`). Otherwise:
 
 ```bash
-bun add -g portless           # global; recommended in the portless docs
+bun add -g portless           # global; works for all stacks (Node binary)
 portless trust                # one-time: trust the local CA
 ```
 
-If global install isn't acceptable for some reason (corporate dev container, locked-down host), fall back to `bun add -D portless` and run via `bunx portless`.
+If bun isn't available (rare in this org's repos), fall back to `npm install -g portless`. Don't install per-repo as a dev dep — the binary serves every stack and every worktree from one install.
 
-**Do not rewrite `package.json`.** Keep `"dev": "next dev"` (or whatever it is) as-is. Portless reads that script and proxies it. The change is to the **invocation**: run `portless` instead of `bun run dev`. The TS/JS-only portless snippet appended in step 7 (`resources/agent-instructions.portless.snippet.md`) tells agents to do exactly that.
+**Don't rewrite source files.** For TS/JS, keep `"dev": "next dev"` (or whatever it is) in `package.json` — portless reads that script. For Python / Ruby, don't change how the server is started in code; the change happens at the invocation layer (`portless run uv run uvicorn ...`). The per-stack snippet appended in step 7 gives agents the right invocation for the detected framework.
 
-**Docker compatibility.** Portless works alongside Docker. For each published container port, register a static route once:
+**Docker compatibility.** Portless works alongside Docker on every stack. For each published container port, register a static route once:
 
 ```bash
 docker run -d -p 5432:5432 postgres:16
@@ -405,7 +412,7 @@ Source: https://www.humanlayer.dev/blog/context-efficient-backpressure
 - `lefthook.yml` — hook definitions
 - `.github/workflows/ci.yml` — CI quality gate (only if GitHub remote + no existing workflows; workflow `name: CI`)
 - `scripts/run_silent.sh` — backpressure wrapper
-- portless is installed **globally** (`bun add -g portless`), not in the repo, so it produces no project file. `portless.json` is opt-in only when the user wants to override the inferred app name.
+- portless is installed **globally** (`bun add -g portless`) on every stack, not per-repo, so it produces no project file. `portless.json` is opt-in only when the user wants to override the inferred app name.
 
 ## Idempotency rule
 
@@ -421,5 +428,7 @@ Light-touch only. For each file above: if it exists, log `already configured: <p
 - `resources/github-actions.rb.yml` — CI workflow (single Ruby package)
 - `resources/github-actions.monorepo.yml` — CI workflow (multi-workspace base)
 - `resources/agent-instructions.snippet.md` — pointer appended to target repo's `CLAUDE.md` / `AGENTS.md` so agents discover `run_silent.sh` (all stacks)
-- `resources/agent-instructions.portless.snippet.md` — portless dev-server + docker-alias guidance, appended only on TS / JS repos
+- `resources/agent-instructions.portless.ts.snippet.md` — portless dev-server + docker-alias guidance, appended on TS / JS repos
+- `resources/agent-instructions.portless.py.snippet.md` — same, for Python repos (FastAPI / Django / Flask invocations)
+- `resources/agent-instructions.portless.rb.snippet.md` — same, for Ruby repos (Rails / Sinatra invocations)
 - `scripts/run_silent.sh` — backpressure wrapper to drop into target repo
