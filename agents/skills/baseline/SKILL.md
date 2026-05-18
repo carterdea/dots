@@ -264,10 +264,21 @@ Portless replaces `localhost:<random-port>` with stable `https://<project>.local
 
 ```bash
 bun add -g portless           # global; works for all stacks (Node binary)
-portless trust                # one-time: trust the local CA
 ```
 
 If bun isn't available (rare in this org's repos), fall back to `npm install -g portless`. Don't install per-repo as a dev dep — the binary serves every stack and every worktree from one install.
+
+**Trust the local CA only when interactive.** `portless trust` adds a CA to the system trust store and prompts for sudo; in headless / CI / non-TTY runs it can hang or fail, blocking the rest of baseline setup. Gate it:
+
+```bash
+if [ -t 0 ] && [ -z "${CI:-}" ]; then
+  portless trust              # interactive only
+else
+  echo "skipped: run 'portless trust' manually after baseline finishes"
+fi
+```
+
+The proxy still works without CA trust — the browser just shows a one-time self-signed-cert warning per origin until the user runs `portless trust` later. That's a worse first-run UX, but it keeps `/baseline` finishing cleanly in agent / container runs.
 
 **Don't rewrite source files.** For TS/JS, keep `"dev": "next dev"` (or whatever it is) in `package.json` — portless reads that script. For Python / Ruby, don't change how the server is started in code; the change happens at the invocation layer (`portless run uv run uvicorn ...`). The per-stack snippet appended in step 7 gives agents the right invocation for the detected framework.
 
