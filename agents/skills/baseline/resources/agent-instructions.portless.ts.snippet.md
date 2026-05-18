@@ -8,6 +8,14 @@ portless          # runs the package.json "dev" script through the proxy
 portless list     # show active routes
 ```
 
+**Monorepos**: bare `portless` run from a workspace root (detected via `pnpm-workspace.yaml` or `package.json` `"workspaces"`) starts **every** workspace package that has a `dev` script. To start just one app, either `cd` into the workspace first, or invoke it by name with an explicit command:
+
+```bash
+cd apps/web && portless
+# or
+portless web bunx next dev          # explicit name + command
+```
+
 Why: stable named URL, no port collisions, deterministic for agents (no guessing `:3000` vs `:3001`), cookies and `localStorage` scoped per app, OAuth / CORS / `.env` URLs stay stable across restarts.
 
 **Docker services**: register published ports with `portless alias <name> <port>` so containers participate in the same `.localhost` scheme.
