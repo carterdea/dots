@@ -20,7 +20,7 @@ If `ok` is `false`, help the user authenticate:
    - The CLI will print a pairing code (e.g., `WDJB-MJHT`)
    - Tell the user: "Enter this code in your Trello board's CLI Connector Power-Up"
    - Wait for the command to complete
-3. Verify: `trello auth status` should show `configured: true, authMode: "device"`
+3. Verify: `trello auth status` should show `configured: true` and a non-null `authMode` (`device`, `manual`, or `interactive` — the device flow falls back to interactive browser login if pairing is unavailable)
 
 ### Auth Check (Manual Fallback)
 
@@ -78,7 +78,7 @@ trello cards move --card <card-id> --list <destination-list-id>
 trello cards get --card <card-id>
 ```
 
-To set position: add `--pos 1` (top) or `--pos bottom`.
+To set position: add `--pos <float>` (e.g., `--pos 1` for top). The flag is numeric; Trello orders cards by ascending position value, so pass a small number for "top" or a large one for "bottom".
 
 ## Update a Card
 
