@@ -38,3 +38,6 @@ config/gh/hosts.yml
 .idea/
 *.swp
 *.swo
+
+# Dependency installs
+node_modules/

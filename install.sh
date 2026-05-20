@@ -20,7 +20,6 @@ INSTALL_SHELL=false
 INSTALL_GIT=false
 INSTALL_CONFIG=false
 INSTALL_SSH=false
-INSTALL_AGENTS=false
 INSTALL_CLAUDE=false
 INSTALL_CODEX=false
 INSTALL_OPENCODE=false
@@ -54,7 +53,6 @@ OPTIONS:
     --git           Install git configurations
     --config        Install tool configs (ripgrep, gh, ghostty)
     --ssh           Install SSH config
-    --agents        Install Claude Code agents config (legacy, use --claude)
     --claude        Install skills to Claude Code (~/.claude)
     --codex         Install skills to Codex (~/.agents)
     --opencode      Install config to OpenCode (~/.config/opencode)
@@ -116,6 +114,33 @@ create_symlink() {
     info "Linked: $target -> $source"
 }
 
+install_skill_dependencies() {
+    if [[ ! -d "$DOTFILES_DIR/agents/skills" ]]; then
+        return
+    fi
+
+    local found=false
+    for package_file in "$DOTFILES_DIR/agents/skills"/*/package.json; do
+        [[ -f "$package_file" ]] || continue
+        found=true
+        local skill_dir
+        skill_dir="$(dirname "$package_file")"
+
+        if [[ "$DRY_RUN" == true ]]; then
+            info "[DRY RUN] Would install skill dependencies: $skill_dir"
+        elif command -v bun >/dev/null 2>&1; then
+            info "Installing skill dependencies: $skill_dir"
+            (cd "$skill_dir" && bun install)
+        else
+            warn "bun command not found; skipping skill dependencies for $skill_dir"
+        fi
+    done
+
+    if [[ "$found" == true ]] && [[ "$DRY_RUN" == false ]] && ! command -v bun >/dev/null 2>&1; then
+        warn "Some skills require JavaScript dependencies. Install Bun, then run ./install.sh for your agent again."
+    fi
+}
+
 install_shell() {
     info "Installing shell configurations..."
     create_symlink "$DOTFILES_DIR/shell/.zshrc" "$HOME/.zshrc"
@@ -150,11 +175,6 @@ install_config() {
 install_ssh() {
     info "Installing SSH configuration..."
     create_symlink "$DOTFILES_DIR/ssh/config" "$HOME/.ssh/config"
-}
-
-install_agents() {
-    warn "The --agents flag is deprecated. Use --claude instead."
-    install_claude
 }
 
 install_claude() {
@@ -417,10 +437,6 @@ while [[ $# -gt 0 ]]; do
             INSTALL_SSH=true
             shift
             ;;
-        --agents)
-            INSTALL_AGENTS=true
-            shift
-            ;;
         --claude)
             INSTALL_CLAUDE=true
             shift
@@ -490,7 +506,6 @@ else
     [[ "$INSTALL_GIT" == true ]] && install_git
     [[ "$INSTALL_CONFIG" == true ]] && install_config
     [[ "$INSTALL_SSH" == true ]] && install_ssh
-    [[ "$INSTALL_AGENTS" == true ]] && install_agents
     [[ "$INSTALL_CLAUDE" == true ]] && install_claude
     [[ "$INSTALL_CODEX" == true ]] && install_codex
     [[ "$INSTALL_OPENCODE" == true ]] && install_opencode
@@ -498,6 +513,10 @@ else
     [[ "$INSTALL_CURSOR_PROJECT" == true ]] && install_cursor_project
     [[ "$INSTALL_PI" == true ]] && install_pi
     [[ "$INSTALL_PI_PACKAGES" == true && "$INSTALL_PI" == false ]] && install_pi_packages
+fi
+
+if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_CLAUDE" == true ]] || [[ "$INSTALL_CODEX" == true ]] || [[ "$INSTALL_OPENCODE" == true ]] || [[ "$INSTALL_CURSOR" == true ]] || [[ "$INSTALL_CURSOR_PROJECT" == true ]] || [[ "$INSTALL_PI" == true ]]; then
+    install_skill_dependencies
 fi
 
 if [[ "$DRY_RUN" == false ]]; then
