@@ -27,7 +27,11 @@ Before any resource command, verify credentials are configured:
 trello auth status
 ```
 
-The response follows the JSON envelope. If `ok` is `false` or the auth mode is `key_only`, stop and explain the issue to the user. Do not attempt resource commands without valid auth.
+The response follows the JSON envelope. Stop and explain the issue to the user if any of these hold — do not attempt resource commands:
+
+- `ok` is `false`
+- `data.configured` is `false` (no credentials stored — a fresh install)
+- `data.authMode` is `"key_only"` (API key without a token; not enough to authenticate)
 
 Auth can come from three sources:
 - **Device flow** (preferred — via `trello auth login` with Power-Up pairing)
