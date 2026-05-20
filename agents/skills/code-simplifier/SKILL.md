@@ -44,11 +44,23 @@ Your refinement process:
 
 1. Identify the recently modified code sections and gather the diff/file list so each review agent gets identical context.
 
-2. **Spawn three review subagents in parallel** (single message, multiple Task tool calls). Each reviews the same files through a different lens and returns findings only — no edits:
+2. **Spawn the three existing pi review subagents in parallel** with the `subagent` tool's `tasks` parameter. Use these exact agent names — do not use the human-readable review labels as agent names:
 
-   - **Reuse (DRY + SRP)**: duplicated logic to extract, near-duplicates with minor variation, functions/components doing more than one thing.
-   - **Quality & Clarity**: unnecessary complexity, deep nesting, nested ternaries, unclear names, dead code, obvious comments, missing/incorrect types, project-standard violations.
-   - **Efficiency**: redundant iterations, repeated computations that could be hoisted/memoized, N+1 patterns, unnecessary allocations, sync work that should be batched or parallelized.
+   - `reuse-reviewer`: duplicated logic to extract, near-duplicates with minor variation, functions/components doing more than one thing.
+   - `quality-clarity-reviewer`: unnecessary complexity, deep nesting, nested ternaries, unclear names, dead code, obvious comments, missing/incorrect types, project-standard violations.
+   - `efficiency-reviewer`: redundant iterations, repeated computations that could be hoisted/memoized, N+1 patterns, unnecessary allocations, sync work that should be batched or parallelized.
+
+   Call shape:
+
+   ```json
+   {
+     "tasks": [
+       { "agent": "reuse-reviewer", "task": "Review these recently modified files for reuse, DRY, and SRP issues: <shared file list and diff context>. Return findings only." },
+       { "agent": "quality-clarity-reviewer", "task": "Review these recently modified files for quality and clarity issues: <shared file list and diff context>. Return findings only." },
+       { "agent": "efficiency-reviewer", "task": "Review these recently modified files for efficiency issues: <shared file list and diff context>. Return findings only." }
+     ]
+   }
+   ```
 
    Findings format: file, line, issue, severity, suggested fix.
 
