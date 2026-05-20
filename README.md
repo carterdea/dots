@@ -178,7 +178,7 @@ dots/
 └── agents/                 # Claude Code agents configuration
     ├── AGENTS.md           # Global instructions
     ├── subagents/          # Subagent definitions (5 agents)
-    └── skills/             # Skills (53 skills)
+    └── skills/             # Skills (57 skills)
 ```
 
 ## AI Assistant Configuration
@@ -186,6 +186,8 @@ dots/
 Your dotfiles include skills that work across Claude Code, Codex, OpenCode, Cursor, and pi.
 
 Pi package sources live in `agents/pi-packages.txt`. `./install.sh --pi` and `./install.sh --pi-packages` install those packages through `pi install`, so pi can keep extension package sources in `~/.pi/agent/settings.json` without symlinking local extension code.
+
+Some shared skills include a `package.json` for local validation helpers. Any agent install target (`--claude`, `--codex`, `--cursor`, `--opencode`, `--pi`, or `--all`) runs `bun install` in those skill directories so their scripts work through the symlinks.
 
 ### Available Skills
 
@@ -241,8 +243,14 @@ Pi package sources live in `agents/pi-packages.txt`. `./install.sh --pi` and `./
 - `/shopify-liquid-patterns` - Liquid code patterns
 
 **Shopify:**
+- `/shopify-app-store-review` - Shopify App Store review requirements
 - `/shopify-dev-theme` - Dev theme from current branch
+- `/shopify-payments-apps` - Shopify payments app APIs and validation
+- `/shopify-polaris-admin-extensions` - Polaris Admin UI extension code and validation
+- `/shopify-polaris-app-home` - Polaris app home code and validation
+- `/shopify-storefront-graphql` - Storefront GraphQL queries, mutations, and validation
 - `/shopify-theme-pull` - Pull merchant content from live theme
+- `/shopify-use-shopify-cli` - Shopify CLI operational workflows
 
 **Writing:**
 - `/humanize-ai-text` - Rewrite AI text to sound natural / pass detectors

@@ -13,7 +13,7 @@ agents/
 │   ├── breaking-change-detector.md
 │   ├── python-type-fixer.md
 │   └── python-code-simplifier.md
-└── skills/                  # Skills (53 total)
+└── skills/                  # Skills (57 total)
     ├── agent-browser/                    # Browser automation CLI for AI agents
     ├── audit-ai-code/                    # Audit AI-shaped backend code diffs for slop
     ├── audit-ai-frontend/                # Audit AI-looking frontend implementations
@@ -55,9 +55,15 @@ agents/
     ├── rams/                             # Accessibility / visual design review
     ├── react-doctor/                     # Catch React issues early
     ├── self-improve/                     # Codex session-driven self-improvement
+    ├── shopify-app-store-review/         # Shopify App Store review requirements
     ├── shopify-dev-theme/                # Dev theme from current branch
     ├── shopify-liquid-patterns/          # Liquid code patterns
+    ├── shopify-payments-apps/            # Shopify payments app APIs and validation
+    ├── shopify-polaris-admin-extensions/ # Polaris Admin UI extension code and validation
+    ├── shopify-polaris-app-home/         # Polaris app home code and validation
+    ├── shopify-storefront-graphql/       # Storefront GraphQL queries and validation
     ├── shopify-theme-pull/               # Pull merchant content from live theme
+    ├── shopify-use-shopify-cli/          # Shopify CLI operational workflows
     ├── skill-creator/                    # Create/edit/measure skills
     ├── smart-brevity/                    # Smart Brevity rewriting
     ├── subagent-orchestrator/            # Orchestrate sub-agents for long tasks
@@ -81,6 +87,8 @@ Run from repo root:
 ./install.sh --pi                 # pi coding agent
 ./install.sh --all --dry-run      # preview
 ```
+
+Skills with `package.json` get their local dependencies installed with `bun install` during any agent skill install target, so validation scripts run through the symlinked skill paths.
 
 ### What `--claude` installs
 
@@ -148,8 +156,14 @@ Run from repo root:
 
 ### Shopify
 
+- `/shopify-app-store-review` — Shopify App Store review requirements
 - `/shopify-dev-theme` — Dev theme from current git branch
+- `/shopify-payments-apps` — Shopify payments app APIs and validation
+- `/shopify-polaris-admin-extensions` — Polaris Admin UI extension code and validation
+- `/shopify-polaris-app-home` — Polaris app home code and validation
+- `/shopify-storefront-graphql` — Storefront GraphQL queries, mutations, and validation
 - `/shopify-theme-pull` — Pull merchant content from live theme
+- `/shopify-use-shopify-cli` — Shopify CLI operational workflows
 
 ### Writing
 
