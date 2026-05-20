@@ -5,6 +5,10 @@ description: Operate Trello through the local CLI tool. Use this skill whenever 
 
 This skill teaches you how to translate natural-language Trello requests into safe, multi-step `trello` CLI workflows. The CLI outputs deterministic JSON — every response is machine-parseable and follows a stable contract.
 
+## Dependency
+
+Requires the `trello` CLI from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli). Install it on `PATH`, or clone the repo and build with `go build -o bin/trello ./cmd/trello`.
+
 ## Resolve the Binary
 
 Try these in order — use whichever works first:
