@@ -178,7 +178,7 @@ dots/
 └── agents/                 # Claude Code agents configuration
     ├── AGENTS.md           # Global instructions
     ├── subagents/          # Subagent definitions (5 agents)
-    └── skills/             # Skills (51 skills)
+    └── skills/             # Skills (53 skills)
 ```
 
 ## AI Assistant Configuration
@@ -250,6 +250,9 @@ Pi package sources live in `agents/pi-packages.txt`. `./install.sh --pi` and `./
 
 **Browser Automation:**
 - `/agent-browser` - Standalone browser CLI for navigation, forms, scraping, screenshots
+
+**External Tools:**
+- `/trello-cli` - Drive Trello (boards, lists, cards, comments, checklists, labels) through the `trello` CLI. Requires the binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 **Meta:**
 - `/new-skill` - Create skill from current conversation

@@ -13,7 +13,7 @@ agents/
 │   ├── breaking-change-detector.md
 │   ├── python-type-fixer.md
 │   └── python-code-simplifier.md
-└── skills/                  # Skills (52 total)
+└── skills/                  # Skills (53 total)
     ├── agent-browser/                    # Browser automation CLI for AI agents
     ├── audit-ai-code/                    # Audit AI-shaped backend code diffs for slop
     ├── audit-ai-frontend/                # Audit AI-looking frontend implementations
@@ -61,6 +61,7 @@ agents/
     ├── skill-creator/                    # Create/edit/measure skills
     ├── smart-brevity/                    # Smart Brevity rewriting
     ├── subagent-orchestrator/            # Orchestrate sub-agents for long tasks
+    ├── trello-cli/                       # Drive Trello through the `trello` CLI
     ├── vercel-react-best-practices/      # React/Next.js performance patterns
     ├── web-animation-design/             # Web animation patterns
     └── zoom-out/                         # Higher-level perspective on code
@@ -158,6 +159,10 @@ Run from repo root:
 ### Browser Automation
 
 - `/agent-browser` — Standalone browser CLI for navigation, forms, scraping, screenshots
+
+### External Tools
+
+- `/trello-cli` — Drive Trello (boards, lists, cards, comments, checklists, labels) through the `trello` CLI. Requires the binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 ### Meta
 
