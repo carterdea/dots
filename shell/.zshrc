@@ -61,3 +61,7 @@ compinit
 
 # Load local configuration (API keys, secrets, machine-specific settings)
 [ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"
+
+# Pi worktree support
+PI_WORKTREE_SH="$HOME/.pi/agent/git/github.com/carterdea/pi-worktrees/shell/pi.zsh"
+[ -f "$PI_WORKTREE_SH" ] && source "$PI_WORKTREE_SH"
