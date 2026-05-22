@@ -39,6 +39,7 @@
 ## Code style
 - Always strive for concise, simple solutions
 - If a problem can be solved in a simpler way, propose it
+- Keep it small: small files, small functions, small interfaces — split or extract before a file or API surface grows large
 
 ## Commands
 - Don't run dev server commands (e.g. `bun run dev`) unless specifically asked — assume it's already running
