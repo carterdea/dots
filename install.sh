@@ -54,7 +54,7 @@ OPTIONS:
     --config        Install tool configs (ripgrep, gh, ghostty)
     --ssh           Install SSH config
     --claude        Install skills to Claude Code (~/.claude)
-    --codex         Install skills to Codex (~/.agents)
+    --codex         Install skills (~/.agents) and subagents (~/.codex/agents) to Codex
     --opencode      Install config to OpenCode (~/.config/opencode)
     --cursor        Install skills to Cursor global (~/.cursor)
     --cursor-project Install skills to Cursor project (.cursor)
@@ -253,6 +253,67 @@ install_codex() {
             fi
         done
     fi
+
+    install_codex_agents
+}
+
+# Translate Claude subagent markdown (YAML frontmatter + body) into Codex's
+# native subagent format: per-agent TOML files in ~/.codex/agents/.
+# - name/description -> top-level basic strings
+# - markdown body    -> developer_instructions as a TOML literal ''' block
+# - model            -> omitted so the agent inherits the parent Codex session
+# - tools            -> dropped (Codex scopes via sandbox_mode/mcp_servers, not an allowlist)
+# Docs: https://developers.openai.com/codex/subagents
+install_codex_agents() {
+    if [[ ! -d "$DOTFILES_DIR/agents/subagents" ]]; then
+        return
+    fi
+
+    if [[ "$DRY_RUN" == true ]]; then
+        for src in "$DOTFILES_DIR/agents/subagents"/*.md; do
+            [[ -f "$src" ]] || continue
+            info "[DRY RUN] Would translate + install Codex agent: ~/.codex/agents/$(basename "${src%.md}").toml"
+        done
+        return
+    fi
+
+    mkdir -p "$HOME/.codex/agents"
+    local count=0
+    for src in "$DOTFILES_DIR/agents/subagents"/*.md; do
+        [[ -f "$src" ]] || continue
+        local name dest
+        name="$(basename "${src%.md}")"
+        dest="$HOME/.codex/agents/$name.toml"
+        awk -v fallback="$name" -v q="'''" '
+            BEGIN { fm = 0; n = 0; nm = ""; desc = "" }
+            /^---[[:space:]]*$/ { fm++; next }
+            fm == 1 && /^name:[[:space:]]*/ { nm = $0; sub(/^name:[[:space:]]*/, "", nm); next }
+            fm == 1 && /^description:[[:space:]]*/ { desc = $0; sub(/^description:[[:space:]]*/, "", desc); next }
+            fm == 1 { next }
+            fm >= 2 { body[++n] = $0 }
+            END {
+                if (nm == "") nm = fallback
+                sub(/^"/, "", nm); sub(/"$/, "", nm)
+                sub(/^"/, "", desc); sub(/"$/, "", desc)
+                gsub(/"/, "\\\"", nm)
+                gsub(/"/, "\\\"", desc)
+                printf("name = \"%s\"\n", nm)
+                printf("description = \"%s\"\n", desc)
+                printf("developer_instructions = %s\n", q)
+                started = 0; m = 0
+                for (i = 1; i <= n; i++) {
+                    if (!started && body[i] ~ /^[[:space:]]*$/) continue
+                    started = 1
+                    out[++m] = body[i]
+                }
+                while (m > 0 && out[m] ~ /^[[:space:]]*$/) m--
+                for (i = 1; i <= m; i++) print out[i]
+                printf("%s\n", q)
+            }
+        ' "$src" > "$dest"
+        count=$((count + 1))
+    done
+    info "Translated $count Claude subagent(s) -> ~/.codex/agents/"
 }
 
 install_opencode() {
