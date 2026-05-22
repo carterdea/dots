@@ -30,7 +30,7 @@ gh api repos/{OWNER}/{REPO}/issues/{PR_NUMBER}/comments --jq '.[] | {id, body, u
 - Outdated review comments: review comments where `position` is `null` (line no longer exists in diff — GitHub UI labels these "Outdated"). Issue comments don't have position; only applies to pulls/comments endpoint.
 - Vercel bot comments (login matches `vercel[bot]`, `vercel-bot`, or body mentions Vercel preview/deployment status)
 - Bare agent mentions: body is just `@claude`, `@codex`, or short variants like `@codex review`, `@claude please review`, `@claude take a look` (no actionable content beyond the tag). Heuristic: strip mentions + whitespace; if <= ~3 words remain and none describe a change, skip.
-- Already addressed this session: comments whose requested change you already made earlier in this same session. Safe to skip — note them as "already addressed" in the final summary rather than re-applying or re-verifying.
+- Already addressed this session: comments whose requested change you already made earlier in this same session. Safe to skip — briefly note them as "already addressed" in the final summary rather than re-applying or re-verifying.
 
 4. Classify each comment by author:
 - **Human** (`user_type == "User"`): trust default. Assume correct unless obviously wrong. Verify scope + intent, then apply.
