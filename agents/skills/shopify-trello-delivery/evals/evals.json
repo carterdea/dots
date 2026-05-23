@@ -10,7 +10,7 @@
     {
       "id": 2,
       "prompt": "Build the new Shopify theme feature from this Trello card: https://trello.com/c/example/5678-product-detail-badge. There is no PR yet and no dev theme. Please implement it, get me a preview, and send it for review.",
-      "expected_output": "Creates a non-main branch, implements the feature narrowly, creates an unpublished dev theme, verifies the correct preview URL on desktop and mobile, creates a PR with the Trello link in the description, uploads screenshots to GitHub and Trello, comments on Trello, and moves the card forward.",
+      "expected_output": "Creates a non-main branch, implements the feature narrowly, invokes shopify-dev-theme to create an unpublished dev theme, verifies the correct preview URL on desktop and mobile, creates a PR with the Trello link in the description, uploads screenshots to GitHub and Trello, comments on Trello, and moves the card forward.",
       "files": []
     },
     {
