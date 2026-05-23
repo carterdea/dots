@@ -1,6 +1,6 @@
 ---
 name: shopify-trello-delivery
-description: Ship Shopify theme work from a Trello ticket end to end: inspect the card including Figma links, implement the theme change, deploy or update the correct preview/dev theme, browser-QA desktop and mobile against Figma when available, create or update the GitHub PR, attach screenshots, comment on Trello, and move the card forward. Use this whenever the user mentions a Shopify theme task with a Trello card, Figma design/artboard, preview theme, Customizer, dev theme, PR handoff, Ready for Review/Testing, or asks to update an existing Shopify PR from a ticket.
+description: "Ship Shopify theme work from a Trello ticket end to end: inspect the card including Figma links, implement the theme change, deploy or update the correct preview/dev theme, browser-QA desktop and mobile against Figma when available, create or update the GitHub PR, attach screenshots, comment on Trello, and move the card forward. Use this whenever the user mentions a Shopify theme task with a Trello card, Figma design/artboard, preview theme, Customizer, dev theme, PR handoff, Ready for Review/Testing, or asks to update an existing Shopify PR from a ticket."
 ---
 
 # Shopify Trello Delivery
