@@ -93,14 +93,11 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
      - Push to that theme ID: `shopify theme push --environment <env> --theme <theme-id> --json`.
    - No existing preview theme:
      - Invoke the `shopify-dev-theme` skill from this repo.
-     - Follow its branch-name, environment-selection, unpublished theme creation, theme-limit handling, preview URL, and editor URL steps.
+     - Use `shopify-dev-theme` as the source of truth for branch-name handling, environment selection, unpublished theme creation, theme-limit handling, preview URL, and editor URL.
      - Resume this workflow after `shopify-dev-theme` returns the base preview URL and editor URL.
      - If the user gave a page-specific path in the Trello ticket, combine that path with the returned dev theme preview URL.
-   - If manual fallback is required because `shopify-dev-theme` is unavailable, create/update an unpublished `[DEV]` theme using that skill's naming and safety rules.
    - If the theme limit is reached:
-     - Run `shopify theme list --environment <env> --json`.
-     - Prefer updating any task-related `[DEV]` theme if present.
-     - Otherwise present deletion candidates and wait for explicit deletion approval.
+     - Follow the `shopify-dev-theme` theme-limit flow.
    - Capture and keep the returned `preview_url`, `editor_url`, `theme.id`, and `theme.name`.
    - Infer page-specific preview URLs from touched templates or ticket context, for example `/pages/help-about-our-product?preview_theme_id=<id>#help-faqs`.
    - Build a Customizer URL using Shopify admin when the CLI editor URL is storefront-domain based:
