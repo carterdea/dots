@@ -13,6 +13,7 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
 
 - `git` and GitHub CLI or connector access for branch, PR, and PR comment work.
 - Shopify CLI with access to the relevant store from `shopify.theme.toml`.
+- The `shopify-dev-theme` skill for creating unpublished dev themes when the ticket has no existing preview theme.
 - Trello CLI with authenticated access to the ticket board.
 - Figma Desktop MCP when the Trello ticket or comments contain Figma design links.
 - Browser automation for preview-theme QA and screenshots.
@@ -91,9 +92,11 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
    - Existing preview theme on the Trello card or PR:
      - Push to that theme ID: `shopify theme push --environment <env> --theme <theme-id> --json`.
    - No existing preview theme:
-     - Humanize the branch name into `[DEV] <Title Case Branch>`.
-     - Create/update the unpublished theme: `shopify theme push --environment <env> --theme "[DEV] Name" --unpublished --json`.
-   - If `--theme "[DEV] Name"` fails because the theme does not exist, retry with `--unpublished`.
+     - Invoke the `shopify-dev-theme` skill from this repo.
+     - Follow its branch-name, environment-selection, unpublished theme creation, theme-limit handling, preview URL, and editor URL steps.
+     - Resume this workflow after `shopify-dev-theme` returns the base preview URL and editor URL.
+     - If the user gave a page-specific path in the Trello ticket, combine that path with the returned dev theme preview URL.
+   - If manual fallback is required because `shopify-dev-theme` is unavailable, create/update an unpublished `[DEV]` theme using that skill's naming and safety rules.
    - If the theme limit is reached:
      - Run `shopify theme list --environment <env> --json`.
      - Prefer updating any task-related `[DEV]` theme if present.
@@ -184,6 +187,7 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
 - [ ] Implement scoped feature.
 - [ ] Validate locally.
 - [ ] Create unpublished `[DEV]` theme.
+- [ ] Use `shopify-dev-theme` for unpublished dev theme creation.
 - [ ] Browser QA preview.
 - [ ] Capture desktop and mobile preview screenshots.
 - [ ] Commit and push.
