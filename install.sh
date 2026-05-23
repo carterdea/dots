@@ -284,6 +284,7 @@ install_codex_agents() {
         local name dest
         name="$(basename "${src%.md}")"
         dest="$HOME/.codex/agents/$name.toml"
+        backup_file "$dest"
         awk -v fallback="$name" -v q="'''" '
             BEGIN { fm = 0; n = 0; nm = ""; desc = "" }
             /^---[[:space:]]*$/ { fm++; next }
