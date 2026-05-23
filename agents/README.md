@@ -13,7 +13,7 @@ agents/
 │   ├── breaking-change-detector.md
 │   ├── python-type-fixer.md
 │   └── python-code-simplifier.md
-└── skills/                  # Skills (57 total)
+└── skills/                  # Skills (60 total)
     ├── agent-browser/                    # Browser automation CLI for AI agents
     ├── audit-ai-code/                    # Audit AI-shaped backend code diffs for slop
     ├── audit-ai-frontend/                # Audit AI-looking frontend implementations
@@ -63,6 +63,7 @@ agents/
     ├── shopify-polaris-app-home/         # Polaris app home code and validation
     ├── shopify-storefront-graphql/       # Storefront GraphQL queries and validation
     ├── shopify-theme-pull/               # Pull merchant content from live theme
+    ├── shopify-trello-delivery/          # Shopify Trello ticket delivery workflow
     ├── shopify-use-shopify-cli/          # Shopify CLI operational workflows
     ├── skill-creator/                    # Create/edit/measure skills
     ├── smart-brevity/                    # Smart Brevity rewriting
@@ -163,6 +164,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/shopify-polaris-app-home` — Polaris app home code and validation
 - `/shopify-storefront-graphql` — Storefront GraphQL queries, mutations, and validation
 - `/shopify-theme-pull` — Pull merchant content from live theme
+- `/shopify-trello-delivery` — Ship Shopify Trello tickets through PR, preview theme, screenshots, and Trello handoff
 - `/shopify-use-shopify-cli` — Shopify CLI operational workflows
 
 ### Writing
