@@ -178,7 +178,7 @@ dots/
 └── agents/                 # Claude Code agents configuration
     ├── AGENTS.md           # Global instructions
     ├── subagents/          # Subagent definitions (5 agents)
-    └── skills/             # Skills (57 skills)
+    └── skills/             # Skills (60 skills)
 ```
 
 ## AI Assistant Configuration
@@ -250,6 +250,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/shopify-polaris-app-home` - Polaris app home code and validation
 - `/shopify-storefront-graphql` - Storefront GraphQL queries, mutations, and validation
 - `/shopify-theme-pull` - Pull merchant content from live theme
+- `/shopify-trello-delivery` - Ship Shopify Trello tickets through PR, preview theme, screenshots, and Trello handoff
 - `/shopify-use-shopify-cli` - Shopify CLI operational workflows
 
 **Writing:**
