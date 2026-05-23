@@ -1,0 +1,33 @@
+# Shopify theme quality hooks.
+# Fast staged checks on commit. Full checks on push.
+
+pre-commit:
+  parallel: true
+  commands:
+    theme-check:
+      glob: "**/*.{liquid,json,jsonc}"
+      # Shopify Theme Check supports theme-root scoping, not staged file lists.
+      run: bun run check:theme
+    biome-check:
+      glob: "**/*.{js,jsx,ts,tsx,json,jsonc,css}"
+      run: bunx biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+
+pre-push:
+  parallel: false
+  commands:
+    theme-check:
+      run: bun run check:theme
+    biome:
+      run: bun run check:biome
+    typecheck:
+      run: bun run check:type
+    test:
+      run: bun run check:test
+    accessibility:
+      run: |
+        if [ -n "${BASE_URL:-}${SHOPIFY_PREVIEW_URL:-}" ]; then
+          bun run check:a11y
+        else
+          echo "skipped: set BASE_URL or SHOPIFY_PREVIEW_URL for accessibility smoke tests"
+        fi
