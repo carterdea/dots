@@ -281,10 +281,15 @@ install_codex_agents() {
     local count=0
     for src in "$DOTFILES_DIR/agents/subagents"/*.md; do
         [[ -f "$src" ]] || continue
-        local name dest
+        local name dest tmp
         name="$(basename "${src%.md}")"
         dest="$HOME/.codex/agents/$name.toml"
         backup_file "$dest"
+        # Write to a temp file in the same dir, then atomically replace. This
+        # avoids following a symlinked $dest (which redirection would do,
+        # clobbering the link target outside this dir with no backup) and
+        # prevents leaving a half-written file if awk fails mid-stream.
+        tmp="$(mktemp "$HOME/.codex/agents/.$name.XXXXXX")"
         awk -v fallback="$name" -v q="'''" '
             BEGIN { fm = 0; n = 0; nm = ""; desc = "" }
             /^---[[:space:]]*$/ { fm++; next }
@@ -311,7 +316,8 @@ install_codex_agents() {
                 for (i = 1; i <= m; i++) print out[i]
                 printf("%s\n", q)
             }
-        ' "$src" > "$dest"
+        ' "$src" > "$tmp"
+        mv -f "$tmp" "$dest"
         count=$((count + 1))
     done
     info "Translated $count Claude subagent(s) -> ~/.codex/agents/"
@@ -432,9 +438,13 @@ install_pi_agents() {
     local count=0
     for src in "$DOTFILES_DIR/agents/subagents"/*.md; do
         [[ -f "$src" ]] || continue
-        local name dest
+        local name dest tmp
         name="$(basename "$src")"
         dest="$HOME/.pi/agent/agents/$name"
+        backup_file "$dest"
+        # Same atomic-replace rationale as install_codex_agents: don't follow a
+        # symlinked $dest, and don't leave a half-written file if awk fails.
+        tmp="$(mktemp "$HOME/.pi/agent/agents/.$name.XXXXXX")"
         awk '
             BEGIN { fm_count = 0 }
             /^---$/ { fm_count++; print; next }
@@ -445,7 +455,8 @@ install_pi_agents() {
             }
             fm_count == 1 && /^model:/ { next }
             { print }
-        ' "$src" > "$dest"
+        ' "$src" > "$tmp"
+        mv -f "$tmp" "$dest"
         count=$((count + 1))
     done
     info "Translated $count Claude subagent(s) -> ~/.pi/agent/agents/"
