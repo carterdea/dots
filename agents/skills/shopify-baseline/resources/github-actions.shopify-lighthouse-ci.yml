@@ -1,0 +1,27 @@
+name: Shopify Lighthouse CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned from actions/checkout@v4 on 2026-05-23.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Lighthouse
+        # Pinned from shopify/lighthouse-ci-action@v1 on 2026-05-23.
+        uses: shopify/lighthouse-ci-action@988f0eeb44ad5f298bd47150e5b9b01c27ead975
+        with:
+          store: ${{ secrets.SHOP_STORE }}
+          client_id: ${{ secrets.SHOP_CLIENT_ID }}
+          client_secret: ${{ secrets.SHOP_CLIENT_SECRET }}
+          password: ${{ secrets.SHOP_PASSWORD }}
+          product_handle: ${{ vars.SHOPIFY_LIGHTHOUSE_PRODUCT_HANDLE }}
+          collection_handle: ${{ vars.SHOPIFY_LIGHTHOUSE_COLLECTION_HANDLE }}
+          lhci_github_app_token: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+          lhci_min_score_performance: 0.6
+          lhci_min_score_accessibility: 0.9

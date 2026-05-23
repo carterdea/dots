@@ -1,0 +1,36 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  claude-review:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned from actions/checkout@v4 on 2026-05-23.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+
+      # Pinned from anthropics/claude-code-action@v1.0.131 on 2026-05-23.
+      - uses: anthropics/claude-code-action@4481e6d3c7bbb88db2a928ca3444c536f589c7c1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review PR #${{ github.event.pull_request.number }} in ${{ github.repository }}.
+
+            Focus on normal code review issues plus Shopify theme quality:
+            - Online Store 2.0 section/block patterns, Liquid simplicity, localization, responsive images, SEO, theme settings, and avoiding unnecessary JavaScript.
+            - Accessibility issues in rendered behavior and source: keyboard operation, focus states, accessible names, semantic controls, form labels, alt text, dialog/drawer focus handling, contrast-sensitive UI choices, and target size.
+            - Theme safety: no hardcoded merchant data, no invented numbers or fake case studies, no brittle selectors that will fail across templates, and no changes that break no-JS basics.
+
+            Post only actionable findings. Prefer inline comments for specific code issues and a concise summary when there are no blocking findings.
+          claude_args: |
+            --append-system-prompt "Be concise and evidence-based. Do not invent requirements. Check changed files against Shopify theme best practices and accessibility expectations in addition to normal correctness, security, and maintainability review."

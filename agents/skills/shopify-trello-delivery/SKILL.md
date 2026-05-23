@@ -14,7 +14,7 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
 - `git` and GitHub CLI or connector access for branch, PR, and PR comment work.
 - Shopify CLI with access to the relevant store from `shopify.theme.toml`.
 - The `shopify-dev-theme` skill for creating unpublished dev themes when the ticket has no existing preview theme.
-- Trello CLI with authenticated access to the ticket board.
+- The `trello-cli` skill for Trello auth, card reads, comments, attachments, list discovery, moves, and mutation verification.
 - Figma Desktop MCP when the Trello ticket or comments contain Figma design links.
 - Browser automation for preview-theme QA and screenshots.
 
@@ -38,6 +38,25 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
   - If the preview must be client-visible on the merchant store, use the production store as an unpublished dev theme.
   - If the command fails for access or theme not found, try the other configured environment before asking.
 - If the store is at the theme limit, update an existing task-related theme if one exists. Only ask before deleting themes. Never suggest deleting the live theme.
+
+## Optional Subagent Delegation
+
+Use subagents for read-only research, design analysis, QA, and review tasks that can run in parallel. Keep git mutations, Shopify deploys, GitHub PR updates, Trello comments, Trello moves, and final screenshot uploads in the lead agent.
+
+Good delegation targets:
+
+- Ticket intake: summarize Trello description, comments, attachments, PR, preview, Customizer, Figma links, and acceptance criteria.
+- Research: use Context7 for current library, framework, SDK, API, CLI, and Shopify documentation; use Exa for broader vendor documentation, implementation examples, Shopify app behavior, and current third-party service details.
+- Figma analysis: identify the correct node/frame, capture references, and summarize visual requirements.
+- Preview QA: test deployed preview URLs on desktop and mobile and report concrete mismatches.
+- Diff review: inspect touched files for scope creep, missing assets, Liquid issues, and validation gaps.
+
+Research expectations:
+
+- Prefer primary sources: Shopify docs, app/vendor docs, official package docs, and source repositories.
+- When implementation depends on platform behavior, app embeds, checkout/cart integration, customer accounts, or current Shopify APIs, do live research before coding.
+- Return concise findings with links, the exact API or behavior that matters, and any uncertainty or version/date sensitivity.
+- Do not let a research subagent mutate files, run deploys, update Trello/GitHub, or make final delivery decisions.
 
 ## Workflow
 
@@ -131,16 +150,28 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
      - PR body should include a short summary, checks, preview URL, Customizer URL, Trello link, and Figma link when one drove the implementation.
    - Upload the desktop and mobile screenshots to the PR:
      - Prefer a PR comment containing both images after the preview theme is deployed and verified.
-     - If the GitHub CLI cannot attach images directly, use an available GitHub connector/browser upload path.
+     - First check for the `gh attach` extension with `gh extension list`.
+     - If `gh attach` is available, prefer:
+       - `gh attach --title "Preview QA screenshots" --comment <pr-number> <desktop-screenshot.png> <mobile-screenshot.png>`
+     - If you need to control the exact PR comment body, generate Markdown first, then post it:
+       - `MARKDOWN=$(gh attach --title "Preview QA screenshots" <pr-number> <desktop-screenshot.png> <mobile-screenshot.png>)`
+       - `printf '%s\n\n%s\n' "Desktop and mobile preview screenshots:" "$MARKDOWN" | gh pr comment <pr-number> --body-file -`
+     - If the screenshots must be embedded in the PR description, use `gh attach` to generate Markdown and update the body with `gh pr edit --body-file`.
+     - Native `gh pr comment` accepts Markdown text but does not upload local image binaries. Do not treat that as a blocker until `gh attach` has been tried.
+     - Do not assume browser upload is available. Agent Browser/automation Chrome is often not logged in to GitHub as the user.
+     - Use the GitHub web UI upload path only when an authenticated GitHub browser session or connector is actually available.
+     - Last resort: embed Trello-hosted image URLs only if they render for GitHub reviewers, and clearly say this is a fallback rather than a GitHub-native upload.
      - If image upload is blocked by tooling or auth, stop and report the blocker instead of pretending the screenshots were uploaded.
    - Do not use emojis in PR text.
 
 8. Update Trello.
+   - Use the `trello-cli` skill for all Trello card, comment, attachment, list, and move operations.
+   - Follow the Trello discover/mutate/verify pattern: fetch IDs first, mutate by ID, then re-fetch to confirm.
    - Add a card comment with exactly these prefixes:
-     - `*PR:* <pr-url>`
-     - `*Preview:* <page-preview-url>`
-     - `*Customizer:* <customizer-url>`
-     - `*Figma:* <figma-url>` when a Figma design was used.
+     - `**PR:** <pr-url>`
+     - `**Preview:** <page-preview-url>`
+     - `**Customizer:** <customizer-url>`
+     - `**Figma:** <figma-url>` when a Figma design was used.
    - Add one short paragraph explaining what changed and what was verified.
    - Attach the desktop and mobile screenshot files to the Trello card using `trello attachments add-file` or the available Trello attachment workflow.
    - Mention the screenshot attachments in the Trello comment when useful, but still attach the actual files.
@@ -198,13 +229,13 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
 ## Trello Comment Template
 
 ```text
-*PR:* <pr-url>
+**PR:** <pr-url>
 
-*Preview:* <page-preview-url>
+**Preview:** <page-preview-url>
 
-*Customizer:* <customizer-url>
+**Customizer:** <customizer-url>
 
-*Figma:* <figma-url if used>
+**Figma:** <figma-url if used>
 
 <One short sentence or paragraph explaining what changed and what was verified.>
 ```
