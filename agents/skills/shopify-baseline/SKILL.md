@@ -206,12 +206,12 @@ Create or update three separate workflow surfaces:
 
 ### Shopify Lighthouse Credentials
 
-These credentials are easy to use but need an authenticated Shopify Dev Dashboard session. Prefer a supervised headed-browser setup: open the browser, let the user log in and complete 2FA, then automate the setup steps with the user's explicit approval.
+These credentials are easy to use but need an authenticated Shopify Dev Dashboard session. The app is created in the user's Shopify organization in Dev Dashboard, not inside an individual theme repo. Then it is installed on the selected benchmark store, which can be a dev store, client transfer store, or merchant-owned collaboration store if the organization has access.
 
-Browser-assisted setup:
+Prefer a supervised headed-browser setup for this API-only Lighthouse app: open the browser, let the user log in and complete 2FA, then automate the setup steps with the user's explicit approval.
 
 1. Open `https://dev.shopify.com/dashboard` in a headed browser.
-2. Ask the user to log in and complete any 2FA or organization/store selection.
+2. Ask the user to log in and complete any 2FA, organization selection, store selection, collaborator approval, or app install approval.
 3. Create a Dev Dashboard app for the benchmark store.
 4. Create/release a version with:
    - app URL `https://shopify.dev/apps/default-app-home`
@@ -219,6 +219,12 @@ Browser-assisted setup:
    - scopes `read_products` and `write_themes`
 5. Install the app on the benchmark store and approve the scopes.
 6. Open the app Settings page and gather the Client ID and Client secret.
+
+Shopify CLI note:
+
+- Shopify CLI can create app projects and app records in the Dev Dashboard, for example with `shopify app init --name <name> --organization-id <org-id> --template <template>`.
+- Do not use CLI app scaffolding as the default Lighthouse credential path for theme repos. It creates a conventional app project and is heavier than needed for an API-only benchmark-store integration.
+- If the user specifically wants CLI-managed app configuration, create it outside the theme repo or in a clearly named separate app directory, then link/deploy app configuration intentionally. Still expect user auth/approval for the target store and secret handling.
 
 Automate the repo-side setup after those values are known:
 
