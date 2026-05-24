@@ -181,7 +181,7 @@ Default accessibility gate:
 - Cover home, collection, product, cart, search, mobile navigation, drawer/modal states when URLs/selectors are known
 - Configure scanned paths with `SHOPIFY_A11Y_PATHS`, a comma-separated list such as `/,/collections/all,/products/example-product`
 
-Do not add ESLint only for accessibility if the repo is Biome-first and mostly Liquid. Consider `pa11y-ci` or `html-validate` only as optional extensions when the user asks for deeper URL/sitemap or rendered-HTML validation.
+Do not add ESLint only for accessibility if the repo is Biome-first and mostly Liquid. Do not add WAVE to the default baseline; WAVE's API path needs API credits or a licensed stand-alone engine, so it belongs in a separate paid/enterprise workflow. Consider `pa11y-ci` or `html-validate` only as optional extensions when the user asks for deeper URL/sitemap or rendered-HTML validation.
 
 If a preview URL is available, use the browser to inventory important pages before finalizing `SHOPIFY_A11Y_PATHS`. Do not consider the accessibility baseline complete until it covers at least homepage, one collection page, and one product page. Then propose any obvious high-traffic footer links, search, cart, account, and landing pages surfaced in navigation before hardcoding the path list in repo config.
 
@@ -198,10 +198,48 @@ Create or update three separate workflow surfaces:
 
 2. `shopify-lighthouse-ci.yml`
    - Uses `shopify/lighthouse-ci-action@v1`.
+   - Optional but recommended when the repo has a benchmark store.
    - Requires benchmark store secrets: `SHOP_STORE`, `SHOP_CLIENT_ID`, `SHOP_CLIENT_SECRET`.
-   - `access_token` is legacy for apps created before January 2026; prefer `client_id` and `client_secret`.
+   - If those required secrets are absent, the workflow must skip cleanly instead of failing.
    - Runs homepage plus product and collection pages; set `SHOPIFY_LIGHTHOUSE_PRODUCT_HANDLE` and `SHOPIFY_LIGHTHOUSE_COLLECTION_HANDLE` repository variables for stable representative pages, otherwise the action defaults to the first product/collection.
    - Keep initial thresholds realistic, then raise after the repo is clean.
+
+### Shopify Lighthouse Credentials
+
+These credentials are easy to use but not fully automatable from a theme repo because Shopify requires creating and installing a Dev Dashboard app.
+
+One-time manual setup:
+
+1. Create a Dev Dashboard app for the benchmark store.
+2. Configure the app scopes `read_products` and `write_themes`.
+3. Install the app on the store.
+4. Copy the app `client_id` and `client_secret`.
+
+Automate the repo-side setup after those values are known:
+
+```bash
+gh secret set SHOP_STORE --body "<store>.myshopify.com"
+gh secret set SHOP_CLIENT_ID --body "<client-id>"
+gh secret set SHOP_CLIENT_SECRET --body "<client-secret>"
+# Only when the benchmark store is password protected:
+gh secret set SHOP_PASSWORD --body "<storefront-password>"
+```
+
+The skill can infer or help gather:
+
+- `SHOP_STORE` from `shopify.theme.toml`, existing deploy workflows, or the user's supplied store domain.
+- `SHOPIFY_LIGHTHOUSE_PRODUCT_HANDLE` and `SHOPIFY_LIGHTHOUSE_COLLECTION_HANDLE` by browsing the preview/store and choosing representative stable pages. These are repository variables, not secrets:
+
+```bash
+gh variable set SHOPIFY_LIGHTHOUSE_PRODUCT_HANDLE --body "<product-handle>"
+gh variable set SHOPIFY_LIGHTHOUSE_COLLECTION_HANDLE --body "<collection-handle>"
+```
+
+The skill cannot safely automate:
+
+- Creating the Dev Dashboard app.
+- Installing the app on a merchant store.
+- Reading or copying the `client_secret` from Shopify without the user's authenticated Shopify context.
 
 3. `claude-code-review.yml`
    - Uses `anthropics/claude-code-action@v1`.
