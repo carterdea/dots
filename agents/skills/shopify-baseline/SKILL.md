@@ -206,14 +206,19 @@ Create or update three separate workflow surfaces:
 
 ### Shopify Lighthouse Credentials
 
-These credentials are easy to use but not fully automatable from a theme repo because Shopify requires creating and installing a Dev Dashboard app.
+These credentials are easy to use but need an authenticated Shopify Dev Dashboard session. Prefer a supervised headed-browser setup: open the browser, let the user log in and complete 2FA, then automate the setup steps with the user's explicit approval.
 
-One-time manual setup:
+Browser-assisted setup:
 
-1. Create a Dev Dashboard app for the benchmark store.
-2. Configure the app scopes `read_products` and `write_themes`.
-3. Install the app on the store.
-4. Copy the app `client_id` and `client_secret`.
+1. Open `https://dev.shopify.com/dashboard` in a headed browser.
+2. Ask the user to log in and complete any 2FA or organization/store selection.
+3. Create a Dev Dashboard app for the benchmark store.
+4. Create/release a version with:
+   - app URL `https://shopify.dev/apps/default-app-home`
+   - the newest stable Webhooks API version offered by the UI
+   - scopes `read_products` and `write_themes`
+5. Install the app on the benchmark store and approve the scopes.
+6. Open the app Settings page and gather the Client ID and Client secret.
 
 Automate the repo-side setup after those values are known:
 
@@ -223,6 +228,23 @@ gh secret set SHOP_CLIENT_ID --body "<client-id>"
 gh secret set SHOP_CLIENT_SECRET --body "<client-secret>"
 # Only when the benchmark store is password protected:
 gh secret set SHOP_PASSWORD --body "<storefront-password>"
+```
+
+Secret-handling rule:
+
+- Do not print the Client secret in chat, logs, PRs, or files.
+- Prefer piping from the clipboard or a hidden prompt directly into `gh secret set`.
+- If the browser reveals the secret to the agent, immediately store it as `SHOP_CLIENT_SECRET`, avoid repeating it, and clear any temporary notes/clipboard when practical.
+
+Useful commands for secret capture:
+
+```bash
+# After the user copies the Client secret from the browser:
+pbpaste | gh secret set SHOP_CLIENT_SECRET
+
+# For non-secret values the agent may set directly:
+gh secret set SHOP_STORE --body "<store>.myshopify.com"
+gh secret set SHOP_CLIENT_ID --body "<client-id>"
 ```
 
 The skill can infer or help gather:
@@ -237,9 +259,8 @@ gh variable set SHOPIFY_LIGHTHOUSE_COLLECTION_HANDLE --body "<collection-handle>
 
 The skill cannot safely automate:
 
-- Creating the Dev Dashboard app.
-- Installing the app on a merchant store.
-- Reading or copying the `client_secret` from Shopify without the user's authenticated Shopify context.
+- Login, 2FA, organization selection, or any approval screen that requires the user's credentials or judgment.
+- Secret handling that would require printing the Client secret into conversation history.
 
 3. `claude-code-review.yml`
    - Uses `anthropics/claude-code-action@v1`.
