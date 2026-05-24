@@ -18,11 +18,11 @@ run_silent() {
         printf "  \033[32m✓\033[0m %s\n" "$description"
         rm -f "$tmp_file"
         return 0
+    else
+        local exit_code=$?
+        printf "  \033[31m✗\033[0m %s\n" "$description"
+        cat "$tmp_file"
+        rm -f "$tmp_file"
+        return "$exit_code"
     fi
-
-    local exit_code=$?
-    printf "  \033[31m✗\033[0m %s\n" "$description"
-    cat "$tmp_file"
-    rm -f "$tmp_file"
-    return "$exit_code"
 }
