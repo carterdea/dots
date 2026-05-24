@@ -205,8 +205,8 @@ Create or update three separate workflow surfaces:
 
 3. `claude-code-review.yml`
    - Uses `anthropics/claude-code-action@v1`.
-   - Prefer Claude Code subscription auth with `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`.
-   - `claude_code_oauth_token` is the official OAuth-token alternative to `anthropic_api_key`; use `ANTHROPIC_API_KEY` only when the repo intentionally pays through direct API billing or another supported provider is configured.
+   - Use Claude Code subscription auth with `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`.
+   - Requires repository secret `CLAUDE_CODE_OAUTH_TOKEN`.
    - Use `prompt` for review instructions.
    - Use `claude_args: --append-system-prompt ...` for extra behavioral framing.
    - Upgrade old beta workflows:
