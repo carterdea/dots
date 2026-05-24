@@ -273,6 +273,7 @@ The skill cannot safely automate:
    - Uses `anthropics/claude-code-action@v1`.
    - Use Claude Code subscription auth with `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`.
    - Requires repository secret `CLAUDE_CODE_OAUTH_TOKEN`.
+   - Keep `permissions.id-token: write`; this workflow does not pass a `github_token`, so Claude Code Action uses the default GitHub App OIDC auth path.
    - Use `prompt` for review instructions.
    - Use `claude_args: --append-system-prompt ...` for extra behavioral framing.
    - Upgrade old beta workflows:
