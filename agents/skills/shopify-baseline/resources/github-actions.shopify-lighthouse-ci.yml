@@ -3,7 +3,7 @@ name: Shopify Lighthouse CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [__DEFAULT_BRANCH__]
 
 jobs:
   lighthouse:
