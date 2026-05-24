@@ -191,7 +191,7 @@ Create or update three separate workflow surfaces:
 
 1. `ci.yml`
    - Runs static checks on every PR and pushes to the default branch.
-   - Substitute the detected default branch instead of assuming `main`.
+   - Replace the `__DEFAULT_BRANCH__` placeholder with the detected default branch before writing the workflow.
    - Runs Playwright axe only when `SHOPIFY_PREVIEW_URL` is available.
    - Runs Vitest only when configured.
    - Pin GitHub Actions to full commit SHAs after resolving the current latest tag or release. Resource templates include pinned refs as of May 23, 2026; refresh them when installing later.
@@ -201,6 +201,7 @@ Create or update three separate workflow surfaces:
    - Optional but recommended when the repo has a benchmark store.
    - Requires benchmark store secrets: `SHOP_STORE`, `SHOP_CLIENT_ID`, `SHOP_CLIENT_SECRET`.
    - If those required secrets are absent, the workflow must skip cleanly instead of failing.
+   - Replace the `__DEFAULT_BRANCH__` placeholder with the detected default branch before writing the workflow.
    - Runs homepage plus product and collection pages; set `SHOPIFY_LIGHTHOUSE_PRODUCT_HANDLE` and `SHOPIFY_LIGHTHOUSE_COLLECTION_HANDLE` repository variables for stable representative pages, otherwise the action defaults to the first product/collection.
    - Keep initial thresholds realistic, then raise after the repo is clean.
 
