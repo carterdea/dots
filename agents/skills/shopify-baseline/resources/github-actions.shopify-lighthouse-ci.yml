@@ -12,7 +12,21 @@ jobs:
       # Pinned from actions/checkout@v4 on 2026-05-23.
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
+      - name: Check Lighthouse secrets
+        id: lighthouse-secrets
+        env:
+          SHOP_STORE: ${{ secrets.SHOP_STORE }}
+          SHOP_CLIENT_ID: ${{ secrets.SHOP_CLIENT_ID }}
+          SHOP_CLIENT_SECRET: ${{ secrets.SHOP_CLIENT_SECRET }}
+        run: |
+          if [ -n "$SHOP_STORE" ] && [ -n "$SHOP_CLIENT_ID" ] && [ -n "$SHOP_CLIENT_SECRET" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Lighthouse
+        if: steps.lighthouse-secrets.outputs.enabled == 'true'
         # Pinned from shopify/lighthouse-ci-action@v1 on 2026-05-23.
         uses: shopify/lighthouse-ci-action@988f0eeb44ad5f298bd47150e5b9b01c27ead975
         with:
@@ -25,3 +39,8 @@ jobs:
           lhci_github_app_token: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
           lhci_min_score_performance: 0.6
           lhci_min_score_accessibility: 0.9
+
+      - name: Lighthouse skipped
+        if: steps.lighthouse-secrets.outputs.enabled != 'true'
+        run: |
+          echo "skipped: set SHOP_STORE, SHOP_CLIENT_ID, and SHOP_CLIENT_SECRET secrets to run Shopify Lighthouse CI"
