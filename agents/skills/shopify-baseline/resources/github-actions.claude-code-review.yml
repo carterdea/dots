@@ -22,7 +22,7 @@ jobs:
       # Pinned from anthropics/claude-code-action@v1.0.131 on 2026-05-23.
       - uses: anthropics/claude-code-action@4481e6d3c7bbb88db2a928ca3444c536f589c7c1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             Review PR #${{ github.event.pull_request.number }} in ${{ github.repository }}.
 
