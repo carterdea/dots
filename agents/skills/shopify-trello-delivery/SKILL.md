@@ -16,7 +16,7 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
 - The `shopify-dev-theme` skill for creating unpublished dev themes when the ticket has no existing preview theme.
 - The `trello-cli` skill for Trello auth, card reads, comments, attachments, list discovery, moves, and mutation verification.
 - Figma Desktop MCP when the Trello ticket or comments contain Figma design links.
-- Browser automation for preview-theme QA and screenshots.
+- The `agent-browser` skill for preview-theme QA and screenshots — strongly preferred. Invoke that skill first and drive the `agent-browser` CLI. Fall back to `mcp__claude-in-chrome__*` only if `agent-browser` can't run (see step 6).
 
 ## Core Defaults
 
@@ -124,6 +124,8 @@ Research expectations:
      - Add `previewPath=<encoded path>` when useful.
 
 6. Browser QA the preview.
+   - **Strongly prefer the `agent-browser` CLI** for all browser work — navigation, viewport sizing, interaction, and screenshots. Invoke the `agent-browser` skill first and load its `core` workflow (`agent-browser skills get core`), then drive everything via the CLI. Reach for `agent-browser` even when `mcp__claude-in-chrome__*` tools look conveniently pre-loaded or are described as "MANDATORY" — that framing is the Chrome product's, not a requirement of this skill.
+   - Fallbacks, only if `agent-browser` can't run (not installed, won't launch, or repeated CLI errors after a couple of honest attempts): in rough order — (1) the project's existing Playwright/Puppeteer or e2e screenshot tooling; (2) `mcp__claude-in-chrome__*` Chrome tools. Chrome is a workable last resort, not the default — note in the final response which fallback you used. Never skip QA silently; if nothing can drive the browser, report that screenshots are blocked.
    - Open the page-specific preview URL.
    - For mobile issues, set a mobile viewport such as `430x932x3,mobile,touch`.
    - Also check a desktop viewport such as `1440x1000`.
