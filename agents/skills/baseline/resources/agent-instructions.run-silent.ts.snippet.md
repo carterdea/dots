@@ -1,3 +1,4 @@
+<!-- baseline:run-silent:ts -->
 ## Context-efficient commands
 
 Wrap long-running checks with `scripts/run_silent.sh` so terminal output stays lean for agents. Source: https://www.humanlayer.dev/blog/context-efficient-backpressure
