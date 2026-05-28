@@ -57,15 +57,18 @@ Good delegation targets: ticket intake (summarize description, comments, attachm
 Always base your work on the freshest `main` so the PR diff is clean and review-ready.
 
 - `git fetch origin` first.
-- **Existing PR on the card**: `gh pr view <number> --json headRefName,baseRefName,url,state,title`, check out the head branch, then bring it up to date with `git rebase origin/main` (or merge `main` if the PR history must be preserved). Resolve conflicts before continuing.
-- **No PR**: create a ticket branch off `origin/main`, e.g. `codex/<card-short-id>-<short-slug>`.
+- **Existing PR on the card**: `gh pr view <number> --json headRefName,baseRefName,url,state,title` to read the head branch name. Do **not** check it out in the main working tree — leave that on `main` so step 3 can add the worktree without `--force`. The branch gets brought up to date inside the worktree.
+- **No PR**: pick a ticket branch name off `origin/main`, e.g. `codex/<card-short-id>-<short-slug>`.
 
 ### 3. Work in a worktree
 
 Implement in a git worktree so the dev server and QA run in isolation and Portless gives this branch its own URL.
 
-- Create one off the up-to-date branch: `git worktree add .claude/worktrees/<branch> <branch>` (the branch name becomes the Portless subdomain). Reuse an existing worktree for the same branch instead of making a duplicate.
-- If the repo isn't worktree-friendly or you're already in a clean feature checkout, working in place is acceptable — just don't do it on `main`.
+- Derive a **slash-free worktree slug** from the branch by replacing `/` with `-` (e.g. `codex/123-fix-nav` → `codex-123-fix-nav`). Portless turns the worktree directory name into the preview subdomain (`https://<slug>.<project>.localhost`), and a hostname can't contain `/`.
+- **Existing PR**: `git worktree add .claude/worktrees/<slug> <branch>`, then from inside the worktree `git rebase origin/main` (or merge `main` if the PR history must be preserved). Resolve conflicts there before continuing.
+- **No PR**: `git worktree add -b <branch> .claude/worktrees/<slug> origin/main`.
+- Reuse an existing worktree for the same branch instead of making a duplicate.
+- If the repo isn't worktree-friendly, an in-place ticket-branch checkout is acceptable — just don't do it on `main`.
 
 ### 4. Implement narrowly
 
@@ -135,8 +138,8 @@ Include the PR URL, the hosted preview URL when one exists (Vercel Preview or He
 ## Existing PR Path Checklist
 
 - [ ] Read card, comments, attachments; extract Figma links.
-- [ ] Fetch origin; find PR URL and branch; check it out and rebase on latest `main`.
-- [ ] Work in a worktree.
+- [ ] Fetch origin; find PR URL and branch (leave the main tree on `main`).
+- [ ] Add a worktree (slash-free slug) for the branch; rebase on latest `main` inside it.
 - [ ] Implement scoped fix.
 - [ ] Run the project's relevant checks.
 - [ ] de-slop + code-simplifier; re-run checks.
