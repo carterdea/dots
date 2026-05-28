@@ -1,0 +1,23 @@
+{
+  "skill_name": "trello-delivery",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Pick up this Trello card and get it into a PR: <TRELLO_CARD_URL>. It's a small UI bug on the <PROJECT> dashboard. The repo is at ~/Sites/<PROJECT>.",
+      "expected_output": "Latest main pulled, ticket branch + worktree, scoped fix, project's lint/typecheck/tests run, de-slop + code-simplifier folded in, Portless local preview QA'd desktop and mobile with screenshots, PR opened linking the card, screenshots on PR and card, card moved to review. Final response includes PR URL and Trello card URL.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "There's already a PR for this Trello card — <TRELLO_CARD_URL> — but QA left a comment that the mobile layout is off. Fix it and update the PR. Repo: ~/Sites/<PROJECT>.",
+      "expected_output": "Existing PR found via gh, head branch checked out and rebased on latest main, mobile fix implemented, checks re-run, mobile QA on Portless preview with new screenshots, PR reused (not a new one) and its body confirmed to link Trello, screenshots uploaded, Trello comment added, card moved.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Implement the feature described in this Trello ticket and ship a PR: <TRELLO_CARD_URL>. There's a Figma link in the card description. This is a Fly.io app at ~/Sites/<PROJECT>.",
+      "expected_output": "Card + Figma node inspected, branch off latest main in a worktree, feature built against the existing design system, project checks run, cleanup pass folded in, local Portless QA against the Figma reference desktop and mobile (not a Fly deploy, since Fly has no per-PR preview), PR opened linking card and Figma, screenshots on both, card moved. Final response notes local-preview verification.",
+      "files": []
+    }
+  ]
+}
