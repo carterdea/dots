@@ -230,21 +230,33 @@ Copy `scripts/run_silent.sh` into the target repo at `scripts/run_silent.sh` (cr
 
 Skip if the file already exists.
 
-**Make it discoverable to agents.** Append the pointer snippet from `resources/agent-instructions.snippet.md` to any of these files that already exist at the target repo root:
+**First, reconcile the agent-instructions file to a single source of truth.** The point is the user maintains *one* file, not two copies that drift. Pick the canonical file and make the other a symlink to it, then append to the canonical file only:
 
-- `CLAUDE.md` (Claude Code)
-- `AGENTS.md` (Codex, OpenCode, and the emerging cross-agent convention)
-- `.cursor/rules/*.mdc` (Cursor) — only if the user already uses rules
+- **Canonical = `CLAUDE.md`** by default. Decide per what's already present at the repo root:
+  - Neither `CLAUDE.md` nor `AGENTS.md` exists → skip this whole step. Do **not** create agent-instructions files from scratch; the repo hasn't opted in.
+  - Only `CLAUDE.md` exists (regular file) → append to it, then `ln -s CLAUDE.md AGENTS.md`.
+  - Only `AGENTS.md` exists (regular file) → treat `AGENTS.md` as canonical (respect what's there), append to it, then `ln -s AGENTS.md CLAUDE.md`.
+  - One is already a symlink to the other → append to the canonical (regular) file; leave the symlink. Idempotent.
+  - Both exist as regular files with **identical** content → append to `CLAUDE.md`, then replace `AGENTS.md` with `ln -s CLAUDE.md AGENTS.md`.
+  - Both exist as regular files with **different** content → do **not** clobber either (merging is a non-goal). Append to `CLAUDE.md` (or vice versa), leave the other as-is, and log: "AGENTS.md and CLAUDE.md differ — left both; merge manually and replace one with a symlink."
+- Use a **relative** symlink created from the repo root (`ln -s CLAUDE.md AGENTS.md`), so it survives clone/move.
+- `.cursor/rules/*.mdc` (Cursor) — append separately, only if the user already uses rules. It can't share the symlink.
 
-Skip append if the target file already contains the string `run_silent.sh` (idempotent). Do **not** create `CLAUDE.md` / `AGENTS.md` from scratch — only append when one already exists; otherwise the repo may not have opted in to agent instructions.
+**Append the run_silent pointer snippet that matches the detected stack** to the canonical file:
 
-**Also append the portless snippet that matches the detected stack** to the same files. This adds stack-specific `portless` dev-server invocations and the docker-alias recipe.
+- TS / JS → `resources/agent-instructions.run-silent.ts.snippet.md` (`bunx tsc` / `bunx biome` / `bun run test`)
+- Python → `resources/agent-instructions.run-silent.py.snippet.md` (`uv run basedpyright` / `uv run ruff` / `uv run pytest`)
+- Ruby   → `resources/agent-instructions.run-silent.rb.snippet.md` (`bundle exec rubocop` / `bundle exec rspec`)
+
+Never append the TS snippet to a Python or Ruby repo — match the stack you detected in step 1. Each snippet opens with a sentinel (`<!-- baseline:run-silent:ts|py|rb -->`); skip the append for a given stack if that exact sentinel is already in the canonical file (idempotent).
+
+**Also append the portless snippet that matches the detected stack** to the canonical file. This adds stack-specific `portless` dev-server invocations and the docker-alias recipe.
 
 - TS / JS → `resources/agent-instructions.portless.ts.snippet.md` (zero-arg `portless` reads `package.json` "dev")
 - Python → `resources/agent-instructions.portless.py.snippet.md` (`portless run uv run uvicorn ... --port $PORT`)
 - Ruby   → `resources/agent-instructions.portless.rb.snippet.md` (`portless run bundle exec rails server -p $PORT`)
 
-**Per-stack idempotency**: each snippet starts with a hidden HTML-comment sentinel — `<!-- baseline:portless:ts -->`, `<!-- baseline:portless:py -->`, `<!-- baseline:portless:rb -->`. Skip the append for a given stack only if that exact sentinel is already in the target file. This matters in **mixed-stack monorepos**: with a generic `portless` marker, the first stack's snippet would block every subsequent stack's snippet. Per-stack sentinels let TS + Python (or any combination) coexist in the same `AGENTS.md`.
+**Per-stack idempotency**: each snippet starts with a hidden HTML-comment sentinel — `<!-- baseline:portless:ts -->`, `<!-- baseline:portless:py -->`, `<!-- baseline:portless:rb -->`. Skip the append for a given stack only if that exact sentinel is already in the canonical file. This matters in **mixed-stack monorepos**: with a generic `portless` marker, the first stack's snippet would block every subsequent stack's snippet. Per-stack sentinels let TS + Python (or any combination) coexist in the same canonical file.
 
 Why: the wrapper is invisible unless agents know to use it. Putting a short pointer in the target repo's agent-instructions file means any agent that reads them (Claude Code, Codex, OpenCode, Cursor) discovers the helper on first pass.
 
@@ -425,6 +437,7 @@ Source: https://www.humanlayer.dev/blog/context-efficient-backpressure
 - `lefthook.yml` — hook definitions
 - `.github/workflows/ci.yml` — CI quality gate (only if GitHub remote + no existing workflows; workflow `name: CI`)
 - `scripts/run_silent.sh` — backpressure wrapper
+- `AGENTS.md` → `CLAUDE.md` symlink (or the reverse) so agent instructions live in one canonical file — only when one of the two already exists; never created from scratch
 - portless is installed **globally** (`bun add -g portless`) on every stack, not per-repo, so it produces no project file. `portless.json` is opt-in only when the user wants to override the inferred app name.
 
 ## Idempotency rule
@@ -440,7 +453,9 @@ Light-touch only. For each file above: if it exists, log `already configured: <p
 - `resources/github-actions.py.yml` — CI workflow (single Python package)
 - `resources/github-actions.rb.yml` — CI workflow (single Ruby package)
 - `resources/github-actions.monorepo.yml` — CI workflow (multi-workspace base)
-- `resources/agent-instructions.snippet.md` — pointer appended to target repo's `CLAUDE.md` / `AGENTS.md` so agents discover `run_silent.sh` (all stacks)
+- `resources/agent-instructions.run-silent.ts.snippet.md` — `run_silent.sh` pointer with TS/JS example commands (`bunx tsc` / `biome` / `bun run test`)
+- `resources/agent-instructions.run-silent.py.snippet.md` — same, Python commands (`uv run basedpyright` / `ruff` / `pytest`)
+- `resources/agent-instructions.run-silent.rb.snippet.md` — same, Ruby commands (`bundle exec rubocop` / `rspec`)
 - `resources/agent-instructions.portless.ts.snippet.md` — portless dev-server + docker-alias guidance, appended on TS / JS repos
 - `resources/agent-instructions.portless.py.snippet.md` — same, for Python repos (FastAPI / Django / Flask invocations)
 - `resources/agent-instructions.portless.rb.snippet.md` — same, for Ruby repos (Rails / Sinatra invocations)
