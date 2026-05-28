@@ -52,5 +52,3 @@
 - Keep work moving with small, incremental steps and quick checks
 - If asked to do too much work at once, stop and state that clearly
 
-## Cost tracking
-- Include the cost of every request at the end of every response in format: $X.XX
