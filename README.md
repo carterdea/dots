@@ -150,6 +150,19 @@ Generate a new Brewfile from your current setup:
 brew bundle dump --file=~/dots/Brewfile --force
 ```
 
+## Testing
+
+Validate the install scripts and config sources before committing:
+
+```bash
+./tests/run_tests.sh
+```
+
+This runs `shellcheck` on `install.sh`/`bootstrap.sh` and the bats suites
+(`install.bats`, `source_files.bats`), which assert the installer is executable
+and every file it symlinks actually exists. Pair with `./install.sh --all --dry-run`
+to preview symlink changes without touching your home directory.
+
 ## Structure
 
 ```
@@ -157,7 +170,9 @@ dots/
 ├── bootstrap.sh            # Fresh macOS setup script
 ├── install.sh              # Installation script
 ├── Brewfile                # Homebrew package list
+├── CLAUDE.md               # Repo-specific agent instructions
 ├── README.md               # This file
+├── tests/                  # bats + shellcheck suite (run_tests.sh)
 ├── shell/                  # Shell configurations
 │   ├── .zshrc
 │   ├── .zprofile
@@ -175,10 +190,11 @@ dots/
 │       └── config
 ├── ssh/                    # SSH configuration
 │   └── config
-└── agents/                 # Claude Code agents configuration
+└── agents/                 # Shared agent config (Claude, Codex, OpenCode, Cursor, pi)
     ├── AGENTS.md           # Global instructions
-    ├── subagents/          # Subagent definitions (5 agents)
-    └── skills/             # Skills (60 skills)
+    ├── pi-packages.txt     # pi extension package sources
+    ├── subagents/          # Subagent definitions (14 agents)
+    └── skills/             # Skills (62 skills)
 ```
 
 ## AI Assistant Configuration
@@ -212,6 +228,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/gh-fix-ci` - Fix first failing CI check
 - `/clean-gone` - Remove local branches gone from remote
 - `/clean-worktrees` - Audit and clean agent worktrees safely
+- `/trello-delivery` - Ship a Trello ticket end to end as a reviewable PR (non-Shopify web apps). Requires the `trello-cli` binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 **Code Quality and Review:**
 - `/pre-pr` - Pre-PR validation pipeline (security, types, tests, breaking changes)
@@ -250,7 +267,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/shopify-polaris-app-home` - Polaris app home code and validation
 - `/shopify-storefront-graphql` - Storefront GraphQL queries, mutations, and validation
 - `/shopify-theme-pull` - Pull merchant content from live theme
-- `/shopify-trello-delivery` - Ship Shopify Trello tickets through PR, preview theme, screenshots, and Trello handoff
+- `/shopify-trello-delivery` - Ship Shopify Trello tickets through PR, preview theme, screenshots, and Trello handoff. Requires the `trello-cli` binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 - `/shopify-use-shopify-cli` - Shopify CLI operational workflows
 
 **Writing:**
@@ -261,7 +278,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/agent-browser` - Standalone browser CLI for navigation, forms, scraping, screenshots
 
 **External Tools:**
-- `/trello-cli` - Drive Trello (boards, lists, cards, comments, checklists, labels) through the `trello` CLI. Requires the binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
+- `/trello-cli` - Drive Trello (boards, lists, cards, comments, checklists, labels) through the `trello-cli`. Requires the binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 **Meta:**
 - `/new-skill` - Create skill from current conversation

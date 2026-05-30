@@ -14,6 +14,7 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
 - `git` and GitHub CLI or connector access for branch, PR, and PR comment work.
 - Shopify CLI with access to the relevant store from `shopify.theme.toml`.
 - The `shopify-dev-theme` skill for creating unpublished dev themes when the ticket has no existing preview theme.
+- The Shopify dev / AI Toolkit skills (`shopify-dev`, `shopify-liquid`, `shopify-admin`, `shopify-storefront-graphql`, and the matching API skills) for authoritative Shopify docs, schemas, and code validation. See the [Shopify AI Toolkit](https://shopify.dev/docs/apps/build/ai-toolkit).
 - The `trello-cli` skill for Trello auth, card reads, comments, attachments, list discovery, moves, and mutation verification.
 - Figma Desktop MCP when the Trello ticket or comments contain Figma design links.
 - The `agent-browser` skill for preview-theme QA and screenshots — strongly preferred. Invoke that skill first and drive the `agent-browser` CLI. Fall back to `mcp__claude-in-chrome__*` only if `agent-browser` can't run (see step 6).
@@ -46,7 +47,7 @@ Use subagents for read-only research, design analysis, QA, and review tasks that
 Good delegation targets:
 
 - Ticket intake: summarize Trello description, comments, attachments, PR, preview, Customizer, Figma links, and acceptance criteria.
-- Research: use Context7 for current library, framework, SDK, API, CLI, and Shopify documentation; use Exa for broader vendor documentation, implementation examples, Shopify app behavior, and current third-party service details.
+- Research: for Shopify best practices, Liquid/theme APIs, Admin/Storefront schemas, app embeds, or how a specific Shopify app behaves, reach for the Shopify dev / AI Toolkit skills (`shopify-dev`, `shopify-liquid`, `shopify-admin`, etc.) first — they return validated Shopify docs and schemas. Use Context7 for current library, framework, SDK, API, and CLI docs; use Exa for broader vendor documentation, implementation examples, and current third-party service details.
 - Figma analysis: identify the correct node/frame, capture references, and summarize visual requirements.
 - Preview QA: test deployed preview URLs on desktop and mobile and report concrete mismatches.
 - Diff review: inspect touched files for scope creep, missing assets, Liquid issues, and validation gaps.
@@ -54,7 +55,7 @@ Good delegation targets:
 Research expectations:
 
 - Prefer primary sources: Shopify docs, app/vendor docs, official package docs, and source repositories.
-- When implementation depends on platform behavior, app embeds, checkout/cart integration, customer accounts, or current Shopify APIs, do live research before coding.
+- When implementation depends on platform behavior, app embeds, checkout/cart integration, customer accounts, or current Shopify APIs, do live research before coding — don't guess. Consult the Shopify dev / AI Toolkit skills (or Context7) to confirm the Shopify best practice, API shape, or app details before writing code.
 - Return concise findings with links, the exact API or behavior that matters, and any uncertainty or version/date sensitivity.
 - Do not let a research subagent mutate files, run deploys, update Trello/GitHub, or make final delivery decisions.
 
@@ -104,6 +105,7 @@ Research expectations:
    - For theme JSON files with Shopify generated headers, preserve the header unless the file is genuinely new.
    - Use `apply_patch` for manual edits.
    - Keep changes scoped to the ticket and avoid unrelated formatting churn.
+   - If unsure about a Shopify best practice, a Liquid/Admin/Storefront API, or how the app you're integrating behaves, check the Shopify dev / AI Toolkit skills (or Context7) before writing code — don't guess.
 
 4. Validate locally.
    - Run `git diff --check`.

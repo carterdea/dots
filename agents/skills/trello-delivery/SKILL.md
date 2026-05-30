@@ -80,6 +80,7 @@ Implement in a git worktree so the dev server and QA run in isolation and Portle
 - Inspect the real files before editing. Reuse existing components, utilities, styles, and patterns over one-off additions.
 - Adapt Figma measurements to the project's existing design system rather than pasting generated Figma code.
 - Keep the change scoped to the ticket. Avoid unrelated formatting churn.
+- When you're unsure about a best practice, a library/framework API, or how a platform actually behaves, look it up before writing code — don't guess. Use Context7 for current library/framework/API docs and Exa for broader vendor/service behavior. A quick lookup beats a plausible-but-wrong implementation.
 
 ### 5. Validate with the project's own checks
 
