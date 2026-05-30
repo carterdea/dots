@@ -60,6 +60,10 @@ Research expectations:
 
 ## Workflow
 
+0. Preflight: confirm the card belongs to this project. **Hard gate — do this before anything else.**
+   - The card carries a Trello label naming its target project. Fetch the card's labels and compare against the repository you're in (repo/directory name, `shopify.theme.toml` store, or remote slug).
+   - If no label matches this project, **stop immediately**: report the mismatch (card's project label vs. the current repo) and do nothing else — do not branch, implement, move the card, or comment. Only proceed to step 1 once a label matches.
+
 1. Orient on the ticket and repo.
    - Run `git status --short --branch` and confirm the current branch/worktree state.
    - Read repo instructions: `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md` when present.
@@ -193,6 +197,7 @@ Research expectations:
 
 ## Existing PR Path Checklist
 
+- [ ] Confirm card's project label matches this repo; stop if it doesn't.
 - [ ] Read Trello card, comments, attachments.
 - [ ] Extract and inspect relevant Figma links.
 - [ ] Find PR URL and branch.
@@ -211,6 +216,7 @@ Research expectations:
 
 ## Net-New Feature Checklist
 
+- [ ] Confirm card's project label matches this repo; stop if it doesn't.
 - [ ] Read Trello card, comments, attachments.
 - [ ] Extract and inspect relevant Figma links.
 - [ ] Create branch off correct base.
