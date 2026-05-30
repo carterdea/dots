@@ -61,8 +61,8 @@ Research expectations:
 ## Workflow
 
 0. Preflight: confirm the card belongs to this project. **Hard gate — do this before anything else.**
-   - The card carries a Trello label naming its target project. Fetch the card's labels and compare against the repository you're in (repo/directory name, `shopify.theme.toml` store, or remote slug).
-   - If no label matches this project, **stop immediately**: report the mismatch (card's project label vs. the current repo) and do nothing else — do not branch, implement, move the card, or comment. Only proceed to step 1 once a label matches.
+   - The card carries a Trello label naming its target project. Fetch the card's labels and judge whether one plausibly refers to the repository you're in (repo/directory name, `shopify.theme.toml` store, `README` project name, or remote slug). It need not be an exact string match — use best judgment for abbreviations and expansions (e.g. a `Reeis` label matches a `reeis-air-conditioning-shopify` repo; `mmops` matches "Mundial Media Ops").
+   - If no label plausibly refers to this project, **stop immediately**: report the mismatch (card's project label vs. the current repo) and do nothing else — do not branch, implement, move the card, or comment. Only proceed to step 1 once a label plausibly matches.
 
 1. Orient on the ticket and repo.
    - Run `git status --short --branch` and confirm the current branch/worktree state.
