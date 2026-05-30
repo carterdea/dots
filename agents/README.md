@@ -68,7 +68,8 @@ agents/
     ├── skill-creator/                    # Create/edit/measure skills
     ├── smart-brevity/                    # Smart Brevity rewriting
     ├── subagent-orchestrator/            # Orchestrate sub-agents for long tasks
-    ├── trello-cli/                       # Drive Trello through the `trello` CLI
+    ├── trello-cli/                       # Drive Trello through the `trello-cli`
+    ├── trello-delivery/                  # Trello ticket → reviewable PR (non-Shopify)
     ├── vercel-react-best-practices/      # React/Next.js performance patterns
     ├── web-animation-design/             # Web animation patterns
     └── zoom-out/                         # Higher-level perspective on code
@@ -122,6 +123,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/gh-fix-ci` — Debug and fix first failing CI check
 - `/clean-gone` — Remove local branches gone from remote
 - `/clean-worktrees` — Audit and clean agent worktrees safely
+- `/trello-delivery` — Ship a Trello ticket end to end as a reviewable PR (non-Shopify web apps). Requires the `trello-cli` binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 ### Code Quality and Review
 
@@ -164,7 +166,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/shopify-polaris-app-home` — Polaris app home code and validation
 - `/shopify-storefront-graphql` — Storefront GraphQL queries, mutations, and validation
 - `/shopify-theme-pull` — Pull merchant content from live theme
-- `/shopify-trello-delivery` — Ship Shopify Trello tickets through PR, preview theme, screenshots, and Trello handoff
+- `/shopify-trello-delivery` — Ship Shopify Trello tickets through PR, preview theme, screenshots, and Trello handoff. Requires the `trello-cli` binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 - `/shopify-use-shopify-cli` — Shopify CLI operational workflows
 
 ### Writing
@@ -178,7 +180,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 
 ### External Tools
 
-- `/trello-cli` — Drive Trello (boards, lists, cards, comments, checklists, labels) through the `trello` CLI. Requires the binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
+- `/trello-cli` — Drive Trello (boards, lists, cards, comments, checklists, labels) through the `trello-cli`. Requires the binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 ### Meta
 
