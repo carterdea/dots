@@ -43,7 +43,7 @@ Good delegation targets: ticket intake (summarize description, comments, attachm
 
 ### 0. Preflight: confirm the card belongs to this project
 
-**Hard gate — do this before anything else.** The card carries a Trello label naming its target project. Fetch the card's labels and compare against the repository you're in (repo/directory name, `package.json` `name`, or remote slug). If no label matches this project, **stop immediately**: report the mismatch (card's project label vs. the current repo) and do nothing else — do not branch, implement, move the card, or comment. Only proceed to step 1 once a label matches.
+**Hard gate — do this before anything else.** The card carries a Trello label naming its target project. Fetch the card's labels and judge whether one plausibly refers to the repository you're in (repo/directory name, `package.json` `name`, `README` project name, or remote slug). It need not be an exact string match — use best judgment for abbreviations and expansions (e.g. an `mmops` label matches a "Mundial Media Ops" repo; `Reeis` matches `reeis-air-conditioning-*`). If no label plausibly refers to this project, **stop immediately**: report the mismatch (card's project label vs. the current repo) and do nothing else — do not branch, implement, move the card, or comment. Only proceed to step 1 once a label plausibly matches.
 
 ### 1. Orient on the ticket and repo
 
