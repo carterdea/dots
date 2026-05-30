@@ -46,7 +46,7 @@ Good delegation targets: ticket intake (summarize description, comments, attachm
 - Run `git status --short --branch` to see current branch/worktree state.
 - Read repo instructions when present: `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`. They override these defaults.
 - Verify Trello auth with `trello auth status`, then fetch the card, comments, and attachments. Extract: linked PR, acceptance criteria, the latest client/QA comments, and Figma links in the description and every comment (especially URLs with `node-id=`).
-- Move the card to **Development In Progress** to signal work has started: via the `trello-cli` skill, discover the list ID (`trello lists list --board <board-id>`), move by ID, and re-fetch to verify `idList`. Prefer an exact `Development In Progress` list; otherwise the board's closest in-progress column.
+- Move the card to **In Development** to signal work has started: via the `trello-cli` skill, discover the list ID (`trello lists list --board <board-id>`), move by ID, and re-fetch to verify `idList`. Prefer an exact `In Development` list; otherwise the board's closest in-progress column.
 - Detect the project shape so later steps use the right commands:
   - **Package manager**: `bun.lock`/`bun.lockb` → bun; `pnpm-lock.yaml` → pnpm; `uv.lock`/`pyproject.toml` → uv. Match the existing lockfile; never introduce a new manager.
   - **Available scripts**: read `package.json` `scripts` (and workspace packages if it's a monorepo). Note which of `lint`, `typecheck`, `check`, `test`, `format` actually exist, and any quiet/silent variants.
@@ -139,7 +139,7 @@ Include the PR URL, the hosted preview URL when one exists (Vercel Preview or He
 ## Existing PR Path Checklist
 
 - [ ] Read card, comments, attachments; extract Figma links.
-- [ ] Move card to `Development In Progress`.
+- [ ] Move card to `In Development`.
 - [ ] Fetch origin; find PR URL and branch (leave the main tree on `main`).
 - [ ] Add a worktree (slash-free slug) for the branch; rebase on latest `main` inside it.
 - [ ] Implement scoped fix.
@@ -155,7 +155,7 @@ Include the PR URL, the hosted preview URL when one exists (Vercel Preview or He
 ## Net-New Feature Checklist
 
 - [ ] Read card, comments, attachments; extract Figma links.
-- [ ] Move card to `Development In Progress`.
+- [ ] Move card to `In Development`.
 - [ ] Fetch origin; create branch off latest `origin/main`.
 - [ ] Work in a worktree.
 - [ ] Implement scoped feature.
