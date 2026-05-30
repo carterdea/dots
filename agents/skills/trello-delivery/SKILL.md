@@ -41,6 +41,10 @@ Good delegation targets: ticket intake (summarize description, comments, attachm
 
 ## Workflow
 
+### 0. Preflight: confirm the card belongs to this project
+
+**Hard gate — do this before anything else.** The card carries a Trello label naming its target project. Fetch the card's labels and compare against the repository you're in (repo/directory name, `package.json` `name`, or remote slug). If no label matches this project, **stop immediately**: report the mismatch (card's project label vs. the current repo) and do nothing else — do not branch, implement, move the card, or comment. Only proceed to step 1 once a label matches.
+
 ### 1. Orient on the ticket and repo
 
 - Run `git status --short --branch` to see current branch/worktree state.
@@ -138,6 +142,7 @@ Include the PR URL, the hosted preview URL when one exists (Vercel Preview or He
 
 ## Existing PR Path Checklist
 
+- [ ] Confirm card's project label matches this repo; stop if it doesn't.
 - [ ] Read card, comments, attachments; extract Figma links.
 - [ ] Move card to `In Development`.
 - [ ] Fetch origin; find PR URL and branch (leave the main tree on `main`).
@@ -154,6 +159,7 @@ Include the PR URL, the hosted preview URL when one exists (Vercel Preview or He
 
 ## Net-New Feature Checklist
 
+- [ ] Confirm card's project label matches this repo; stop if it doesn't.
 - [ ] Read card, comments, attachments; extract Figma links.
 - [ ] Move card to `In Development`.
 - [ ] Fetch origin; create branch off latest `origin/main`.
