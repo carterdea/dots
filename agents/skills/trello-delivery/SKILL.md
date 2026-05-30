@@ -128,7 +128,7 @@ Before opening the PR, tighten the diff so reviewers see finished work, not firs
 
 Use the `trello-cli` skill for all card operations, following discover → mutate → verify (fetch IDs, mutate by ID, re-fetch to confirm).
 
-- Add a card comment using the template below. It must include the GitHub PR link prefixed with `PR:` and, for Vercel/Heroku hosts, the public hosted preview URL prefixed with `Preview:`.
+- Add a card comment using the template below. It must include the GitHub PR link prefixed with a bold `**PR:**` label and, for Vercel/Heroku hosts, the public hosted preview URL prefixed with a bold `**Preview:**` label. Trello renders `**text**` (double asterisks) as bold in comments.
 - Attach the desktop and mobile screenshot files to the card.
 - Move the card forward: prefer an exact `Ready for Review` list; otherwise the board's review/testing handoff column. Discover list IDs with `trello lists list --board <board-id>`, move by ID, and re-fetch to verify `idList`.
 
