@@ -45,13 +45,10 @@ agents/
     ├── make-tests/                       # Add tests for current change
     ├── merge-conflicts/                  # Rebase, resolve conflicts, force-push
     ├── new-skill/                        # Create skill from conversation
-    ├── office-hours/                     # YC-style forcing questions / brainstorm
     ├── pair-programming/                 # Senior engineer pairing mode
     ├── pre-pr/                           # Full pre-PR validation pipeline
     ├── prove-it-bug-fix/                 # Failing test before fix
     ├── qa/                               # Browser QA against plan file
-    ├── qa-gstack/                        # QA test + fix loop
-    ├── qa-gstack-only/                   # Report-only QA testing
     ├── rams/                             # Accessibility / visual design review
     ├── react-doctor/                     # Catch React issues early
     ├── self-improve/                     # Codex session-driven self-improvement
@@ -110,8 +107,6 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/make-tests` — Generate tests for current changes
 - `/iterate-forever` — Visual-reference-to-app loop with screenshot comparison
 - `/dogfood` — Systematic bug hunt with structured repro evidence
-- `/qa-gstack` — QA test + fix loop with before/after health scores
-- `/qa-gstack-only` — Report-only QA, no code changes
 - `/merge-conflicts` — Rebase onto main, resolve conflicts, force-push
 
 ### GitHub Workflow
@@ -146,7 +141,6 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/grill-me` — Stress-test a plan via relentless interview until each branch resolves
 - `/domain-model` — Grilling session that updates `CONTEXT.md` (glossary) and `docs/adr/` inline as decisions crystallize. Pairs with `/improve-codebase-architecture`
 - `/zoom-out` — Higher-level perspective on a section of code
-- `/office-hours` — YC-style forcing questions or brainstorm mode
 - `/subagent-orchestrator` — Coordinate sub-agents on complex long-horizon tasks
 - `/pair-programming` — Senior engineer pairing with pushback and scope discipline
 - `/prove-it-bug-fix` — Failing reproduction test before fixing
