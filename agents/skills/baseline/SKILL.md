@@ -230,15 +230,13 @@ Copy `scripts/run_silent.sh` into the target repo at `scripts/run_silent.sh` (cr
 
 Skip if the file already exists.
 
-**First, reconcile the agent-instructions file to a single source of truth.** The point is the user maintains *one* file, not two copies that drift. Pick the canonical file and make the other a symlink to it, then append to the canonical file only:
+**First, reconcile the agent-instructions file to a single source of truth.** The point is the user maintains *one* file, not two copies that drift. **`CLAUDE.md` is always canonical; `AGENTS.md` is only ever a symlink to it.** Decide per what's at the repo root:
 
-- **Canonical = `CLAUDE.md`** by default. Decide per what's already present at the repo root:
-  - Neither `CLAUDE.md` nor `AGENTS.md` exists → skip this whole step. Do **not** create agent-instructions files from scratch; the repo hasn't opted in.
-  - Only `CLAUDE.md` exists (regular file) → append to it, then `ln -s CLAUDE.md AGENTS.md`.
-  - Only `AGENTS.md` exists (regular file) → treat `AGENTS.md` as canonical (respect what's there), append to it, then `ln -s AGENTS.md CLAUDE.md`.
-  - One is already a symlink to the other → append to the canonical (regular) file; leave the symlink. Idempotent.
-  - Both exist as regular files with **identical** content → append to `CLAUDE.md`, then replace `AGENTS.md` with `ln -s CLAUDE.md AGENTS.md`.
-  - Both exist as regular files with **different** content → do **not** clobber either (merging is a non-goal). Append to `CLAUDE.md` (or vice versa), leave the other as-is, and log: "AGENTS.md and CLAUDE.md differ — left both; merge manually and replace one with a symlink."
+- **`AGENTS.md` exists as a regular file** (not a symlink) → **stop the agent-instructions reconcile** (the rest of baseline still runs). Do not clobber, append to, or convert it — merging is a non-goal. Log: "AGENTS.md is a real file — merge it into CLAUDE.md, replace it with `ln -s CLAUDE.md AGENTS.md`, then re-run baseline." Skip the snippet appends below.
+- **Otherwise** (no `AGENTS.md`, or `AGENTS.md` is already a symlink):
+  - If `CLAUDE.md` doesn't exist, **create it** (empty file) — the snippet appends below populate it. This is the one case where baseline creates an agent-instructions file from scratch.
+  - If `AGENTS.md` doesn't exist, `ln -s CLAUDE.md AGENTS.md`. If it's already a symlink, leave it untouched (idempotent skip — don't repoint or recreate it).
+  - Append the snippets below to `CLAUDE.md`.
 - Use a **relative** symlink created from the repo root (`ln -s CLAUDE.md AGENTS.md`), so it survives clone/move.
 - `.cursor/rules/*.mdc` (Cursor) — append separately, only if the user already uses rules. It can't share the symlink.
 
@@ -437,7 +435,7 @@ Source: https://www.humanlayer.dev/blog/context-efficient-backpressure
 - `lefthook.yml` — hook definitions
 - `.github/workflows/ci.yml` — CI quality gate (only if GitHub remote + no existing workflows; workflow `name: CI`)
 - `scripts/run_silent.sh` — backpressure wrapper
-- `AGENTS.md` → `CLAUDE.md` symlink (or the reverse) so agent instructions live in one canonical file — only when one of the two already exists; never created from scratch
+- `CLAUDE.md` is the canonical agent-instructions file, with `AGENTS.md` as a relative symlink to it. Created from scratch when neither exists; baseline **stops** instead if a real (non-symlink) `AGENTS.md` is present, so the user can merge it into `CLAUDE.md` first.
 - portless is installed **globally** (`bun add -g portless`) on every stack, not per-repo, so it produces no project file. `portless.json` is opt-in only when the user wants to override the inferred app name.
 
 ## Idempotency rule
