@@ -216,8 +216,6 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/make-tests` - Generate tests for current changes
 - `/iterate-forever` - Visual-reference-to-app loop with screenshot comparison
 - `/dogfood` - Exploratory test web app, structured bug report
-- `/qa-gstack` - QA test + fix loop with health scores
-- `/qa-gstack-only` - Report-only QA, no code changes
 - `/merge-conflicts` - Rebase onto main, resolve conflicts, force-push
 
 **GitHub Workflow:**
@@ -249,7 +247,6 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/grill-me` - Stress-test plan via relentless interview
 - `/domain-model` - Grilling session that maintains CONTEXT.md (glossary) and docs/adr/ inline
 - `/zoom-out` - Higher-level perspective on a section of code
-- `/office-hours` - YC-style forcing questions / brainstorm mode
 - `/subagent-orchestrator` - Coordinate sub-agents on long-horizon tasks
 - `/pair-programming` - Senior engineer pairing with pushback and scope discipline
 - `/prove-it-bug-fix` - Failing reproduction test before fix
