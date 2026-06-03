@@ -37,7 +37,7 @@ This skill is host-agnostic. It works for Vercel, Fly.io, or anything else, beca
 
 Use subagents for read-only research, design analysis, QA, and diff review that can run in parallel. Keep git mutations, the dev server, PR creation/updates, Trello comments and moves, and final screenshot uploads in the lead agent so nothing races.
 
-Good delegation targets: ticket intake (summarize description, comments, attachments, PR, Figma links, acceptance criteria); library/platform research via Context7/Exa; Figma analysis (correct node, reference capture, visual requirements); diff review (scope creep, missing tests, validation gaps). Do not let a research subagent mutate files, open PRs, or update Trello.
+Good delegation targets: ticket intake (summarize description, comments, attachments, PR, Figma links, acceptance criteria); library/platform research via Context7/Exa; Figma analysis (correct node, reference capture, visual requirements); diff review (scope creep, missing tests, validation gaps). Do not let a research subagent mutate files, open PRs, or update Trello. The lone exception is the step 6 cleanup pass: the `de-slop` and `code-simplifier` subagents do edit the changed files, run sequentially, and nothing else mutates files while they do.
 
 ## Workflow
 
@@ -93,10 +93,11 @@ Run only what the project actually has, preferring quiet/silent variants (often 
 
 ### 6. Cleanup pass (folded into this PR)
 
-Before opening the PR, tighten the diff so reviewers see finished work, not first-draft scaffolding.
+Before opening the PR — and before the preview, screenshots, and everything after it — tighten the diff so reviewers see finished work, not first-draft scaffolding.
 
-- Invoke the `de-slop` skill against the branch diff and remove AI artifacts and cleanup noise.
-- Invoke the `code-simplifier` skill on the changed files and apply the behavior-preserving simplifications you judge worthwhile. Use judgment — keep changes scoped to what you touched; don't refactor the whole repo.
+- Delegate the cleanup to subagents to keep the lead context lean: spawn one subagent to invoke the `de-slop` skill, then (after it returns) a second to invoke the `code-simplifier` skill. Run them **sequentially, never in parallel** — both edit the same changed files and would collide. This is the one sanctioned exception to "research subagents must not mutate files"; no other file mutation may run while they do.
+- `de-slop` defaults to a dry-run list that waits for a manual selection. Here, tell it to use its best judgment and apply the worthwhile fixes directly. Keep it scoped to AI artifacts and cleanup noise in the branch diff.
+- `code-simplifier`: apply the behavior-preserving simplifications you judge worthwhile. Keep changes scoped to what you touched; don't refactor the whole repo.
 - Re-run the relevant checks from step 5 after cleanup so the folded-in changes are still green.
 - These cleanups ship in the same PR as the feature, in their own commits.
 
@@ -150,7 +151,7 @@ Include the PR URL, the hosted preview URL when one exists (Vercel Preview or He
 - [ ] Add a worktree (slash-free slug) for the branch; rebase on latest `main` inside it.
 - [ ] Implement scoped fix.
 - [ ] Run the project's relevant checks.
-- [ ] de-slop + code-simplifier; re-run checks.
+- [ ] de-slop + code-simplifier (subagents, sequential); re-run checks.
 - [ ] Local Portless preview; browser QA desktop and mobile.
 - [ ] Capture desktop and mobile screenshots.
 - [ ] Commit and push.
@@ -167,7 +168,7 @@ Include the PR URL, the hosted preview URL when one exists (Vercel Preview or He
 - [ ] Work in a worktree.
 - [ ] Implement scoped feature.
 - [ ] Run the project's relevant checks.
-- [ ] de-slop + code-simplifier; re-run checks.
+- [ ] de-slop + code-simplifier (subagents, sequential); re-run checks.
 - [ ] Local Portless preview; browser QA desktop and mobile.
 - [ ] Capture desktop and mobile screenshots.
 - [ ] Commit and push; create PR linking the Trello card.
