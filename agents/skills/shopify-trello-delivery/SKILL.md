@@ -16,8 +16,9 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
 - The `shopify-dev-theme` skill for creating unpublished dev themes when the ticket has no existing preview theme.
 - The Shopify dev / AI Toolkit skills (`shopify-dev`, `shopify-liquid`, `shopify-admin`, `shopify-storefront-graphql`, and the matching API skills) for authoritative Shopify docs, schemas, and code validation. See the [Shopify AI Toolkit](https://shopify.dev/docs/apps/build/ai-toolkit).
 - The `trello-cli` skill for Trello auth, card reads, comments, attachments, list discovery, moves, and mutation verification.
+- The `de-slop` and `code-simplifier` skills for the pre-PR cleanup pass.
 - Figma Desktop MCP when the Trello ticket or comments contain Figma design links.
-- The `agent-browser` skill for preview-theme QA and screenshots — strongly preferred. Invoke that skill first and drive the `agent-browser` CLI. Fall back to `mcp__claude-in-chrome__*` only if `agent-browser` can't run (see step 6).
+- The `agent-browser` skill for preview-theme QA and screenshots — strongly preferred. Invoke that skill first and drive the `agent-browser` CLI. Fall back to `mcp__claude-in-chrome__*` only if `agent-browser` can't run (see step 7).
 
 ## Core Defaults
 
@@ -57,7 +58,7 @@ Research expectations:
 - Prefer primary sources: Shopify docs, app/vendor docs, official package docs, and source repositories.
 - When implementation depends on platform behavior, app embeds, checkout/cart integration, customer accounts, or current Shopify APIs, do live research before coding — don't guess. Consult the Shopify dev / AI Toolkit skills (or Context7) to confirm the Shopify best practice, API shape, or app details before writing code.
 - Return concise findings with links, the exact API or behavior that matters, and any uncertainty or version/date sensitivity.
-- Do not let a research subagent mutate files, run deploys, update Trello/GitHub, or make final delivery decisions.
+- Do not let a research subagent mutate files, run deploys, update Trello/GitHub, or make final delivery decisions. The lone exception is the step 5 cleanup pass: the `de-slop` and `code-simplifier` subagents do edit the changed files, run sequentially, and nothing else mutates files while they do.
 
 ## Workflow
 
@@ -113,7 +114,15 @@ Research expectations:
    - If Theme Check reports existing repo-wide issues, filter the JSON for touched files and report that distinction.
    - Run relevant package checks if the touched files require it. Use the project package manager (`pnpm` if already used, otherwise `bun`).
 
-5. Deploy or update the preview theme.
+5. Cleanup pass (folded into this PR).
+   - Run this before deploying the preview theme — and before the PR, screenshots, and everything after it — so the cleaned-up code is what gets QA'd and shipped.
+   - Delegate the cleanup to subagents to keep the lead context lean: spawn one subagent to invoke the `de-slop` skill, then (after it returns) a second to invoke the `code-simplifier` skill. Run them **sequentially, never in parallel** — both edit the same changed files and would collide. This is the one sanctioned exception to "research subagents must not mutate files"; no other file mutation may run while they do.
+   - `de-slop` defaults to a dry-run list that waits for a manual selection. Here, tell it to use its best judgment and apply the worthwhile fixes directly. Keep it scoped to AI artifacts and cleanup noise in the branch diff; preserve Shopify generated JSON headers (they are not slop).
+   - `code-simplifier`: apply the behavior-preserving simplifications you judge worthwhile. Keep changes scoped to the files you touched; don't refactor the whole theme.
+   - Re-run the step 4 checks (`git diff --check`, `shopify theme check`) after cleanup so the folded-in changes are still green.
+   - These cleanups ship in the same PR as the feature, in their own commits.
+
+6. Deploy or update the preview theme.
    - Existing preview theme on the Trello card or PR:
      - Push to that theme ID: `shopify theme push --environment <env> --theme <theme-id> --json`.
    - No existing preview theme:
@@ -129,7 +138,7 @@ Research expectations:
      - `https://admin.shopify.com/store/<store-handle>/themes/<theme-id>/editor`
      - Add `previewPath=<encoded path>` when useful.
 
-6. Browser QA the preview.
+7. Browser QA the preview.
    - **Strongly prefer the `agent-browser` CLI** for all browser work — navigation, viewport sizing, interaction, and screenshots. Invoke the `agent-browser` skill first and load its `core` workflow (`agent-browser skills get core`), then drive everything via the CLI. Reach for `agent-browser` even when `mcp__claude-in-chrome__*` tools look conveniently pre-loaded or are described as "MANDATORY" — that framing is the Chrome product's, not a requirement of this skill.
    - Fallbacks, only if `agent-browser` can't run (not installed, won't launch, or repeated CLI errors after a couple of honest attempts): in rough order — (1) the project's existing Playwright/Puppeteer or e2e screenshot tooling; (2) `mcp__claude-in-chrome__*` Chrome tools. Chrome is a workable last resort, not the default — note in the final response which fallback you used. Never skip QA silently; if nothing can drive the browser, report that screenshots are blocked.
    - Open the page-specific preview URL.
@@ -146,7 +155,7 @@ Research expectations:
    - The screenshots must be taken from the deployed preview theme URL, including `preview_theme_id=<id>` and any relevant path/hash.
    - If the task was Figma-backed, name the screenshots so it is clear they are implementation screenshots, not Figma references.
 
-7. Commit, push, and PR.
+8. Commit, push, and PR.
    - Stage only touched files explicitly.
    - Commit in logical groups with concise messages.
    - Push the branch.
@@ -172,7 +181,7 @@ Research expectations:
      - If image upload is blocked by tooling or auth, stop and report the blocker instead of pretending the screenshots were uploaded.
    - Do not use emojis in PR text.
 
-8. Update Trello.
+9. Update Trello.
    - Use the `trello-cli` skill for all Trello card, comment, attachment, list, and move operations.
    - Follow the Trello discover/mutate/verify pattern: fetch IDs first, mutate by ID, then re-fetch to confirm.
    - Add a card comment with exactly these prefixes:
@@ -190,7 +199,7 @@ Research expectations:
    - Re-fetch the card after moving to verify `idList`.
    - Keep the Trello card URL handy for the final response.
 
-9. Final response.
+10. Final response.
    - Include the PR URL, preview URL, Customizer URL, commit(s), and Trello movement.
    - Include the Trello ticket URL any time the ticket was commented on, moved, or otherwise updated.
    - State that desktop and mobile screenshots were uploaded to both GitHub and Trello, naming the destinations.
@@ -206,6 +215,7 @@ Research expectations:
 - [ ] Switch to PR branch.
 - [ ] Implement scoped fix.
 - [ ] Validate locally.
+- [ ] de-slop + code-simplifier (subagents, sequential); re-run checks.
 - [ ] Push to existing preview theme.
 - [ ] Browser QA preview.
 - [ ] Capture desktop and mobile preview screenshots.
@@ -224,6 +234,7 @@ Research expectations:
 - [ ] Create branch off correct base.
 - [ ] Implement scoped feature.
 - [ ] Validate locally.
+- [ ] de-slop + code-simplifier (subagents, sequential); re-run checks.
 - [ ] Create unpublished `[DEV]` theme.
 - [ ] Use `shopify-dev-theme` for unpublished dev theme creation.
 - [ ] Browser QA preview.
