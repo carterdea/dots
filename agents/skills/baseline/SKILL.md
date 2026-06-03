@@ -19,6 +19,7 @@ First-pass guardrails for vibe-coded repos. Detects the stack and framework, ins
 - Does **not** modernize package managers (npm → bun, pip → uv).
 - Does **not** reconcile or merge existing configs. If `biome.json`, `lefthook.yml`, `[tool.ruff]` in `pyproject.toml`, etc. already exist, log "already configured" and skip.
 - Does **not** enforce custom rules. Tool defaults + framework presets only.
+- Does **not** fix the issues it surfaces. Installing the linter, typechecker, dead-code scanner, and tests will light up pre-existing failures — leave them failing so CI reports the real debt honestly. Report the failing checks and counts; do the actual fixes in follow-up sessions. (lefthook formatting of *staged* files on commit is fine; sweeping repo-wide auto-fixes are not.)
 
 ## Toolchain by stack
 
