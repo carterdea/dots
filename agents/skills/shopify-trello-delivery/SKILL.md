@@ -120,7 +120,7 @@ Research expectations:
    - When delegating, spawn one subagent to invoke the `de-slop` skill, then (after it returns) a second to invoke the `code-simplifier` skill. Run them **sequentially, never in parallel** — both edit the same changed files and would collide. Whether delegated or in-process, this is the one sanctioned exception to "research subagents must not mutate files"; no other file mutation may run while the cleanup does.
    - `de-slop` defaults to a dry-run list that waits for a manual selection. Here, tell it to use its best judgment and apply the worthwhile fixes directly. Keep it scoped to AI artifacts and cleanup noise in the branch diff; preserve Shopify generated JSON headers (they are not slop).
    - `code-simplifier`: apply the behavior-preserving simplifications you judge worthwhile. Keep changes scoped to the files you touched; don't refactor the whole theme.
-   - Re-run the step 4 checks (`git diff --check`, `shopify theme check`) after cleanup so the folded-in changes are still green.
+   - Re-run the relevant step 4 checks after cleanup — `git diff --check`, `shopify theme check`, and any package checks the touched files require — so the folded-in changes are still green.
    - These cleanups ship in the same PR as the feature, in their own commits.
 
 6. Deploy or update the preview theme.
