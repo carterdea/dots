@@ -9,14 +9,16 @@
       "!coverage/**",
       "!playwright-report/**",
       "!test-results/**",
-      "!assets/**",
       "!config/**",
       "!locales/**",
       "!layout/**",
       "!sections/**",
       "!snippets/**",
       "!blocks/**",
-      "!templates/**"
+      "!templates/**",
+      "!**/*.min.js",
+      "!**/*.min.css",
+      "!**/*.map"
     ]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2 },

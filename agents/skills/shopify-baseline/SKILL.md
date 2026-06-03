@@ -18,6 +18,7 @@ Set up a reusable quality floor for Shopify Online Store 2.0 theme repos: Theme 
 - Keep the setup idempotent: skip existing configs unless the workflow explicitly says to upgrade them.
 - When editing existing GitHub Actions, patch the smallest surface needed. Do not overwrite unrelated deployment workflows.
 - Before changing files, do a dry-run inventory: report detected tools, missing baseline pieces, proposed files/scripts/workflows, and which changes require confirmation.
+- **Install the baseline; do not fix what it surfaces.** Setting up the tooling will light up pre-existing Biome, Theme Check, typecheck, test, and accessibility failures — leave them failing. The point is an honest CI signal that shows the real debt; auto-fixing it here hides what needs attention. Report the failing checks and counts, and do the actual fixes in follow-up sessions. (Formatting that lefthook applies to *staged* files on commit is fine; sweeping repo-wide fixes are not.)
 
 ## Resolve Bundled Resources
 
@@ -154,9 +155,10 @@ run_silent "playwright axe" bun run check:a11y
 Biome owns JS/TS and the repo's own JSON config (`package.json`, `tsconfig.json`, `biome.json`); **Theme Check owns Liquid and Shopify-managed theme JSON**. The two must not fight.
 
 - **Strict as the repo tolerates.** Start from `recommended: true`, promote warnings to errors, and enable additional `correctness`/`suspicious`/`style` rules. The shipped `resources/biome.shopify.json` already turns on a strict set (no unused imports/vars, no explicit `any`, `useConst`, `noNonNullAssertion`, etc.); ratchet further when the codebase is clean enough. Do **not** enable any rule that reorders or reformats Shopify-managed JSON.
-- **Never lint or format the Shopify theme directories.** Biome must stay out of `assets/`, `config/`, `locales/`, `layout/`, `sections/`, `snippets/`, `blocks/`, and `templates/`. Theme Check and the Shopify CLI manage the schema, settings, section groups, and locale files there; Biome's JSON formatter and key/import sorting would reorder them and contradict Theme Check. This scoping lives in two places, keep both in sync:
+- **Never lint or format the Shopify-managed theme directories.** Biome must stay out of `config/`, `locales/`, `layout/`, `sections/`, `snippets/`, `blocks/`, and `templates/`. Theme Check and the Shopify CLI manage the schema, settings, section groups, and locale files there; Biome's JSON formatter and key/import sorting would reorder them and contradict Theme Check. This scoping lives in two places, keep both in sync:
   - `biome.json` `files.includes` negations (so every `biome check .` invocation respects it).
   - the lefthook `biome-check` `exclude` globs (so staged-file `--write` runs never touch theme files).
+- **Do lint `assets/`.** Many themes keep hand-written JS/CSS in `assets/`, so Biome covers it. Exclude only generated output — sourcemaps (`*.map`) and minified bundles (`*.min.js`, `*.min.css`) are already ignored. When the repo builds with Vite (or another bundler) into `assets/`, add that build's actual output files to the `files.includes` negations (and `.gitignore`) so Biome doesn't lint generated code — e.g. the `entryFileNames`/`chunkFileNames` the Vite config emits.
 - **`assist.actions.source.useSortedKeys` stays `off`** — sorting keys would churn theme and locale JSON; only `organizeImports` (JS/TS) is on.
 - **Don't clobber an existing `biome.json`/`biome.jsonc`.** If one exists, reconcile it toward this strictness and the theme-directory exclusions, and report what changed rather than overwriting.
 
