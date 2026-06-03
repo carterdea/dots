@@ -10,6 +10,16 @@ pre-commit:
       run: bun run check:theme
     biome-check:
       glob: "**/*.{js,jsx,ts,tsx,json,jsonc,css}"
+      # Shopify-managed theme files belong to Theme Check; keep Biome out so the two don't fight.
+      exclude:
+        - "assets/**"
+        - "config/**"
+        - "locales/**"
+        - "layout/**"
+        - "sections/**"
+        - "snippets/**"
+        - "blocks/**"
+        - "templates/**"
       run: bunx biome check --write --no-errors-on-unmatched {staged_files}
       stage_fixed: true
 

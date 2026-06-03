@@ -105,6 +105,7 @@ Copy these resources from this skill into the target repo when missing:
 - `playwright.config.ts` from `resources/playwright.config.shopify.ts` when Playwright has no config
 - `vite.config.ts` from `resources/vite.config.shopify.ts` when converting frontend builds to Vite
 - `.theme-check.yml` from `resources/theme-check.yml` when Theme Check has no config
+- `biome.json` from `resources/biome.shopify.json` when Biome has no config (see Biome Configuration — never clobber an existing `biome.json`/`biome.jsonc`)
 
 Append `resources/agent-instructions.snippet.md` to existing root `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/*.mdc` if they do not already mention `run_silent.sh`. Do not create agent instruction files from scratch unless the user asks.
 
@@ -147,6 +148,19 @@ run_silent "typecheck" bun run check:type
 run_silent "vitest" bun run check:test
 run_silent "playwright axe" bun run check:a11y
 ```
+
+## Biome Configuration
+
+Biome owns JS/TS and the repo's own JSON config (`package.json`, `tsconfig.json`, `biome.json`); **Theme Check owns Liquid and Shopify-managed theme JSON**. The two must not fight.
+
+- **Strict as the repo tolerates.** Start from `recommended: true`, promote warnings to errors, and enable additional `correctness`/`suspicious`/`style` rules. The shipped `resources/biome.shopify.json` already turns on a strict set (no unused imports/vars, no explicit `any`, `useConst`, `noNonNullAssertion`, etc.); ratchet further when the codebase is clean enough. Do **not** enable any rule that reorders or reformats Shopify-managed JSON.
+- **Never lint or format the Shopify theme directories.** Biome must stay out of `assets/`, `config/`, `locales/`, `layout/`, `sections/`, `snippets/`, `blocks/`, and `templates/`. Theme Check and the Shopify CLI manage the schema, settings, section groups, and locale files there; Biome's JSON formatter and key/import sorting would reorder them and contradict Theme Check. This scoping lives in two places, keep both in sync:
+  - `biome.json` `files.includes` negations (so every `biome check .` invocation respects it).
+  - the lefthook `biome-check` `exclude` globs (so staged-file `--write` runs never touch theme files).
+- **`assist.actions.source.useSortedKeys` stays `off`** — sorting keys would churn theme and locale JSON; only `organizeImports` (JS/TS) is on.
+- **Don't clobber an existing `biome.json`/`biome.jsonc`.** If one exists, reconcile it toward this strictness and the theme-directory exclusions, and report what changed rather than overwriting.
+
+`check:biome` stays `biome check .` — the config does the scoping, so there's a single source of truth and no per-call globs to remember.
 
 ## Vite Conversion
 
@@ -293,7 +307,7 @@ Check:
 
 - package manager and installed tool versions
 - Theme Check config and scripts
-- Biome config and scripts
+- Biome config and scripts — strictness plus theme-directory exclusions so it doesn't fight Theme Check (see Biome Configuration)
 - Vite build path and asset output safety
 - Playwright/axe coverage and `SHOPIFY_A11Y_PATHS`
 - optional Vitest presence where complex JS exists
