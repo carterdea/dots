@@ -58,7 +58,7 @@ Research expectations:
 - Prefer primary sources: Shopify docs, app/vendor docs, official package docs, and source repositories.
 - When implementation depends on platform behavior, app embeds, checkout/cart integration, customer accounts, or current Shopify APIs, do live research before coding — don't guess. Consult the Shopify dev / AI Toolkit skills (or Context7) to confirm the Shopify best practice, API shape, or app details before writing code.
 - Return concise findings with links, the exact API or behavior that matters, and any uncertainty or version/date sensitivity.
-- Do not let a research subagent mutate files, run deploys, update Trello/GitHub, or make final delivery decisions. The lone exception is the step 5 cleanup pass: the `de-slop` and `code-simplifier` subagents do edit the changed files, run sequentially, and nothing else mutates files while they do.
+- Do not let a research subagent mutate files, run deploys, update Trello/GitHub, or make final delivery decisions. The lone exception is the step 5 cleanup pass: when the harness shares the lead worktree, the `de-slop` and `code-simplifier` subagents may edit the changed files (sequentially, with nothing else mutating files meanwhile); otherwise run those passes in-process so the edits reach the branch you push.
 
 ## Workflow
 
@@ -116,7 +116,8 @@ Research expectations:
 
 5. Cleanup pass (folded into this PR).
    - Run this before deploying the preview theme — and before the PR, screenshots, and everything after it — so the cleaned-up code is what gets QA'd and shipped.
-   - Delegate the cleanup to subagents to keep the lead context lean: spawn one subagent to invoke the `de-slop` skill, then (after it returns) a second to invoke the `code-simplifier` skill. Run them **sequentially, never in parallel** — both edit the same changed files and would collide. This is the one sanctioned exception to "research subagents must not mutate files"; no other file mutation may run while they do.
+   - Delegate the cleanup to subagents **only when the harness shares the lead worktree**, so their edits land in the files you commit and push. If spawned subagents get an isolated or forked workspace (e.g. Codex coding subagents), their cleanup edits never reach the branch you push — **run both passes in-process in the lead agent instead**. When unsure, run in-process: delegating saves context, not correctness, and the cleanup must not be traded away to save tokens.
+   - When delegating, spawn one subagent to invoke the `de-slop` skill, then (after it returns) a second to invoke the `code-simplifier` skill. Run them **sequentially, never in parallel** — both edit the same changed files and would collide. Whether delegated or in-process, this is the one sanctioned exception to "research subagents must not mutate files"; no other file mutation may run while the cleanup does.
    - `de-slop` defaults to a dry-run list that waits for a manual selection. Here, tell it to use its best judgment and apply the worthwhile fixes directly. Keep it scoped to AI artifacts and cleanup noise in the branch diff; preserve Shopify generated JSON headers (they are not slop).
    - `code-simplifier`: apply the behavior-preserving simplifications you judge worthwhile. Keep changes scoped to the files you touched; don't refactor the whole theme.
    - Re-run the step 4 checks (`git diff --check`, `shopify theme check`) after cleanup so the folded-in changes are still green.
@@ -215,7 +216,7 @@ Research expectations:
 - [ ] Switch to PR branch.
 - [ ] Implement scoped fix.
 - [ ] Validate locally.
-- [ ] de-slop + code-simplifier (subagents, sequential); re-run checks.
+- [ ] de-slop + code-simplifier (sequential; subagents only if worktree-shared, else in-process); re-run checks.
 - [ ] Push to existing preview theme.
 - [ ] Browser QA preview.
 - [ ] Capture desktop and mobile preview screenshots.
@@ -234,7 +235,7 @@ Research expectations:
 - [ ] Create branch off correct base.
 - [ ] Implement scoped feature.
 - [ ] Validate locally.
-- [ ] de-slop + code-simplifier (subagents, sequential); re-run checks.
+- [ ] de-slop + code-simplifier (sequential; subagents only if worktree-shared, else in-process); re-run checks.
 - [ ] Create unpublished `[DEV]` theme.
 - [ ] Use `shopify-dev-theme` for unpublished dev theme creation.
 - [ ] Browser QA preview.
