@@ -35,6 +35,9 @@ pre-push:
       run: bun run check:biome
     typecheck:
       run: bun run check:type
+    dead-code:
+      # self-skips unless src/ + a fallow config exist
+      run: bun run check:dead-code
     test:
       run: bun run check:test
     accessibility:

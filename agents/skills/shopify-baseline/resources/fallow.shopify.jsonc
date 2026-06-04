@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  // Shopify themes wire JS through Liquid (asset_url | script_tag), which fallow can't
+  // trace. Only scope it to the bundler source tree (src/). assets/ is build output or
+  // Liquid-referenced scripts with no import graph; dist/ is generated. Never analyze either.
+  "entry": ["src/**/*.{ts,tsx,js,jsx,mts,mjs}"],
+  "ignorePatterns": [
+    "assets/**",
+    "dist/**",
+    "config/**",
+    "locales/**",
+    "layout/**",
+    "sections/**",
+    "snippets/**",
+    "blocks/**",
+    "templates/**"
+  ],
+  "rules": {
+    "unused-files": "error",
+    "unused-exports": "error",
+    "unused-types": "warn"
+  }
+}

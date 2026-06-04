@@ -52,6 +52,8 @@ Detect existing tooling:
 - Vite: `vite.config.*` or `vite` dependency
 - Playwright: `playwright.config.*` or `@playwright/test`
 - Vitest: `vitest.config.*`, `vitest` dependency, or test scripts
+- Fallow (dead-code): `fallow.json`, `.fallowrc.json`, `.fallowrc.jsonc`, `fallow.toml`, or a `fallow` key in `package.json`
+- Bundled JS source: a `src/` directory with `.ts`/`.tsx`/`.js`/`.jsx` files. This is the gate for fallow — without it, theme JS lives loose in `assets/` referenced only by Liquid, which fallow can't trace.
 - Hooks: `lefthook.yml`, `lefthook.yaml`, or `.lefthook.yml`
 - Claude Code Action: `.github/workflows/*` containing `anthropics/claude-code-action`
 - Shopify Lighthouse CI: `.github/workflows/*` containing `shopify/lighthouse-ci-action`
@@ -72,6 +74,7 @@ Default dev dependencies:
 - `@playwright/test`
 - `@axe-core/playwright`
 - `vitest` only when the theme has meaningful source modules or existing tests
+- `fallow` (dead-code scanner) **only when a `src/` directory of bundled JS source exists** — see Fallow (Dead Code). Skip it entirely for loose-`assets/` themes with no `src/`.
 
 Commands after resolving versions:
 
@@ -83,7 +86,7 @@ bun add -d --exact @shopify/cli@<version> @biomejs/biome@<version> lefthook@<ver
 pnpm add -D --save-exact @shopify/cli@<version> @biomejs/biome@<version> lefthook@<version> @playwright/test@<version> @axe-core/playwright@<version>
 ```
 
-Add `vite`, `typescript`, and `vitest` only when detected or requested.
+Add `vite`, `typescript`, `vitest`, and `fallow` only when detected or requested. Install `fallow` (`bun add -d fallow` / `pnpm add -D fallow`) only when `src/` exists.
 
 After adding Playwright, install Chromium for local and CI runs:
 
@@ -107,6 +110,7 @@ Copy these resources from this skill into the target repo when missing:
 - `vite.config.ts` from `resources/vite.config.shopify.ts` when converting frontend builds to Vite
 - `.theme-check.yml` from `resources/theme-check.yml` when Theme Check has no config
 - `biome.json` from `resources/biome.shopify.json` when Biome has no config (see Biome Configuration — never clobber an existing `biome.json`/`biome.jsonc`)
+- `.fallowrc.jsonc` from `resources/fallow.shopify.jsonc` **only when `src/` exists and fallow has no config** (see Fallow (Dead Code))
 
 Append `resources/agent-instructions.snippet.md` to existing root `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/*.mdc` if they do not already mention `run_silent.sh`. Do not create agent instruction files from scratch unless the user asks.
 
@@ -126,10 +130,11 @@ Default script shape after substitution:
 ```json
 {
   "scripts": {
-    "check": "<run> check:theme && <run> check:biome && <run> check:type && <run> check:test && <run> check:a11y",
+    "check": "<run> check:theme && <run> check:biome && <run> check:type && <run> check:dead-code && <run> check:test && <run> check:a11y",
     "check:theme": "shopify theme check",
     "check:biome": "biome check .",
     "check:type": "if [ -f tsconfig.json ]; then tsc --noEmit; fi",
+    "check:dead-code": "if [ -d src ] && ls .fallowrc.* fallow.* >/dev/null 2>&1; then fallow dead-code; else echo \"skipped: fallow runs only when src/ + a fallow config exist\"; fi",
     "check:test": "if ls vitest.config.* >/dev/null 2>&1; then vitest run; fi",
     "check:a11y": "if [ -n \"${BASE_URL:-}${SHOPIFY_PREVIEW_URL:-}\" ]; then playwright test tests/accessibility; else echo \"skipped: set BASE_URL or SHOPIFY_PREVIEW_URL for accessibility smoke tests\"; fi",
     "build": "vite build"
@@ -146,6 +151,7 @@ source scripts/run_silent.sh
 run_silent "theme check" bun run check:theme
 run_silent "biome" bun run check:biome
 run_silent "typecheck" bun run check:type
+run_silent "dead code" bun run check:dead-code
 run_silent "vitest" bun run check:test
 run_silent "playwright axe" bun run check:a11y
 ```
@@ -163,6 +169,16 @@ Biome owns JS/TS and the repo's own JSON config (`package.json`, `tsconfig.json`
 - **Don't clobber an existing `biome.json`/`biome.jsonc`.** If one exists, reconcile it toward this strictness and the theme-directory exclusions, and report what changed rather than overwriting.
 
 `check:biome` stays `biome check .` — the config does the scoping, so there's a single source of truth and no per-call globs to remember.
+
+## Fallow (Dead Code)
+
+Fallow finds dead code by building a module graph from entry points. Shopify themes wire JS through Liquid (`{{ 'x.js' | asset_url | script_tag }}`), which fallow can't parse — so it only helps when the theme has a real bundled source tree.
+
+- **Gate on `src/`.** Install and configure fallow **only when a `src/` directory of bundled JS source exists** (the kind Vite compiles into `assets/`). For loose-`assets/` themes with no `src/`, skip fallow entirely — every file would look unreachable (false positives), and theme scripts are usually side-effect IIFEs with no exports to analyze.
+- **Scope to `src/`; never `assets/` or `dist/`.** `assets/` is build output or Liquid-referenced scripts with no import graph; `dist/` is generated. The shipped `resources/fallow.shopify.jsonc` sets `entry: ["src/**/*"]` and ignores `assets/`, `dist/`, and the Shopify-managed theme directories.
+- **Runs pre-push and in CI, not on commit** — like the `/baseline` skill, fallow has no staged-file mode. The `check:dead-code` script self-skips unless `src/` and a fallow config both exist, so it's safe to wire unconditionally.
+- **Don't clobber an existing fallow config.** If one exists, leave it; reconcile toward the `src/`-only scoping and report rather than overwriting.
+- The Shopify-shaped question fallow does **not** answer — "which `assets/*.js` is no longer referenced by any Liquid template" — needs a Liquid-aware grep, not fallow. Out of scope here.
 
 ## Vite Conversion
 
@@ -310,6 +326,7 @@ Check:
 - package manager and installed tool versions
 - Theme Check config and scripts
 - Biome config and scripts — strictness plus theme-directory exclusions so it doesn't fight Theme Check (see Biome Configuration)
+- Fallow dead-code config and scripts when `src/` exists — scoped to `src/`, never `assets/`/`dist/` (see Fallow (Dead Code))
 - Vite build path and asset output safety
 - Playwright/axe coverage and `SHOPIFY_A11Y_PATHS`
 - optional Vitest presence where complex JS exists
@@ -330,6 +347,7 @@ Use fast staged checks on commit and full checks on push.
   - Theme Check full repo
   - Biome full repo
   - Typecheck if `tsconfig.json` exists
+  - Fallow dead-code if `src/` and a fallow config exist
   - Vitest if configured
   - Playwright accessibility only if `BASE_URL` is set
 

@@ -31,6 +31,9 @@ jobs:
       - name: Typecheck
         run: bun run check:type
 
+      - name: Dead code (fallow)
+        run: bun run check:dead-code
+
       - name: Unit tests
         run: bun run check:test
 
