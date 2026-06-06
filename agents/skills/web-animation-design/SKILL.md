@@ -1,6 +1,6 @@
 ---
 name: web-animation-design
-description: "Design and implement web animations that feel natural and purposeful. Use this skill proactively whenever the user asks questions about animations, motion, easing, timing, duration, springs, transitions, or animation performance. This includes questions about how to animate specific UI elements, which easing to use, animation best practices, or accessibility considerations for motion. Triggers on: easing, ease-out, ease-in, ease-in-out, cubic-bezier, bounce, spring physics, keyframes, transform, opacity, fade, slide, scale, hover effects, microinteractions, Framer Motion, React Spring, GSAP, CSS transitions, entrance/exit animations, page transitions, stagger, will-change, GPU acceleration, prefers-reduced-motion, modal/dropdown/tooltip/popover/drawer animations, gesture animations, drag interactions, button press feel, \"feels janky\", \"make it smooth\"."
+description: "Design and implement web animations that feel natural and purposeful. Use whenever the user asks about motion, easing, timing, springs, transitions, or animation performance — how to animate a UI element, which easing to pick, best practices, or reduced-motion accessibility. Triggers on easing/cubic-bezier, keyframes, transform/opacity, spring physics, Framer Motion, React Spring, GSAP, CSS transitions, page/entrance/exit transitions, stagger, modal/dropdown/tooltip animations, gesture and drag interactions, 'feels janky', or 'make it smooth'."
 ---
 
 # Web Animation Design
