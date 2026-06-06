@@ -1,6 +1,6 @@
 ---
 name: simple-html-artifact
-description: Build or refine single-file information-first HTML artifacts, especially index.html or text.html pages, with strong information hierarchy, restrained styling, accessible semantics, and minimal AI-generated frontend tells. Use when creating HTML reports, research pages, explainers, briefs, dashboards, note indexes, annotated code reviews, planning/spec docs, or focused single-purpose editing/triage tools with copy-out export — front ends whose goal is comprehension or action rather than marketing conversion. Reach for this whenever the user wants a standalone HTML page, report, one-pager, explainer, or "quick HTML" to present or organize information, even if they just say "make an HTML file" without mentioning design. Not for multi-page sites, React/framework apps, or marketing landing pages.
+description: Build or refine single-file, information-first HTML artifacts (especially index.html/text.html) with strong hierarchy, restrained styling, accessible semantics, and minimal AI frontend tells. Use for reports, research pages, explainers, briefs, dashboards, note indexes, annotated code reviews, or spec docs — anytime the user wants a standalone HTML page, one-pager, or "quick HTML" to present or organize information, even if they just say "make an HTML file". Not for multi-page sites, React/framework apps, or marketing landing pages.
 ---
 
 # Simple HTML Artifact
