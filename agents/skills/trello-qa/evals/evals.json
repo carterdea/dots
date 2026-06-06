@@ -1,0 +1,23 @@
+{
+  "skill_name": "trello-qa",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "QA this card before it ships: <TRELLO_CARD_URL>. The dev moved it to Ready for Review. Repo is at ~/Sites/<PROJECT> and there's a Vercel preview on the PR.",
+      "expected_output": "Project label + Ready-for-Review column confirmed, criteria/PR/preview/Figma/developer extracted, Vercel preview opened (no checkout), PR diff read for scope, every acceptance criterion dogfooded desktop and mobile with console/network and regression checks. On all-pass: gh pr review --approve, QA PASS comment, desktop+mobile screenshots attached to card, card moved to Ready for Release. Final response gives the verdict and Trello card URL.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Verify this ticket — <TRELLO_CARD_URL> — the dev says the mobile filter bug is fixed. Repo: ~/Sites/<PROJECT>.",
+      "expected_output": "Preview opened, mobile filter flow dogfooded against the acceptance criteria, regression sweep on adjacent flows. If a criterion fails: full repro bundle (numbered steps + before/after screenshots + video), gh pr review --request-changes, QA FAIL comment with repro, repro evidence attached to card, original developer reassigned, card moved back to Development In Progress. No code was edited, committed, or checked out.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Can this card move to Ready for Release? <TRELLO_CARD_URL>. It's a Fly.io app at ~/Sites/<PROJECT>.",
+      "expected_output": "Recognizes Fly has no per-PR hosted preview; if the card/PR has no openable preview URL, takes the blocked path: comments asking the developer for a working preview link, reassigns them, leaves the card in review, and does NOT check out the branch or start a server. If a preview URL is present, QAs it normally.",
+      "files": []
+    }
+  ]
+}
