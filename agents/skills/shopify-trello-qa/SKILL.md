@@ -124,7 +124,7 @@ Invoke the `dogfood` skill to drive the preview theme systematically, on a deskt
 - **Trello (discover → mutate → verify):**
   - Post the **QA FAIL** report comment (template below): each failing criterion with its numbered repro steps.
   - Attach every repro screenshot and video to the card.
-  - Reassign the original developer.
+  - Reassign the original developer (`trello members add --card <card-id> --member <member-id>`).
   - Move the card back to **Development in Progress** (discover ID, move, re-fetch to confirm).
 
 ### 8. Final response
