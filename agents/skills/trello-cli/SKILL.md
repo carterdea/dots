@@ -86,6 +86,7 @@ Use compact JSON (no `--pretty`) when piping output or extracting values program
 - **Never guess IDs** — always discover them from a list or search command
 - **Re-fetch after mutations** when confirmation matters
 - **Validate file paths** before `attachments add-file`
+- **Download attachments to files** with `attachments download`; never expect binary content on stdout
 - **Use ISO-8601** for `--due` and `--date` values
 - **`cards list` requires exactly one** of `--board` or `--list`, never both
 - **Update commands need at least one** mutation field
