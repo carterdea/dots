@@ -135,6 +135,25 @@ For URL attachments:
 trello attachments add-url --card <card-id> --url "https://example.com/doc" --name "Reference"
 ```
 
+## Download Attachments
+
+```bash
+# 1. Discover the attachment ID
+trello attachments list --card <card-id>
+
+# 2. Download to an explicit file path
+trello attachments download --card <card-id> --attachment <attachment-id> --output ./downloads/brief.pdf
+
+# 3. Or download into an existing directory and let the CLI derive the filename
+mkdir -p ./downloads
+trello attachments download --card <card-id> --attachment <attachment-id> --output ./downloads/
+```
+
+Notes:
+- The command supports both Trello-uploaded files and URL attachments.
+- Stdout stays JSON-only with saved `path` and `bytes`; read the file from disk for binary/content inspection.
+- Existing output files are refused unless you pass `--force`.
+
 ## Manage Labels
 
 ```bash

@@ -79,10 +79,11 @@ checklists items delete --checklist <checklist-id> --item <item-id>
 attachments list --card <card-id>
 attachments add-file --card <card-id> --path <local-path> [--name <display-name>]
 attachments add-url --card <card-id> --url <http-or-https-url> [--name <display-name>]
+attachments download --card <card-id> --attachment <attachment-id> --output <local-path-or-existing-dir> [--force]
 attachments delete --card <card-id> --attachment <attachment-id>
 ```
 
-Validation: `add-file` requires existing local path. `add-url` requires `http://` or `https://`.
+Validation: `add-file` requires existing local path. `add-url` requires `http://` or `https://`. `download` writes bytes to `--output`, returns JSON metadata on stdout, accepts either a file path or existing directory, and refuses to overwrite existing files unless `--force` is set.
 
 ## Custom Fields
 
