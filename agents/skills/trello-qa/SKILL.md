@@ -123,7 +123,7 @@ This is the core of the job. Invoke the `dogfood` skill to drive the preview sys
 - **Trello (discover → mutate → verify):**
   - Post the **QA FAIL** report comment (template below): each failing criterion with its numbered repro steps.
   - Attach every repro screenshot and video to the card.
-  - Reassign the original developer (`trello cards add-member` / the member workflow).
+  - Reassign the original developer (`trello members add --card <card-id> --member <member-id>`).
   - Move the card back to **Development In Progress** (discover ID, move, re-fetch to confirm).
 
 ### 8. Final response
