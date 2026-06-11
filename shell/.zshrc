@@ -59,6 +59,9 @@ compinit
 # asdf version manager
 . $(brew --prefix asdf)/libexec/asdf.sh
 
+# Prefer Homebrew globals over stale asdf shims when both expose a command.
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+
 # Load local configuration (API keys, secrets, machine-specific settings)
 [ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"
 
