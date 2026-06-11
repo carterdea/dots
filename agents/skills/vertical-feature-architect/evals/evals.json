@@ -1,0 +1,23 @@
+{
+  "skill_name": "vertical-feature-architect",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add an agent run detail page that shows the run status, source, trigger user, timing, errors, pending approval controls, and ordered message timeline. Figure out what files need to change, implement the smallest end-to-end slice, and tell me how to QA it.",
+      "expected_output": "The agent maps backend service/controller/schema/frontend route/component/hook/test files before editing, defines an enriched run-detail contract, adds focused contract/UI/lifecycle tests, and includes a browser QA path.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Add support for deferring outbound workflow messages until business hours. It should apply to third-party recipients but not replies to the trigger sender. Find the right workflow files, write tests, and include the QA plan.",
+      "expected_output": "The agent identifies workflow handler, business-hours service, audit event, schema/interface, and tests; implements durable lifecycle behavior with no-op behavior when no hours exist; and specifies unit plus operator QA.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Create a normalized LangSmith workflow eval target with provenance so we can reproduce runs. Please figure out what files to create or change and what tests/commands prove it works.",
+      "expected_output": "The agent maps eval registry, runner command/script, provenance module, fixture/dataset path, and eval tests; captures git/dataset/env provenance; and gives a reproducible upload/run QA path.",
+      "files": []
+    }
+  ]
+}
