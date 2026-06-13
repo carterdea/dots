@@ -23,7 +23,12 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Theme Check
-        run: bun run check:theme
+        # Pinned from shopify/theme-check-action@v2.2.0 on 2026-06-13.
+        uses: shopify/theme-check-action@58fd69afdfc30110f997ba9e212b302671e00d3b
+        with:
+          theme_root: .
+          token: ${{ github.token }}
+          base: __DEFAULT_BRANCH__
 
       - name: Biome
         run: bun run check:biome

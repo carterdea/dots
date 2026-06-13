@@ -48,6 +48,7 @@ Detect package manager:
 Detect existing tooling:
 
 - Theme Check: `.theme-check.yml`, `.theme-check.yaml`, or package/scripts calling `shopify theme check`
+- Theme Check Action: `.github/workflows/*` containing `shopify/theme-check-action`
 - Biome: `biome.json` or `biome.jsonc`
 - Vite: `vite.config.*` or `vite` dependency
 - Playwright: `playwright.config.*` or `@playwright/test`
@@ -223,10 +224,14 @@ Create or update three separate workflow surfaces:
 
 1. `ci.yml`
    - Runs static checks on every PR and pushes to the default branch.
+   - Uses `shopify/theme-check-action@v2` for GitHub Actions Theme Check instead of running the local `check:theme` package script.
+   - Pass `theme_root: .`, `token: ${{ github.token }}`, and `base: __DEFAULT_BRANCH__` so the action can annotate changed files.
+   - When upgrading existing workflows, remove duplicate GitHub Actions Theme Check steps. This includes `shopify theme check`, package-manager `check:theme` commands, and older `theme-check-action` variants.
+   - Keep local package scripts and lefthook commands; only dedupe the GitHub Actions workflow surface.
    - Replace the `__DEFAULT_BRANCH__` placeholder with the detected default branch before writing the workflow.
    - Runs Playwright axe only when `SHOPIFY_PREVIEW_URL` is available.
    - Runs Vitest only when configured.
-   - Pin GitHub Actions to full commit SHAs after resolving the current latest tag or release. Resource templates include pinned refs as of May 23, 2026; refresh them when installing later.
+   - Pin GitHub Actions to full commit SHAs after resolving the current latest tag or release. Resource templates include pinned refs as of June 13, 2026; refresh them when installing later.
 
 2. `shopify-lighthouse-ci.yml`
    - Uses `shopify/lighthouse-ci-action@v1`.
@@ -331,7 +336,7 @@ Check:
 - Playwright/axe coverage and `SHOPIFY_A11Y_PATHS`
 - optional Vitest presence where complex JS exists
 - lefthook local gates
-- GitHub Actions CI, Lighthouse CI, action SHA pinning, and Claude Code v1 usage
+- GitHub Actions CI, Theme Check Action deduping, Lighthouse CI, action SHA pinning, and Claude Code v1 usage
 - `scripts/run_silent.sh` and agent-instruction discoverability
 
 Report proposed changes first. Patch existing files in place only after the user confirms any risky migration, especially build-tool conversions.
