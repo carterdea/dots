@@ -15,7 +15,7 @@ This skill is for Shopify theme tickets; non-Shopify web apps belong to `trello-
 
 ## Dependencies
 
-- The `trello-cli` skill for Trello auth, card/comment/checklist reads, comments, attachments, member assignment, list discovery, moves, and mutation verification.
+- The `trello-cli` skill for Trello auth, Shopify Projects board verification, card/comment/checklist reads, comments, attachment listing/download/inspection, member assignment, list discovery, moves, and mutation verification.
 - The `agent-browser` skill for all browser QA, viewport sizing, interaction, console/network inspection, and screenshots — strongly preferred. Invoke that skill first and drive the `agent-browser` CLI. Fall back to `mcp__claude-in-chrome__*` only if `agent-browser` can't run.
 - The `dogfood` skill for systematic exploration of the touched surface, the regression sweep, and structured reproduction evidence (numbered steps, screenshots, repro video) on any failure.
 - GitHub CLI (`gh`) to read the PR (read-only) and leave one PR review.
@@ -32,7 +32,9 @@ This skill is for Shopify theme tickets; non-Shopify web apps belong to `trello-
 - **Evidence or it didn't happen.** PASS produces desktop + mobile screenshots from the preview theme URL showing the criteria met. FAIL produces a full `dogfood`-style reproduction per failing criterion: numbered steps, before/after screenshots, repro video for interaction bugs.
 - **Two terminal states only: PASS or FAIL.** "Couldn't verify" is a blocked card handed back, not a pass.
 - **Code-hygiene notes are non-blocking.** When you have GitHub repo access, note diff evidence that the developer skipped `code-simplifier` / `de-slop` (duplicated Liquid/JS, nested ternaries, slop comments, stray scratch files, etc.) as inline PR comments — but never let them change the PASS/FAIL verdict. Without GitHub access, fold them into the Trello comment. You observe these; you never run those skills or edit the theme. (Shopify-generated JSON headers are not slop — don't flag them.)
-- **Discover the board's real column names; never assume them.** Shopify boards use different list names than Node boards (see Board Column Reference). Fetch list IDs and move by ID.
+- **Always use the Shopify Projects board.** Its board ID is `60ec9752cc991401c1c7c327`; verify that ID still resolves to the open board named `Shopify Projects`, confirm the card belongs to it, and use that board ID for list discovery and moves.
+- **Always inspect Trello card attachments before QA.** Download every accessible attachment to a per-card directory under `/tmp`, inspect the downloaded files or linked resources, and use relevant briefs, screenshots, PDFs, zips, and image references as source material for the verdict.
+- **Discover the board's real column names; never assume them.** Shopify boards use different list names than Node boards (see Board Column Reference). Fetch list IDs from the Shopify Projects board and move by ID.
 - Always include the Trello card URL in the final response.
 
 ## Optional Subagent Delegation
@@ -43,16 +45,25 @@ Use subagents for read-only parallel work: ticket intake (criteria, PR link, pre
 
 ### 0. Preflight: confirm the card belongs here and is ready for QA
 
-**Hard gate.** Two checks before anything else:
+**Hard gate.** Three checks before anything else:
 
-1. **Project match.** Judge whether a card label plausibly refers to this repo (directory name, `shopify.theme.toml` store, `README`, remote slug) — abbreviations count (a `Reeis` label matches `reeis-air-conditioning-shopify`). If none matches, **stop** and report the mismatch.
-2. **Ready for QA.** Confirm the card is in the development→QA handoff column (`Ready for Testing`, or the board's closest handoff list). If it's still in development, already in `Ready for Release`, or shipped, **stop** and report.
+1. **Shopify Projects board.** Verify Trello auth with `trello auth status`, then use the hardcoded **Shopify Projects** board ID: `60ec9752cc991401c1c7c327`. Verify that board ID still resolves to the open board named `Shopify Projects`, for example with `trello boards list` filtered by ID or a direct board read if the CLI supports it. If the ID is not visible or no longer resolves to `Shopify Projects`, fall back to `trello search boards --query "Shopify Projects"` or `trello boards list` and require one exact open-board match before proceeding. Fetch the card and confirm its board ID matches `60ec9752cc991401c1c7c327`. If it does not, **stop** and report the board mismatch.
+2. **Project match.** Judge whether a card label plausibly refers to this repo (directory name, `shopify.theme.toml` store, `README`, remote slug) — abbreviations count (a `Reeis` label matches `reeis-air-conditioning-shopify`). If none matches, **stop** and report the mismatch.
+3. **Ready for QA.** Confirm the card is in the development→QA handoff column (`Ready for Testing`, or the board's closest handoff list on board `60ec9752cc991401c1c7c327`). If it's still in development, already in `Ready for Release`, or shipped, **stop** and report.
 
 ### 1. Orient on the ticket
 
-- Verify Trello auth with `trello auth status`.
 - Check `shopify.theme.toml` for store/environment context (read-only).
-- Fetch the card, description, comments, attachments, checklists, labels, and members.
+- Fetch the card, description, comments, attachments, checklists, labels, and members from the confirmed **Shopify Projects** card.
+- List attachments with `trello attachments list --card <card-id>`.
+- Create a per-card download directory under `/tmp`, for example `/tmp/shopify-trello-qa-<card-short-id>/`.
+- Download each accessible attachment with `trello attachments download --card <card-id> --attachment <attachment-id> --output /tmp/shopify-trello-qa-<card-short-id>/`. Use `--force` only when re-running and intentionally replacing a prior download.
+- Inspect downloaded attachments before QA:
+  - Open images/screenshots visually.
+  - Extract or read text from PDFs, markdown, text, CSV, JSON, or HTML files with local tooling.
+  - For zips or archives, list contents first and extract only into the same `/tmp/shopify-trello-qa-<card-short-id>/` directory when the contents are relevant.
+  - For URL attachments that download as links or external files, open/read the linked resource when accessible.
+- Record attachment findings and use them alongside the description, comments, Figma links, and acceptance criteria. If an attachment cannot be downloaded or opened, record the reason and continue only if the remaining ticket context is sufficient.
 - Extract and record:
   - **The PR link**, the **preview theme URL**, the **Customizer URL**, and the **`preview_theme_id`** the developer posted.
   - **Acceptance criteria** — from the description and any Trello checklist. A criteria checklist becomes your QA checklist verbatim.
@@ -116,7 +127,7 @@ Invoke the `dogfood` skill to drive the preview theme systematically, on a deskt
   - Post the **QA PASS** report comment (template below).
   - Check off verified items if the card uses a Trello acceptance-criteria checklist.
   - Attach `<card-short>-desktop.png` and `<card-short>-mobile.png` to the card.
-  - Move the card to **Ready for Release** (`trello lists list --board <board-id>`, move by ID, re-fetch to confirm `idList`).
+  - Move the card to **Ready for Release** (`trello lists list --board 60ec9752cc991401c1c7c327`, move by ID, re-fetch to confirm `idList`).
 
 ### 7b. FAIL path
 
@@ -125,7 +136,7 @@ Invoke the `dogfood` skill to drive the preview theme systematically, on a deskt
   - Post the **QA FAIL** report comment (template below): each failing criterion with its numbered repro steps.
   - Attach every repro screenshot and video to the card.
   - Reassign the original developer (`trello members add --card <card-id> --member <member-id>`).
-  - Move the card back to **Development in Progress** (discover ID, move, re-fetch to confirm).
+  - Move the card back to **Development in Progress** (`trello lists list --board 60ec9752cc991401c1c7c327`, move by ID, re-fetch to confirm).
 
 ### 8. Final response
 
@@ -133,9 +144,11 @@ State the verdict (PASS or FAIL), which criteria passed and which failed, the vi
 
 ## PASS Checklist
 
+- [ ] Verify Shopify Projects board ID `60ec9752cc991401c1c7c327` and confirm the card belongs to it; stop if not.
 - [ ] Card's project label matches this repo; stop if not.
 - [ ] Card is in the QA handoff column (Ready for Testing); stop if not.
 - [ ] Read card, comments, checklists; extract criteria, PR link, preview theme URL, Customizer URL, `preview_theme_id`, Figma links, original developer.
+- [ ] List, download to `/tmp/shopify-trello-qa-<card-short-id>/`, and inspect attachments.
 - [ ] Open the developer's preview theme + Customizer URLs (blocked path if none opens).
 - [ ] Read the PR diff for scope (no checkout).
 - [ ] (GitHub access) Scan diff for skipped code-simplifier/de-slop tells; post inline non-blocking PR comments.
@@ -148,9 +161,11 @@ State the verdict (PASS or FAIL), which criteria passed and which failed, the vi
 
 ## FAIL Checklist
 
+- [ ] Verify Shopify Projects board ID `60ec9752cc991401c1c7c327` and confirm the card belongs to it; stop if not.
 - [ ] Card's project label matches this repo; stop if not.
 - [ ] Card is in the QA handoff column (Ready for Testing); stop if not.
 - [ ] Read card, comments, checklists; extract criteria, PR link, preview theme URL, Customizer URL, `preview_theme_id`, Figma links, original developer.
+- [ ] List, download to `/tmp/shopify-trello-qa-<card-short-id>/`, and inspect attachments.
 - [ ] Open the developer's preview theme + Customizer URLs (blocked path if none opens).
 - [ ] Read the PR diff for scope (no checkout).
 - [ ] (GitHub access) Scan diff for skipped code-simplifier/de-slop tells; post inline non-blocking PR comments.
@@ -218,7 +233,7 @@ Requested changes on the PR and moved back to Development in Progress, reassigne
 Discover real list names per board; these are the current Shopify defaults:
 
 - **Shopify Projects board:** QA pulls from **Ready for Testing** → PASS moves to **Ready for Release** → FAIL moves back to **Development in Progress** (note the lowercase "in"; there is also a **Blocked** column if a card is unverifiable for reasons outside the developer's control).
-- Confirm the exact list names with `trello lists list --board <board-id>` before moving — Shopify boards use "Ready for Testing," not "Ready for Review."
+- Confirm the exact list names with `trello lists list --board 60ec9752cc991401c1c7c327` before moving — Shopify boards use "Ready for Testing," not "Ready for Review."
 
 ## Notes
 

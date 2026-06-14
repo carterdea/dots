@@ -15,7 +15,7 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
 - Shopify CLI with access to the relevant store from `shopify.theme.toml`.
 - The `shopify-dev-theme` skill for creating unpublished dev themes when the ticket has no existing preview theme.
 - The Shopify dev / AI Toolkit skills (`shopify-dev`, `shopify-liquid`, `shopify-admin`, `shopify-storefront-graphql`, and the matching API skills) for authoritative Shopify docs, schemas, and code validation. See the [Shopify AI Toolkit](https://shopify.dev/docs/apps/build/ai-toolkit).
-- The `trello-cli` skill for Trello auth, card reads, comments, attachments, list discovery, moves, and mutation verification.
+- The `trello-cli` skill for Trello auth, Shopify Projects board verification, card reads, comments, attachment listing/download/inspection, list discovery, moves, and mutation verification.
 - The `de-slop` and `code-simplifier` skills for the pre-PR cleanup pass.
 - Figma Desktop MCP when the Trello ticket or comments contain Figma design links.
 - The `agent-browser` skill for preview-theme QA and screenshots — strongly preferred. Invoke that skill first and drive the `agent-browser` CLI. Fall back to `mcp__claude-in-chrome__*` only if `agent-browser` can't run (see step 7).
@@ -31,6 +31,8 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
 - Use existing PRs and existing preview themes from the Trello card before creating new ones.
 - Treat Figma links in Trello descriptions and comments as source material. Inspect the linked node/artboard before implementing design-sensitive work.
 - Figma links in the Trello card description take precedence over Figma links in comments. Use comment links only when the description has no Figma link or a later comment explicitly supersedes the description design.
+- Always use the **Shopify Projects** Trello board for Shopify delivery. Its board ID is `60ec9752cc991401c1c7c327`; verify that ID still resolves to the open board named `Shopify Projects`, confirm the card belongs to it, and use that board ID for list discovery and moves.
+- Always inspect Trello card attachments before implementing. Download every accessible attachment to a per-card directory under `/tmp`, inspect the downloaded files or linked resources, and treat relevant briefs, screenshots, PDFs, zips, and image references as ticket source material.
 - After updating a Trello ticket, always include the Trello ticket URL in the final response.
 - Ensure the GitHub PR description contains a link to the Trello ticket.
 - Always capture desktop and mobile screenshots from the correct deployed preview theme before handoff.
@@ -62,7 +64,12 @@ Research expectations:
 
 ## Workflow
 
-0. Preflight: confirm the card belongs to this project. **Hard gate — do this before anything else.**
+0. Preflight: confirm the card is on the right board and belongs to this project. **Hard gate — do this before anything else.**
+   - Verify Trello auth with `trello auth status` before card operations.
+   - Use the hardcoded **Shopify Projects** board ID: `60ec9752cc991401c1c7c327`.
+   - Verify that board ID still resolves to the open board named `Shopify Projects` before relying on it, for example with `trello boards list` filtered by ID or a direct board read if the CLI supports it. If the ID is not visible or no longer resolves to `Shopify Projects`, fall back to `trello search boards --query "Shopify Projects"` or `trello boards list` and require one exact open-board match before proceeding.
+   - Fetch the card and confirm its board ID matches `60ec9752cc991401c1c7c327`. If it does not, **stop immediately** and report the board mismatch.
+   - Use `60ec9752cc991401c1c7c327` for all later `trello lists list --board <board-id>` calls and card moves.
    - The card carries a Trello label naming its target project. Fetch the card's labels and judge whether one plausibly refers to the repository you're in (repo/directory name, `shopify.theme.toml` store, `README` project name, or remote slug). It need not be an exact string match — use best judgment for abbreviations and expansions (e.g. a `Reeis` label matches a `reeis-air-conditioning-shopify` repo; `mmops` matches "Mundial Media Ops").
    - If no label plausibly refers to this project, **stop immediately**: report the mismatch (card's project label vs. the current repo) and do nothing else — do not branch, implement, move the card, or comment. Only proceed to step 1 once a label plausibly matches.
 
@@ -70,13 +77,21 @@ Research expectations:
    - Run `git status --short --branch` and confirm the current branch/worktree state.
    - Read repo instructions: `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md` when present.
    - Check `shopify.theme.toml` early; it controls store and environment names.
-   - Verify Trello auth with `trello auth status` before card operations.
-   - Fetch the Trello card, comments, and attachments. Extract:
+   - Fetch the Trello card, comments, and attachments from the confirmed **Shopify Projects** card. Extract:
      - Linked PR.
      - Existing preview theme URL or `preview_theme_id`.
      - Existing Customizer URL.
      - Figma links in the description and all comments, especially URLs with `node-id=`.
      - Acceptance criteria and the latest client/QA comments.
+   - List attachments with `trello attachments list --card <card-id>`.
+   - Create a per-card download directory under `/tmp`, for example `/tmp/shopify-trello-delivery-<card-short-id>/`.
+   - Download each accessible attachment with `trello attachments download --card <card-id> --attachment <attachment-id> --output /tmp/shopify-trello-delivery-<card-short-id>/`. Use `--force` only when re-running and you intentionally want to replace a prior download.
+   - Inspect downloaded attachments before implementation:
+     - Open images/screenshots visually.
+     - Extract or read text from PDFs, markdown, text, CSV, JSON, or HTML files with local tooling.
+     - For zips or archives, list contents first and extract only into the same `/tmp/shopify-trello-delivery-<card-short-id>/` directory when the contents are relevant.
+     - For URL attachments that download as links or external files, open/read the linked resource when accessible.
+   - Summarize the attachment findings in your working notes and use them alongside the description, comments, Figma links, and acceptance criteria. If an attachment cannot be downloaded or opened, record the reason and continue only if the remaining ticket context is sufficient.
    - Choose the primary Figma reference in this order:
      - Card description Figma links.
      - Comment Figma links that explicitly say they replace or supersede the description design.
@@ -196,7 +211,7 @@ Research expectations:
    - Move the ticket forward:
      - Prefer an exact `Ready for Review` list.
      - If no exact list exists, use the board's development handoff column, usually `Ready for Testing`.
-     - Discover list IDs with `trello lists list --board <board-id>` and move by ID.
+     - Discover list IDs with `trello lists list --board 60ec9752cc991401c1c7c327` and move by ID.
    - Re-fetch the card after moving to verify `idList`.
    - Keep the Trello card URL handy for the final response.
 
@@ -209,8 +224,10 @@ Research expectations:
 
 ## Existing PR Path Checklist
 
+- [ ] Verify **Shopify Projects** board ID `60ec9752cc991401c1c7c327` and confirm the card belongs to it; stop if it doesn't.
 - [ ] Confirm card's project label matches this repo; stop if it doesn't.
-- [ ] Read Trello card, comments, attachments.
+- [ ] Read Trello card and comments.
+- [ ] List, download to `/tmp/shopify-trello-delivery-<card-short-id>/`, and inspect attachments.
 - [ ] Extract and inspect relevant Figma links.
 - [ ] Find PR URL and branch.
 - [ ] Switch to PR branch.
@@ -229,8 +246,10 @@ Research expectations:
 
 ## Net-New Feature Checklist
 
+- [ ] Verify **Shopify Projects** board ID `60ec9752cc991401c1c7c327` and confirm the card belongs to it; stop if it doesn't.
 - [ ] Confirm card's project label matches this repo; stop if it doesn't.
-- [ ] Read Trello card, comments, attachments.
+- [ ] Read Trello card and comments.
+- [ ] List, download to `/tmp/shopify-trello-delivery-<card-short-id>/`, and inspect attachments.
 - [ ] Extract and inspect relevant Figma links.
 - [ ] Create branch off correct base.
 - [ ] Implement scoped feature.
