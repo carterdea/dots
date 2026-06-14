@@ -153,6 +153,8 @@ Notes:
 - The command supports both Trello-uploaded files and URL attachments.
 - Stdout stays JSON-only with saved `path` and `bytes`; read the file from disk for binary/content inspection.
 - Existing output files are refused unless you pass `--force`.
+- For images, choose attachments whose `mimeType` starts with `image/`, or whose `fileName`, `name`, or URL has a common image extension such as `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, or `.svg`.
+- Do not download Trello-hosted image URLs with `curl`; uploaded attachments may require OAuth authorization that `attachments download` applies automatically.
 
 ## Manage Labels
 

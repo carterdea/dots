@@ -97,7 +97,6 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-opus-4-8",
   "enableWorkflows": false,
   "statusLine": {
     "type": "command",
@@ -113,19 +112,12 @@
     "code-simplifier@claude-plugins-official": true,
     "figma@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
-    "honcho@honcho": true,
     "shopify-plugin@shopify-ai-toolkit": true,
     "ralph-loop@claude-plugins-official": true,
     "resend@claude-plugins-official": true,
     "github@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
-    "honcho": {
-      "source": {
-        "source": "github",
-        "repo": "plastic-labs/claude-honcho"
-      }
-    },
     "shopify-ai-toolkit": {
       "source": {
         "source": "github",

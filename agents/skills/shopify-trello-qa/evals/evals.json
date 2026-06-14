@@ -4,19 +4,19 @@
     {
       "id": 1,
       "prompt": "QA this Shopify theme card before release: <TRELLO_CARD_URL>. The dev moved it to Ready for Testing and posted a preview theme and Customizer URL. Repo: ~/Sites/<PROJECT>.",
-      "expected_output": "Project label + Ready-for-Testing column confirmed, criteria/PR/preview-theme/Customizer/preview_theme_id/Figma/developer extracted, preview theme URL (with preview_theme_id) opened, PR diff read for scope, every acceptance criterion dogfooded desktop and mobile with console/network and regression checks, Figma compared. On all-pass: gh pr review --approve, QA PASS comment, desktop+mobile screenshots from the preview theme attached, card moved to Ready for Release. No theme push or deploy. Final response gives the verdict and Trello card URL.",
+      "expected_output": "Preflight confirms the card is on the Shopify Projects board, project label matches, and the card is in Ready for Testing; card attachments are downloaded and inspected. Criteria/PR/preview-theme/Customizer/preview_theme_id/Figma/developer extracted, preview theme URL (with preview_theme_id) opened, PR diff read for scope, every acceptance criterion dogfooded desktop and mobile with console/network and regression checks, Figma compared. On all-pass: gh pr review --approve, QA PASS comment, desktop+mobile screenshots from the preview theme attached, card moved to Ready for Release. No theme push or deploy. Final response gives the verdict and Trello card URL.",
       "files": []
     },
     {
       "id": 2,
       "prompt": "Verify this Shopify ticket — <TRELLO_CARD_URL> — the dev says the mobile hero matches Figma now. Repo: ~/Sites/<PROJECT>.",
-      "expected_output": "Preview theme opened, hero compared to the Figma mobile frame, regression sweep on adjacent sections/Customizer settings. If a criterion fails: full repro bundle, gh pr review --request-changes, QA FAIL comment with repro, evidence attached, original developer reassigned, card moved back to Development in Progress. No Liquid edited, no theme pushed.",
+      "expected_output": "Preflight confirms the card is on the Shopify Projects board and attachments are downloaded and inspected. Preview theme opened, hero compared to the Figma mobile frame, regression sweep on adjacent sections/Customizer settings. If a criterion fails: full repro bundle, gh pr review --request-changes, QA FAIL comment with repro, evidence attached, original developer reassigned, card moved back to Development in Progress. No Liquid edited, no theme pushed.",
       "files": []
     },
     {
       "id": 3,
       "prompt": "Sign off on this card if it's good: <TRELLO_CARD_URL>. Shopify repo at ~/Sites/<PROJECT>.",
-      "expected_output": "If the posted preview theme URL is dead/expired/theme-limit-reaped, takes the blocked path: comments asking the developer to re-deploy and post a working preview theme URL, reassigns them, leaves the card in review, and does NOT create or push a theme. If the preview theme opens, QAs it normally and renders PASS/FAIL.",
+      "expected_output": "Preflight confirms the card is on the Shopify Projects board and attachments are downloaded and inspected. If the posted preview theme URL is dead/expired/theme-limit-reaped, takes the blocked path: comments asking the developer to re-deploy and post a working preview theme URL, reassigns them, leaves the card in review, and does NOT create or push a theme. If the preview theme opens, QAs it normally and renders PASS/FAIL.",
       "files": []
     }
   ]

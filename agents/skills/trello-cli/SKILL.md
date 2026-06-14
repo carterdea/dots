@@ -91,6 +91,22 @@ Use compact JSON (no `--pretty`) when piping output or extracting values program
 - **`cards list` requires exactly one** of `--board` or `--list`, never both
 - **Update commands need at least one** mutation field
 
+## Getting Images Out of Trello Cards
+
+When the user asks for screenshots, mockups, images, photos, design references, or other visual assets from a Trello card, treat those as card attachments.
+
+Use this workflow:
+
+1. Discover the card ID with `search cards`, `cards list`, or `cards get`
+2. `trello attachments list --card <card-id>` — inspect `mimeType`, `name`, `fileName`, and `isUpload`
+3. Pick image attachments by `mimeType` starting with `image/`, or by image file extensions in `fileName`, `name`, or `url`
+4. Download each image with `trello attachments download --card <card-id> --attachment <attachment-id> --output <local-file-or-existing-dir>`
+5. Read or inspect the saved file from the returned `data.path`
+
+Do not fetch Trello attachment URLs directly with `curl` or browser automation unless the CLI download command is unavailable. Trello-hosted uploaded files often need OAuth authorization; `attachments download` handles this and keeps stdout JSON-only.
+
+Use an existing directory as `--output` when preserving Trello filenames is acceptable. Use an explicit file path when the user needs a stable name. The command refuses to overwrite files unless `--force` is passed, so only use `--force` when replacing the file is intended.
+
 ## Intent Interpretation
 
 When the user describes a Trello task in natural language, translate it into a multi-step workflow — not a single command. Think about what IDs you need and how to get them.
@@ -100,8 +116,10 @@ Common patterns:
 - "Add a checklist to card X" → `checklists create`, add items, list to confirm
 - "Find boards about marketing" → `search boards --query marketing` or `boards list` and filter
 - "Set priority to High on card X" → discover custom field ID, then `custom-fields items set`
+- "Get the images from card X" → discover the card ID, `attachments list`, filter image attachments, then `attachments download` to a local directory
 
 Read `references/task-recipes.md` for complete workflow recipes covering all resource types.
+Read `references/attachment-download.md` when card attachments are source material that must be downloaded and inspected before implementation or QA.
 
 ## Command Reference
 
