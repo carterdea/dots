@@ -1,6 +1,6 @@
 ---
 name: no-ui-flash
-description: Use when an SPA or SSR app flashes the wrong UI before client-side data resolves - an app-shell skeleton shown to visitors who get bounced to login, a results skeleton before "no results found", a light-theme flash before dark mode, a generic placeholder that swaps to something jarringly different. Covers resolving state at the edge/server, optimistic hint cookies, redirect-back (returnTo) flows, and how to test the loading window.
+description: Use when an SPA or SSR page flashes the wrong UI before client-side state resolves, such as auth skeletons for signed-out visitors, empty-state mismatches, theme flashes, or skeletons for routes that redirect or 404.
 ---
 
 # Never flash the wrong UI

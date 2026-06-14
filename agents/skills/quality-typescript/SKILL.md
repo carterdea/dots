@@ -1,6 +1,6 @@
 ---
 name: quality-typescript
-description: Use when writing or reviewing TypeScript/full-stack code. Encodes principles for type safety (branded types, discriminated unions, end-to-end types), real tests over mocks, OpenTelemetry observability, and picking the right abstractions instead of premature ones.
+description: Use when a TypeScript codebase needs stronger domain types, discriminated unions, end-to-end type flow, derived types instead of duplicated interfaces, real integration tests over mocks, or OpenTelemetry instrumentation.
 ---
 
 # Writing quality full-stack TypeScript
@@ -76,7 +76,28 @@ Skip on hot perf-critical paths; use elsewhere by default.
 
 ## Standard Schema for shared validation
 
-For libraries or code that doesn't want to pick a validator, accept `StandardSchemaV1<unknown, T>`.
+For libraries or shared utilities that should not force callers onto one validator, accept `StandardSchemaV1<unknown, T>` instead of a concrete Zod/Valibot/ArkType schema type. Application code can keep using the project's chosen validator directly; library-like code should depend on the common interface.
+
+```ts
+import type { StandardSchemaV1 } from "@standard-schema/spec";
+
+type ParserOptions<T> = {
+  schema: StandardSchemaV1<unknown, T>;
+};
+
+async function parseBody<T>(request: Request, options: ParserOptions<T>): Promise<T> {
+  const input: unknown = await request.json();
+  const result = await options.schema["~standard"].validate(input);
+
+  if (result.issues) {
+    throw new Error("Invalid request body");
+  }
+
+  return result.value;
+}
+```
+
+Use this at package boundaries where the caller should choose the validator. Do not wrap every local schema in Standard Schema just for abstraction's sake.
 
 ## Tests as real as possible
 

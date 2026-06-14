@@ -119,6 +119,7 @@ Common patterns:
 - "Get the images from card X" → discover the card ID, `attachments list`, filter image attachments, then `attachments download` to a local directory
 
 Read `references/task-recipes.md` for complete workflow recipes covering all resource types.
+Read `references/attachment-download.md` when card attachments are source material that must be downloaded and inspected before implementation or QA.
 
 ## Command Reference
 

@@ -55,15 +55,7 @@ Use subagents for read-only parallel work: ticket intake (criteria, PR link, pre
 
 - Check `shopify.theme.toml` for store/environment context (read-only).
 - Fetch the card, description, comments, attachments, checklists, labels, and members from the confirmed **Shopify Projects** card.
-- List attachments with `trello attachments list --card <card-id>`.
-- Create a per-card download directory under `/tmp`, for example `/tmp/shopify-trello-qa-<card-short-id>/`.
-- Download each accessible attachment with `trello attachments download --card <card-id> --attachment <attachment-id> --output /tmp/shopify-trello-qa-<card-short-id>/`. Use `--force` only when re-running and intentionally replacing a prior download.
-- Inspect downloaded attachments before QA:
-  - Open images/screenshots visually.
-  - Extract or read text from PDFs, markdown, text, CSV, JSON, or HTML files with local tooling.
-  - For zips or archives, list contents first and extract only into the same `/tmp/shopify-trello-qa-<card-short-id>/` directory when the contents are relevant.
-  - For URL attachments that download as links or external files, open/read the linked resource when accessible.
-- Record attachment findings and use them alongside the description, comments, Figma links, and acceptance criteria. If an attachment cannot be downloaded or opened, record the reason and continue only if the remaining ticket context is sufficient.
+- Follow the attachment download workflow in the `trello-cli` skill, using `/tmp/shopify-trello-qa-<card-short-id>/` as the output directory. Inspect all accessible attachments before QA and record findings for the verdict.
 - Extract and record:
   - **The PR link**, the **preview theme URL**, the **Customizer URL**, and the **`preview_theme_id`** the developer posted.
   - **Acceptance criteria** — from the description and any Trello checklist. A criteria checklist becomes your QA checklist verbatim.

@@ -4,19 +4,19 @@
     {
       "id": 1,
       "prompt": "We need to update the mobile spacing on this Shopify FAQ subnav. The Trello ticket already has a PR and preview theme linked: https://trello.com/c/example/1234-faq-subnav-mobile-spacing. Switch to the PR branch, make the tweak, deploy the preview theme, verify mobile and desktop, then update the ticket.",
-      "expected_output": "Verifies Shopify Projects board ID 60ec9752cc991401c1c7c327, confirms the card belongs to it, lists and downloads card attachments into /tmp/shopify-trello-delivery-<card-short-id>/ for inspection, uses the existing PR branch and preview theme from the Trello card, validates the mobile and desktop preview, uploads screenshots to the PR and Trello, comments with PR/Preview/Customizer links, moves the card forward, and includes the Trello URL in the final response.",
+      "expected_output": "Preflight confirms the card is on the Shopify Projects board and project label matches; card attachments are downloaded and inspected. Uses the existing PR branch and preview theme from the Trello card, validates the mobile and desktop preview, uploads screenshots to the PR and Trello, comments with PR/Preview/Customizer links, moves the card forward, and includes the Trello URL in the final response.",
       "files": []
     },
     {
       "id": 2,
       "prompt": "Build the new Shopify theme feature from this Trello card: https://trello.com/c/example/5678-product-detail-badge. There is no PR yet and no dev theme. Please implement it, get me a preview, and send it for review.",
-      "expected_output": "Verifies Shopify Projects board ID 60ec9752cc991401c1c7c327, confirms the card belongs to it, lists and downloads card attachments into /tmp/shopify-trello-delivery-<card-short-id>/ for inspection, creates a non-main branch, implements the feature narrowly, invokes shopify-dev-theme to create an unpublished dev theme, verifies the correct preview URL on desktop and mobile, creates a PR with the Trello link in the description, uploads screenshots to GitHub and Trello, comments on Trello, and moves the card forward.",
+      "expected_output": "Preflight confirms the card is on the Shopify Projects board and project label matches; card attachments are downloaded and inspected. Creates a non-main branch, implements the feature narrowly, invokes shopify-dev-theme to create an unpublished dev theme, verifies the correct preview URL on desktop and mobile, creates a PR with the Trello link in the description, uploads screenshots to GitHub and Trello, comments on Trello, and moves the card forward.",
       "files": []
     },
     {
       "id": 3,
       "prompt": "This Shopify Trello ticket is ready to ship to review, but the store is at the theme limit when you try to make the dev theme: https://trello.com/c/example/9012-cart-drawer-copy. Handle it the way I like.",
-      "expected_output": "Verifies Shopify Projects board ID 60ec9752cc991401c1c7c327, confirms the card belongs to it, lists and downloads card attachments into /tmp/shopify-trello-delivery-<card-short-id>/ for inspection, lists themes, prefers updating a task-related existing dev theme when available, never suggests deleting the live theme, asks before deleting any theme, then continues the PR/preview/screenshot/Trello handoff once a safe theme path exists.",
+      "expected_output": "Preflight confirms the card is on the Shopify Projects board and project label matches; card attachments are downloaded and inspected. Lists themes, prefers updating a task-related existing dev theme when available, never suggests deleting the live theme, asks before deleting any theme, then continues the PR/preview/screenshot/Trello handoff once a safe theme path exists.",
       "files": []
     }
   ]

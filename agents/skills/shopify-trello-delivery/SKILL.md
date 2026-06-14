@@ -83,15 +83,7 @@ Research expectations:
      - Existing Customizer URL.
      - Figma links in the description and all comments, especially URLs with `node-id=`.
      - Acceptance criteria and the latest client/QA comments.
-   - List attachments with `trello attachments list --card <card-id>`.
-   - Create a per-card download directory under `/tmp`, for example `/tmp/shopify-trello-delivery-<card-short-id>/`.
-   - Download each accessible attachment with `trello attachments download --card <card-id> --attachment <attachment-id> --output /tmp/shopify-trello-delivery-<card-short-id>/`. Use `--force` only when re-running and you intentionally want to replace a prior download.
-   - Inspect downloaded attachments before implementation:
-     - Open images/screenshots visually.
-     - Extract or read text from PDFs, markdown, text, CSV, JSON, or HTML files with local tooling.
-     - For zips or archives, list contents first and extract only into the same `/tmp/shopify-trello-delivery-<card-short-id>/` directory when the contents are relevant.
-     - For URL attachments that download as links or external files, open/read the linked resource when accessible.
-   - Summarize the attachment findings in your working notes and use them alongside the description, comments, Figma links, and acceptance criteria. If an attachment cannot be downloaded or opened, record the reason and continue only if the remaining ticket context is sufficient.
+   - Follow the attachment download workflow in the `trello-cli` skill, using `/tmp/shopify-trello-delivery-<card-short-id>/` as the output directory. Inspect all accessible attachments before implementation and summarize findings in your working notes.
    - Choose the primary Figma reference in this order:
      - Card description Figma links.
      - Comment Figma links that explicitly say they replace or supersede the description design.
