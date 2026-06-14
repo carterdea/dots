@@ -59,9 +59,9 @@ If the product cannot answer these questions, treat it as a product or engineeri
 5. Remove any sentence that does not help the user understand, recover, or trust the product.
 6. Verify the final copy against the Core Test.
 
-## Screenshot-Derived Patterns
+## Before / After Patterns
 
-Use these patterns from the article's screenshots when reviewing UI copy:
+Use these patterns when reviewing UI copy:
 
 - Bad annotated modal: "Whoops! Something went wrong" plus a third-party blame statement, technical wording about fetching data, and "Try again later." Diagnose this as tone mismatch, blame shifting, jargon, and a too-generic next step.
 - Good annotated modal: "Unable to connect your account" plus "Your changes were saved", an honest cause on the product side, "Please try connecting again", and a Customer Care fallback. Use this as the target structure: outcome, reassurance, cause, next step, escape route.
