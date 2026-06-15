@@ -1,28 +1,41 @@
 ---
 name: ultragoal
-description: Design, critique, set, create, activate, or run durable Codex goals for persistent or long-running objectives. Use when the user says "set a goal", "start a goal", "activate goal mode", "persistent goal", "long-running objective", "goal tree", or asks for a goal with verifiers, durable state, approval gates, completion proof, bounded delegation, or parent/child subagent goals.
+description: Design, critique, set, create, activate, or run durable agent goals for persistent or long-running objectives. Use when the user says "set a goal", "start a goal", "activate goal mode", "persistent goal", "long-running objective", "goal tree", or asks for a goal with verifiers, durable state, approval gates, completion proof, bounded delegation, or parent/child subagent goals.
 ---
 
 # Ultragoal
 
-Use this skill when a user wants a persistent Codex goal, not just a longer task. A good goal has an observable finish line, a verifier that can fail, and enough context for Codex to recover after interruptions.
+Use this skill when a user wants a persistent agent goal, not just a longer task. A good goal has an observable finish line, a verifier that can fail, and enough context for the agent to recover after interruptions.
 
 Do not activate a goal from vague planning language. Activate only when the user explicitly asks to start, set, activate, create, or run a goal. Never set a token budget unless the user explicitly requests one.
 
 ## Modes
 
-- **Design:** research and return a goal packet. Do not call `create_goal`.
+- **Design:** research and return a goal packet. Do not activate a goal.
 - **Critique:** inspect an existing goal or draft and tighten it.
-- **Activate:** design and critique the goal, then call `create_goal` as the final activation step.
+- **Activate:** design and critique the goal, then activate it through the current agent's available goal mechanism.
 - **Goal tree:** only when the user explicitly authorizes goal-backed subagents. Give each child one bounded objective and verifier.
 
 ## Default Activation Rule
 
-When the user explicitly invokes this skill for a concrete work objective and asks Codex to build, complete, run, pursue, or "do it", treat the request as **Activate** by default.
+When the user explicitly invokes this skill for a concrete work objective and asks the agent to build, complete, run, pursue, or "do it", treat the request as **Activate** by default.
 
-Do not stop after writing durable goal files or reporting a goal packet. After grounding and, when useful, writing `GOAL.md` or equivalent durable state, call `create_goal` before continuing task work.
+Do not stop after writing durable goal files or reporting a goal packet. After grounding and, when useful, writing `GOAL.md` or equivalent durable state, activate through the current goal mechanism before continuing task work.
 
 Only stay in **Design** mode when the user asks to draft, design, critique, or discuss a goal without starting it.
+
+## Platform Capability Rule
+
+This skill is shared across agents. Before activation, inspect the tools and commands actually available in the current environment.
+
+Use the strongest available mechanism:
+
+1. If `create_goal`, `get_goal`, and `update_goal` tools are available, use them.
+2. If the environment has a native goal command such as Claude Code `/goal`, return the exact `/goal ...` command or goal file handoff the user should run, and state that no tool-backed goal was created in this session.
+3. If pi or another agent exposes goal tools with different names or gates, follow that agent's native flow instead of forcing Codex tool names.
+4. If no goal runtime is available, write or return a durable goal packet with the verifier, completion proof, and next action. Do not pretend activation happened.
+
+Never attempt to call a missing tool. Never claim an active goal exists unless the local runtime accepted it.
 
 ## Workflow
 
@@ -49,8 +62,8 @@ Recommend Goal mode only when most are true:
 
 - progress needs repeated attempts, waiting, recovery, or long feedback cycles;
 - success can be measured by a test, benchmark, workflow, artifact inspection, screenshot, readback, or other external signal;
-- Codex can respond to the next failure without another preference decision;
-- completion evidence is stronger than Codex saying "done."
+- the agent can respond to the next failure without another preference decision;
+- completion evidence is stronger than the agent saying "done."
 
 Prefer an ordinary task or plan when the work is one-shot, taste-dependent, blocked on repeated human choices, lacks a credible verifier, or risks unbounded external action.
 
@@ -66,7 +79,7 @@ Specify:
 - **Anti-cheating rules:** do not weaken tests, narrow scope, hide failures, swap in mocks, or change benchmarks without approval.
 - **Approval gates:** irreversible, public, shared, or costly actions need separate user approval.
 - **Blocker standard:** external blocker plus smallest next action; difficulty or uncertainty is not enough.
-- **Completion proof:** exact commands, outputs, paths, screenshots, or readbacks required before `update_goal(status="complete")`.
+- **Completion proof:** exact commands, outputs, paths, screenshots, or readbacks required before the agent can mark the goal complete.
 
 For flaky or stateful checks, require clean-state reproduction and enough consecutive passes to rule out luck.
 
@@ -100,9 +113,9 @@ Before activation, red-team the draft:
 - Does the loop say what to do after a failed attempt or wait?
 - Is completion observable outside the running agent?
 
-If activation was requested, or the Default Activation Rule applies, call `create_goal` only after the goal packet is grounded and red-teamed. This call is the final action of activation; do not call it early, and do not merely say a goal should be set.
+If activation was requested, or the Default Activation Rule applies, activate only after the goal packet is grounded and red-teamed. The activation call, native command handoff, or durable fallback is the final action of activation; do not do it early, and do not merely say a goal should be set.
 
-If task work should continue after activation, create the goal first and then resume under Active Goal Discipline.
+If task work should continue after activation, activate the goal first and then resume under Active Goal Discipline.
 
 Use a compact objective:
 
@@ -110,7 +123,13 @@ Use a compact objective:
 Complete and verify the objective defined in <absolute-path-to-GOAL.md>.
 ```
 
-For a self-contained goal, put the observable outcome and strongest verifier directly in the objective. After `create_goal`, report the exact active objective and continue from that created goal.
+For a self-contained goal, put the observable outcome and strongest verifier directly in the objective. When a runtime accepts the goal, report the exact active objective and continue from that created goal.
+
+If `create_goal` is not available, adapt the same objective to the available runtime:
+
+- Claude Code: provide the exact `/goal <objective>` command, or write a self-contained goal file and provide `/goal <absolute-path>` when that is the local convention.
+- pi: use the installed pi goal extension's documented creation or draft-confirmation flow. If direct `create_goal` is hidden or rejected, use the visible draft/proposal tool or return the goal packet for user confirmation.
+- OpenCode, Cursor, or unknown agents: return a durable goal packet and any local command you verified exists. If none exists, mark activation state as `drafted`.
 
 ## Goal Packet
 
@@ -120,10 +139,10 @@ Return:
 2. **Grounding:** current state, assumptions, evidence gaps.
 3. **Goal brief:** outcome, baseline, constraints, non-goals, verifier, loop, approval gates, blocker standard, completion proof.
 4. **Delegation map:** only when useful and authorized.
-5. **Exact objective:** concise text suitable for `create_goal`.
+5. **Exact objective:** concise text suitable for the available goal mechanism.
 6. **Activation state:** `drafted`, `active`, or `not recommended`.
 
-If activated, include the exact active objective. If not, say no goal was created.
+If activated, include the exact active objective and mechanism used. If not, say no goal was created and give the next command or handoff artifact when available.
 
 ## Active Goal Discipline
 
