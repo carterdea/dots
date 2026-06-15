@@ -19,7 +19,7 @@ The rule: **render the placeholder for the state you have verified, not the stat
 The server/edge that serves the SPA's HTML usually already holds what the client will spend a round trip discovering. Use it there:
 
 - **Auth**: most session schemes verify with **no upstream round trip** - sealed/signed cookies verify with local crypto, JWTs against a cached JWKS. Gate document requests: signed out -> `302 /login?returnTo=<path>` before any app HTML exists. The wrong shell can't flash if it's never served. Anyone who receives the SPA at a gated path is now *known* to be signed in - which makes the client's skeleton honest again.
-- **Data-shaped states**: if the edge can cheaply answer "empty vs. populated" (a count, a KV flag, a cookie recording last-known state), it can serve the right variant - empty-state HTML, the populated shell, a redirect to onboarding - instead of a one-skeleton-fits-all document.
+- **Data-shaped states**: if the edge can cheaply answer "empty vs. populated" from an authoritative source (a count, a KV flag, or another server-verified marker), it can serve the right variant - empty-state HTML, the populated shell, a redirect to onboarding - instead of a one-skeleton-fits-all document. Last-known client cookies are hints only; don't use them as edge-verified truth for data that can change elsewhere.
 - **Preferences** (theme, locale, density): read the preference cookie at the edge and serve the correct variant in the initial HTML. A class on `<html>` beats a client-side flip.
 
 Edge cases that bite (described for auth, but they generalize to any cookie-carried state):
@@ -52,7 +52,7 @@ The in-app state gate no longer handles fresh loads; it handles **mid-session ch
 
 If the edge redirects (login, onboarding), deep links must survive the detour. Resist adding a second cookie for it - if the flow is OAuth-shaped, the `state` parameter already round-trips through the provider verbatim and is already authenticated by the CSRF check (state pinned in a cookie, compared timing-safe at the callback). Ride along: `state = base64url(JSON { nonce, returnTo })`. One value, one cookie, and an attacker can't swap the destination without breaking the comparison.
 
-Wherever a returnTo enters (gate query, login page, callback's decoded state), validate it as a **same-origin relative path**: starts with `/`, not `//` (protocol-relative is an absolute URL in disguise), and not an API path. Anything else falls back to `/`. Decoding must be total - providers send callbacks with state you never minted; junk reads as "no returnTo", never a throw.
+Wherever a returnTo enters (gate query, login page, callback's decoded state), validate it as a **same-origin relative path**: starts with `/`, not `//` (protocol-relative is an absolute URL in disguise), and not an API path. Anything else falls back to `/`. Decode returnTo only after the stored OAuth state/nonce has been verified; a missing, malformed, or unminted state must fail or restart the flow, not silently continue to `/`. After verification, decoding should still be total - junk returnTo reads as "no returnTo", never a throw.
 
 ## Testing the loading window
 
