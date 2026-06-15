@@ -226,6 +226,7 @@ Create or update three separate workflow surfaces:
    - Runs static checks on every PR and pushes to the default branch.
    - Uses `shopify/theme-check-action@v2` for GitHub Actions Theme Check instead of running the local `check:theme` package script.
    - Pass `theme_root: .` and a pinned `version` matching the resolved `@shopify/cli` version so CI does not float to the newest Theme Check runtime.
+   - Set up a Node version compatible with the pinned Shopify CLI before running Theme Check. For example, Shopify CLI `4.1.0` requires Node `>=22.12.0`, so the template uses Node `24`.
    - Do not pass `token` or `base` in the default template. Without `token`, the action exits with the Theme Check status, so the main CI job fails on Liquid/theme errors and default-branch pushes scan the full theme.
    - Optional PR annotation mode may pass `token: ${{ github.token }}` and `base: __DEFAULT_BRANCH__`, but only on pull request events. Add `permissions: contents: read, checks: write`, and ensure branch protection requires the generated `Theme Check Report` check because token mode creates annotations in a separate check run.
    - When upgrading an existing workflow, preserve custom `shopify theme check` flags such as `--fail-level` or custom config paths by moving them to the action's `flags` input.
