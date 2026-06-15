@@ -225,13 +225,16 @@ Create or update three separate workflow surfaces:
 1. `ci.yml`
    - Runs static checks on every PR and pushes to the default branch.
    - Uses `shopify/theme-check-action@v2` for GitHub Actions Theme Check instead of running the local `check:theme` package script.
-   - Pass `theme_root: .`, `token: ${{ github.token }}`, and `base: __DEFAULT_BRANCH__` so the action can annotate changed files.
+   - Pass `theme_root: .` and a pinned `version` matching the resolved `@shopify/cli` version so CI does not float to the newest Theme Check runtime.
+   - Do not pass `token` or `base` in the default template. Without `token`, the action exits with the Theme Check status, so the main CI job fails on Liquid/theme errors and default-branch pushes scan the full theme.
+   - Optional PR annotation mode may pass `token: ${{ github.token }}` and `base: __DEFAULT_BRANCH__`, but only on pull request events. Add `permissions: contents: read, checks: write`, and ensure branch protection requires the generated `Theme Check Report` check because token mode creates annotations in a separate check run.
+   - When upgrading an existing workflow, preserve custom `shopify theme check` flags such as `--fail-level` or custom config paths by moving them to the action's `flags` input.
    - When upgrading existing workflows, remove duplicate GitHub Actions Theme Check steps. This includes `shopify theme check`, package-manager `check:theme` commands, and older `theme-check-action` variants.
    - Keep local package scripts and lefthook commands; only dedupe the GitHub Actions workflow surface.
    - Replace the `__DEFAULT_BRANCH__` placeholder with the detected default branch before writing the workflow.
    - Runs Playwright axe only when `SHOPIFY_PREVIEW_URL` is available.
    - Runs Vitest only when configured.
-   - Pin GitHub Actions to full commit SHAs after resolving the current latest tag or release. Resource templates include pinned refs as of June 13, 2026; refresh them when installing later.
+   - Pin GitHub Actions to full commit SHAs after resolving the current latest tag or release. Resource templates include pinned refs as of June 15, 2026; refresh them when installing later.
 
 2. `shopify-lighthouse-ci.yml`
    - Uses `shopify/lighthouse-ci-action@v1`.
