@@ -13,7 +13,7 @@ agents/
 │   ├── breaking-change-detector.md
 │   ├── python-type-fixer.md
 │   └── python-code-simplifier.md
-└── skills/                  # Skills (60 total)
+└── skills/                  # Skills
     ├── agent-browser/                    # Browser automation CLI for AI agents
     ├── audit-ai-code/                    # Audit AI-shaped backend code diffs for slop
     ├── audit-ai-frontend/                # Audit AI-looking frontend implementations
@@ -51,6 +51,7 @@ agents/
     ├── qa/                               # Browser QA against plan file
     ├── rams/                             # Accessibility / visual design review
     ├── react-doctor/                     # Catch React issues early
+    ├── react-native-skills/              # React Native and Expo performance patterns
     ├── self-improve/                     # Codex session-driven self-improvement
     ├── shopify-app-store-review/         # Shopify App Store review requirements
     ├── shopify-dev-theme/                # Dev theme from current branch
@@ -130,6 +131,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/code-simplifier` — Simplify recently modified code
 - `/baseline` — Install quality baseline (linter, formatter, hooks, dead-code scan)
 - `/react-doctor` — Catch React issues after changes
+- `/react-native-skills` — React Native and Expo performance patterns
 - `/vercel-react-best-practices` — React/Next.js performance patterns
 - `/audit-ai-code` — Triage AI-shaped backend code for duplicate helpers, broad excepts, hallucinated APIs
 - `/audit-ai-frontend` — Triage AI-looking UI: generic aesthetics, weak copy, a11y gaps

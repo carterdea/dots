@@ -57,7 +57,7 @@ function renderUser(u: UserSummary) {
 }
 
 // Do - derive from the source of truth
-type User = Awaited<ReturnType<typeof db.query.users.findFirst>>;
+type User = NonNullable<Awaited<ReturnType<typeof db.query.users.findFirst>>>;
 function renderUser(u: Pick<User, "id" | "email">) {
   /* ... */
 }
