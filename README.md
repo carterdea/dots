@@ -212,7 +212,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/execute-plan` - Work through a plan file task-by-task
 - `/qa` - Browser-based QA against a plan file
 - `/handoff` - Continuation prompt for the next session
-- `/de-slop` - Remove AI artifacts before PRs
+- `/de-slop` - Remove AI artifacts and clean AI-shaped code before PRs
 - `/make-tests` - Generate tests for current changes
 - `/iterate-forever` - Visual-reference-to-app loop with screenshot comparison
 - `/dogfood` - Exploratory test web app, structured bug report
@@ -222,7 +222,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/gh-ship` - Commit, push, PR in one step
 - `/gh-commit` - Conventional commit messages
 - `/gh-review-pr` - Thorough PR review
-- `/gh-address-pr-comments` - Resolve PR review comments
+- `/gh-address-pr-comments` - Watch PR comments and fix valid review feedback
 - `/gh-fix-ci` - Fix first failing CI check
 - `/clean-gone` - Remove local branches gone from remote
 - `/clean-worktrees` - Audit and clean agent worktrees safely
@@ -238,9 +238,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/baseline` - Install quality baseline (linter, hooks, dead-code scan)
 - `/react-doctor` - Catch React issues after changes
 - `/vercel-react-best-practices` - React/Next.js performance patterns
-- `/audit-ai-code` - Triage AI-shaped backend code (duplicate helpers, broad excepts, hallucinated APIs)
 - `/audit-ai-frontend` - Triage AI-looking UI (generic aesthetics, weak copy, a11y gaps)
-- `/audit-ai-writing` - AI-writing residue checks and citation triage
 - `/improve-codebase-architecture` - Find deepening opportunities toward deep modules
 
 **Planning and Thinking:**
@@ -268,7 +266,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/shopify-use-shopify-cli` - Shopify CLI operational workflows
 
 **Writing:**
-- `/humanize-ai-text` - Rewrite AI text to sound natural / pass detectors
+- `/humanize-ai-text` - Humanize AI-shaped writing, audit LLM residue, and triage citations
 - `/smart-brevity` - Smart Brevity rewriting
 
 **Browser Automation:**

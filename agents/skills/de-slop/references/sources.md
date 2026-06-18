@@ -1,6 +1,6 @@
 # Source basis
 
-This skill is a quality and safety audit checklist, not proof of AI authorship. Use these references to ground the smell taxonomy and reviewer language.
+This skill is a quality and safety cleanup checklist, not proof of AI authorship. Use these references to ground the smell taxonomy and reviewer language.
 
 - Wikipedia on code smells: `https://en.wikipedia.org/wiki/Code_smell`
 - Refactoring.Guru smell catalog and refactorings, especially Duplicate Code, Long Method, Long Parameter List, Comments, and Speculative Generality: `https://refactoring.guru/refactoring/smells`

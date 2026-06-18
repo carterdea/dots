@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Compare before/after transformation with side-by-side detection scores."""
+"""Compare before/after cleanup with side-by-side residue scores."""
 import argparse, sys
 from pathlib import Path
 from detect import detect
 from transform import transform
 
 def main():
-    parser = argparse.ArgumentParser(description="Compare AI detection before/after transformation")
+    parser = argparse.ArgumentParser(description="Compare AI-shaped writing residue before/after cleanup")
     parser.add_argument("input", nargs="?", help="Input file (or stdin)")
     parser.add_argument("-a", "--aggressive", action="store_true", help="Use aggressive mode")
     parser.add_argument("-o", "--output", help="Save transformed text to file")
@@ -31,7 +31,7 @@ def main():
     issue_sign = "+" if issue_diff > 0 else ""
     print(f"{'Issues':<25} {before.total_issues:<15} {after.total_issues:<15} {issue_sign}{issue_diff}")
     
-    print(f"{'AI Probability':<25} {icons.get(before.ai_probability,'')} {before.ai_probability:<12} {icons.get(after.ai_probability,'')} {after.ai_probability:<12}")
+    print(f"{'Residue risk':<25} {icons.get(before.residue_risk,'')} {before.residue_risk:<12} {icons.get(after.residue_risk,'')} {after.residue_risk:<12}")
     print(f"{'Word Count':<25} {before.word_count:<15} {after.word_count:<15} {after.word_count - before.word_count:+}")
     
     if changes:

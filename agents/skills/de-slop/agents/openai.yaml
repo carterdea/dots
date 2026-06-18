@@ -1,0 +1,4 @@
+interface:
+  display_name: "De-Slop"
+  short_description: "Clean AI-shaped code into local idiom."
+  default_prompt: "Use $de-slop to clean up my current diff: remove AI artifacts, duplicate helpers, fixture hacks, boolean-mode/config-bag soup, over-defensive branches, broad exception handlers, hallucinated APIs, and brittle tests."

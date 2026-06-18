@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Detect AI patterns in text based on Wikipedia's Signs of AI Writing."""
+"""Detect AI-shaped writing patterns based on Wikipedia's Signs of AI Writing."""
 import argparse, json, re, sys
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -27,7 +27,7 @@ class DetectionResult:
     curly_quotes: int = 0
     em_dashes: int = 0
     total_issues: int = 0
-    ai_probability: str = "low"
+    residue_risk: str = "low"
     word_count: int = 0
 
 def find_matches(text: str, patterns: list) -> list:
@@ -72,11 +72,11 @@ def detect(text: str) -> DetectionResult:
     
     density = r.total_issues / max(r.word_count, 1) * 100
     if r.citation_bugs or r.knowledge_cutoff or r.chatbot_artifacts:
-        r.ai_probability = "very high"
+        r.residue_risk = "very high"
     elif density > 5 or r.total_issues > 30:
-        r.ai_probability = "high"
+        r.residue_risk = "high"
     elif density > 2 or r.total_issues > 15:
-        r.ai_probability = "medium"
+        r.residue_risk = "medium"
     return r
 
 def print_section(title: str, items: list, replacements: dict = None):
@@ -95,8 +95,8 @@ def print_section(title: str, items: list, replacements: dict = None):
 def print_report(r: DetectionResult):
     icons = {"very high": "🔴", "high": "🟠", "medium": "🟡", "low": "🟢"}
     print(f"\n{'='*60}")
-    print(f"AI DETECTION SCAN - {r.total_issues} issues ({r.word_count} words)")
-    print(f"AI Probability: {icons.get(r.ai_probability, '')} {r.ai_probability.upper()}")
+    print(f"AI-SHAPED WRITING SCAN - {r.total_issues} issues ({r.word_count} words)")
+    print(f"Residue risk: {icons.get(r.residue_risk, '')} {r.residue_risk.upper()}")
     print(f"{'='*60}\n")
     
     if r.citation_bugs:
@@ -121,17 +121,17 @@ def print_report(r: DetectionResult):
     print_section("NOTABILITY EMPHASIS", r.notability_emphasis)
     
     if r.curly_quotes:
-        print(f"CURLY QUOTES: {r.curly_quotes} (ChatGPT signature)\n")
+        print(f"CURLY QUOTES: {r.curly_quotes} (style signal; weak evidence alone)\n")
     if r.em_dashes > 3:
         print(f"EM DASHES: {r.em_dashes} (excessive)\n")
     if r.total_issues == 0:
         print("✓ No AI patterns detected.\n")
 
 def main():
-    parser = argparse.ArgumentParser(description="Detect AI patterns in text")
+    parser = argparse.ArgumentParser(description="Detect AI-shaped writing patterns in text")
     parser.add_argument("input", nargs="?", help="Input file (or stdin)")
     parser.add_argument("--json", "-j", action="store_true", help="JSON output")
-    parser.add_argument("--score-only", "-s", action="store_true", help="Score and probability only")
+    parser.add_argument("--score-only", "-s", action="store_true", help="Score and residue risk only")
     args = parser.parse_args()
     
     text = Path(args.input).read_text() if args.input else sys.stdin.read()
@@ -140,13 +140,13 @@ def main():
     if args.json:
         print(json.dumps({
             "total_issues": result.total_issues, "word_count": result.word_count,
-            "ai_probability": result.ai_probability, "significance_inflation": result.significance_inflation,
+            "residue_risk": result.residue_risk, "significance_inflation": result.significance_inflation,
             "promotional_language": result.promotional_language, "ai_vocabulary": result.ai_vocabulary,
             "chatbot_artifacts": result.chatbot_artifacts, "citation_bugs": result.citation_bugs,
             "filler_phrases": result.filler_phrases, "curly_quotes": result.curly_quotes, "em_dashes": result.em_dashes,
         }, indent=2))
     elif args.score_only:
-        print(f"Issues: {result.total_issues} | Words: {result.word_count} | AI: {result.ai_probability}")
+        print(f"Issues: {result.total_issues} | Words: {result.word_count} | Residue risk: {result.residue_risk}")
     else:
         print_report(result)
 

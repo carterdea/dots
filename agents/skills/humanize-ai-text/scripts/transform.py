@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Transform AI text to bypass detection."""
+"""Clean up AI-shaped writing residue."""
 import argparse, json, re, sys
 from pathlib import Path
 
@@ -86,7 +86,7 @@ def transform(text: str, aggressive: bool = False) -> tuple[str, list]:
     return clean(text), all_changes
 
 def main():
-    parser = argparse.ArgumentParser(description="Transform AI text to human-like")
+    parser = argparse.ArgumentParser(description="Clean up AI-shaped writing residue")
     parser.add_argument("input", nargs="?", help="Input file (or stdin)")
     parser.add_argument("-o", "--output", help="Output file")
     parser.add_argument("-a", "--aggressive", action="store_true", help="Aggressive mode")
