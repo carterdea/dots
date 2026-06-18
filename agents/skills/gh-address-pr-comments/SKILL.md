@@ -25,7 +25,7 @@ Default to autonomous watch mode unless the user explicitly asks for a one-shot 
 3. Fetch thread-aware review data.
    - Run `scripts/fetch_comments.py --pr {PR_NUMBER}`. It fetches `reviewThreads`, `isResolved`, `isOutdated`, file paths, line anchors, reviews, top-level PR comments, and PR reactions.
    - If `approval.has_thumbs_up` is true, treat the PR as approved and exit the watch loop.
-   - Prefer a thumbs-up from an app/bot login that looks like Codex/OpenAI. If author identity is unavailable or ambiguous, any PR-level `+1` reaction is enough to stop because this is the Codex GitHub App approval signal in this workflow.
+   - `approval.has_thumbs_up` must mean a thumbs-up from an app/bot login that looks like Codex/OpenAI/ChatGPT. Treat unrelated teammate or bot thumbs-up reactions as informational only.
    - Use flat reads only for quick fallback or top-level summaries:
      `gh pr view {PR_NUMBER} --json title,body,state,author,headRefName,baseRefName,url,reviews`
      `gh api repos/{OWNER}/{REPO}/pulls/{PR_NUMBER}/comments --jq '.[] | {id, path, line, position, body, user: .user.login, user_type: .user.type}'`
@@ -70,7 +70,7 @@ Default to autonomous watch mode unless the user explicitly asks for a one-shot 
 
 - Poll every 5 minutes (`sleep 300`) after each fetch/fix/check cycle.
 - Continue until one of these happens:
-  - `scripts/fetch_comments.py` reports `approval.has_thumbs_up: true`.
+  - `scripts/fetch_comments.py` reports `approval.has_thumbs_up: true` for a Codex/OpenAI/ChatGPT-like approval reaction.
   - There are no unresolved actionable comments and the user asked for one-shot mode.
   - `gh` auth/rate limits block progress.
   - A comment is ambiguous or risky enough to need user judgment.

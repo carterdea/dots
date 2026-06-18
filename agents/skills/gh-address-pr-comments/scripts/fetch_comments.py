@@ -129,11 +129,6 @@ def ensure_gh_authenticated() -> None:
         raise SystemExit(1) from exc
 
 
-def resolve_repo() -> tuple[str, str]:
-    repo = run_json(["gh", "repo", "view", "--json", "owner,name"])
-    return repo["owner"]["login"], repo["name"]
-
-
 def parse_pr_url(url: str) -> tuple[str, str]:
     marker = "github.com/"
     if marker not in url:
@@ -221,10 +216,11 @@ def summarize_approval(reactions: list[dict[str, Any]]) -> dict[str, Any]:
         user = reaction.get("user") or {}
         login = (user.get("login") or "").lower()
         user_type = (user.get("type") or "").lower()
-        if "codex" in login or "openai" in login or user_type == "bot":
+        if "codex" in login or "openai" in login or "chatgpt" in login or user_type == "bot":
             codex_like.append(reaction)
     return {
-        "has_thumbs_up": bool(thumbs_up),
+        "has_thumbs_up": bool(codex_like),
+        "has_any_thumbs_up": bool(thumbs_up),
         "has_codex_like_thumbs_up": bool(codex_like),
         "thumbs_up_count": len(thumbs_up),
         "thumbs_up_authors": [
@@ -276,8 +272,9 @@ def main() -> None:
             raise SystemExit("--pr is required when --repo is provided")
         owner, repo, number = resolve_pr(owner, repo, args.pr)
     elif args.pr is not None:
-        owner, repo = resolve_repo()
-        owner, repo, number = resolve_pr(owner, repo, args.pr)
+        pr = run_json(["gh", "pr", "view", str(args.pr), "--json", "number,url"])
+        owner, repo = parse_pr_url(pr["url"])
+        number = int(pr["number"])
     else:
         owner, repo, number = resolve_current_pr()
 
