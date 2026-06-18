@@ -15,9 +15,7 @@ agents/
 │   └── python-code-simplifier.md
 └── skills/                  # Skills
     ├── agent-browser/                    # Browser automation CLI for AI agents
-    ├── audit-ai-code/                    # Audit AI-shaped backend code diffs for slop
     ├── audit-ai-frontend/                # Audit AI-looking frontend implementations
-    ├── audit-ai-writing/                 # Audit AI-writing artifacts and citation issues
     ├── baseline/                         # Install quality baseline (linter, hooks, dead-code)
     ├── claude-review/                    # Second opinion via Claude Code CLI
     ├── clean-coder/                      # Invoked when user swears or is upset
@@ -25,21 +23,21 @@ agents/
     ├── clean-worktrees/                  # Audit/clean agent worktrees safely
     ├── code-simplifier/                  # Simplify recently modified code
     ├── codex-review/                     # Second opinion via OpenAI Codex CLI
-    ├── de-slop/                          # Remove AI artifacts before PR
+    ├── de-slop/                          # Clean AI-shaped code before PR
     ├── design-doc/                       # Create technical design documents
     ├── dogfood/                          # Exploratory test web app, structured bug report
     ├── domain-model/                     # Grilling session that maintains CONTEXT.md + ADRs
     ├── emil-design-engineering/          # Design engineering principles
     ├── execute-plan/                     # Work through plan file task-by-task
     ├── garry-tan-code-review/            # Interactive opinionated code review
-    ├── gh-address-pr-comments/           # Resolve PR review comments
+    ├── gh-address-pr-comments/           # Watch PR comments and fix valid feedback
     ├── gh-commit/                        # Conventional commit messages
     ├── gh-fix-ci/                        # Fix first failing CI check
     ├── gh-review-pr/                     # Review GitHub PR
     ├── gh-ship/                          # Commit, push, PR in one step
     ├── grill-me/                         # Stress-test plan via relentless interview
     ├── handoff/                          # Generate continuation prompt
-    ├── humanize-ai-text/                 # Rewrite AI text to pass detectors
+    ├── humanize-ai-text/                 # Humanize AI-shaped writing and citation cleanup
     ├── improve-codebase-architecture/    # Find deepening opportunities
     ├── iterate-forever/                  # Visual-reference-to-app loop
     ├── make-tests/                       # Add tests for current change
@@ -104,7 +102,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/execute-plan` — Work through a plan file task-by-task (`--commit-per-task`, `--commit-end-only`)
 - `/qa` — Browser-based QA against `- [ ] QA:` items in a plan file
 - `/handoff` — Continuation prompt for the next session
-- `/de-slop` — Remove AI artifacts before PR
+- `/de-slop` — Remove AI artifacts and clean AI-shaped code before PR
 - `/make-tests` — Generate tests for current changes
 - `/iterate-forever` — Visual-reference-to-app loop with screenshot comparison
 - `/dogfood` — Systematic bug hunt with structured repro evidence
@@ -115,7 +113,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/gh-ship` — Commit, push, open PR in one step
 - `/gh-commit` — Imperative conventional commit message
 - `/gh-review-pr` — Thorough PR review (correctness, tests, risk)
-- `/gh-address-pr-comments` — Resolve open review comments
+- `/gh-address-pr-comments` — Watch PR comments and fix valid review feedback
 - `/gh-fix-ci` — Debug and fix first failing CI check
 - `/clean-gone` — Remove local branches gone from remote
 - `/clean-worktrees` — Audit and clean agent worktrees safely
@@ -133,9 +131,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/react-doctor` — Catch React issues after changes
 - `/react-native-skills` — React Native and Expo performance patterns
 - `/vercel-react-best-practices` — React/Next.js performance patterns
-- `/audit-ai-code` — Triage AI-shaped backend code for duplicate helpers, broad excepts, hallucinated APIs
 - `/audit-ai-frontend` — Triage AI-looking UI: generic aesthetics, weak copy, a11y gaps
-- `/audit-ai-writing` — Residue checks for AI-writing artifacts and citation failures
 - `/improve-codebase-architecture` — Find deepening opportunities toward deep modules
 
 ### Planning and Thinking
@@ -167,7 +163,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 
 ### Writing
 
-- `/humanize-ai-text` — Rewrite AI text to sound natural / pass detectors
+- `/humanize-ai-text` — Humanize AI-shaped writing, audit LLM residue, and triage citations
 - `/smart-brevity` — Smart Brevity rewriting
 
 ### Browser Automation

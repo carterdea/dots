@@ -1,4 +1,0 @@
-interface:
-  display_name: "Audit AI Writing"
-  short_description: "Fluff and LLM-tell writing audit"
-  default_prompt: "Use $audit-ai-writing to audit this text for generic AI fluff, LLM writing tells, weak audience model, and practical cleanup fixes."

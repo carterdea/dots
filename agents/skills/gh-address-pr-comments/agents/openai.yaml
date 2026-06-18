@@ -1,0 +1,4 @@
+interface:
+  display_name: "Address PR Comments"
+  short_description: "Watch PR comments and fix valid feedback."
+  default_prompt: "Use $gh-address-pr-comments to watch my current PR every 5 minutes, filter outdated or bot-noise comments, automatically fix every valid actionable issue, and stop when Codex leaves a thumbs-up approval reaction."

@@ -1,6 +1,6 @@
 ---
 name: humanize-ai-text
-description: Humanize AI-generated text to bypass detection. This humanizer rewrites ChatGPT, Claude, and GPT content to sound natural and pass AI detectors like GPTZero, Turnitin, and Originality.ai. Based on Wikipedia's comprehensive "Signs of AI Writing" guide. Makes robotic AI writing undetectable and human-like.
+description: Humanize AI-shaped writing by auditing and rewriting pasted chatbot output, AI-cleanup diffs, wiki drafts, Markdown/MDX/docs, and source-backed articles for generic AI fluff, weak audience model, LLM writing tells, vague attribution, leaked tokens, placeholders, broken markup, fabricated or mismatched citations, and detector false positives. Use for requests like "humanize this", "make this sound less AI", "AI writing audit", "check for AI slop", "does this sound like ChatGPT", "cleanup LLM tells", "verify these citations", "detector flagged this", or text containing turn0search0, oaicite, oai_citation, contentReference, utm_source=chatgpt.com, malformed references, or wrong target-format markup.
 allowed-tools:
   - Read
   - Write
@@ -11,171 +11,64 @@ allowed-tools:
 
 # Humanize AI Text
 
-Comprehensive CLI for detecting and transforming AI-generated text to bypass detectors. Based on [Wikipedia's Signs of AI Writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing).
-
-## Quick Start
-
-```bash
-# Detect AI patterns
-python scripts/detect.py text.txt
-
-# Transform to human-like
-python scripts/transform.py text.txt -o clean.txt
-
-# Compare before/after
-python scripts/compare.py text.txt -o clean.txt
-```
-
----
-
-## Detection Categories
-
-The analyzer checks for **16 pattern categories** from Wikipedia's guide:
-
-### Critical (Immediate AI Detection)
-| Category | Examples |
-|----------|----------|
-| Citation Bugs | `oaicite`, `turn0search`, `contentReference` |
-| Knowledge Cutoff | "as of my last training", "based on available information" |
-| Chatbot Artifacts | "I hope this helps", "Great question!", "As an AI" |
-
-### High Signal
-| Category | Examples |
-|----------|----------|
-| AI Vocabulary | delve, tapestry, landscape, pivotal, underscore, foster |
-| Significance Inflation | "serves as a testament", "pivotal moment", "indelible mark" |
-| Promotional Language | vibrant, groundbreaking, nestled, breathtaking |
-| Copula Avoidance | "serves as" instead of "is", "boasts" instead of "has" |
-
-### Medium Signal
-| Category | Examples |
-|----------|----------|
-| Superficial -ing | "highlighting the importance", "fostering collaboration" |
-| Filler Phrases | "in order to", "due to the fact that", "Additionally," |
-| Vague Attributions | "experts believe", "industry reports suggest" |
-| Challenges Formula | "Despite these challenges", "Future outlook" |
-
-### Style Signal
-| Category | Examples |
-|----------|----------|
-| Curly Quotes | "" instead of "" (ChatGPT signature) |
-| Em Dash Overuse | Excessive use of — for emphasis |
-| Negative Parallelisms | "Not only... but also", "It's not just... it's" |
-| Rule of Three | Forced triplets like "innovation, inspiration, and insight" |
-
----
-
-## Scripts
-
-### detect.py — Scan for AI Patterns
-
-```bash
-python scripts/detect.py essay.txt
-python scripts/detect.py essay.txt -j  # JSON output
-python scripts/detect.py essay.txt -s  # score only
-echo "text" | python scripts/detect.py
-```
-
-**Output:**
-- Issue count and word count
-- AI probability (low/medium/high/very high)
-- Breakdown by category
-- Auto-fixable patterns marked
-
-### transform.py — Rewrite Text
-
-```bash
-python scripts/transform.py essay.txt
-python scripts/transform.py essay.txt -o output.txt
-python scripts/transform.py essay.txt -a  # aggressive
-python scripts/transform.py essay.txt -q  # quiet
-```
-
-**Auto-fixes:**
-- Citation bugs (oaicite, turn0search)
-- Chatbot sentences
-- Copula avoidance → "is/has"
-- Filler phrases → simpler forms
-- Curly → straight quotes
-
-**Aggressive (-a):**
-- Simplifies -ing clauses
-- Reduces em dashes
-
-### compare.py — Before/After Analysis
-
-```bash
-python scripts/compare.py essay.txt
-python scripts/compare.py essay.txt -a -o clean.txt
-```
-
-Shows side-by-side detection scores before and after transformation
-
----
+Use this skill to give AI-shaped prose human eyes: diagnose what feels generic, unsupported, reader-blind, or mechanically generated, then make the smallest useful rewrite. The goal is better writing and source integrity, not detector theater or claims about who wrote the text.
 
 ## Workflow
 
-1. **Scan** for detection risk:
-   ```bash
-   python scripts/detect.py document.txt
-   ```
+Open `patterns.md`, then review prose quality before citation mechanics unless the user specifically asks for citation verification:
 
-2. **Transform** with comparison:
-   ```bash
-   python scripts/compare.py document.txt -o document_v2.txt
-   ```
+1. Audience-model failures: prose that ignores what the reader knows, needs, doubts, or will do next; generic empathy; no real prioritization.
+2. Fluff and LLM tells: inflated significance, vague stakes, template transitions, rhetorical balance, abstract filler, repeated cadence.
+3. Claim quality: vague attribution, unsupported superlatives, stale timing, softened quantifiers, causal overreach.
+4. Mechanical residue: leaked tool tokens, placeholders, broken markup, invalid references, wrong target-format syntax.
+5. Citation support when relevant: real source, correct metadata, quote/page/number/date/name support, source-chaining mistakes.
+6. Rewrite plan: smallest concrete fix, reader-specific framing, concrete verbs/nouns, target-format markup, and any verification still needed.
 
-3. **Verify** improvement:
-   ```bash
-   python scripts/detect.py document_v2.txt -s
-   ```
+## Output
 
-4. **Manual review** for AI vocabulary and promotional language (requires judgment)
+Lead with findings when the user asks for an audit, review, detector-risk check, citation check, or diagnosis. For each finding, include:
 
----
+- `Issue`
+- `Evidence` (exact snippet or line location)
+- `Class` (`P0`, `P1`, `P2`)
+- `Why it matters`
+- `Possible non-AI explanation`
+- `Smallest fix`
+- `Confidence` (`High`, `Medium`, `Low`, or `Needs source access`)
+- `File/line` when available
 
-## AI Probability Scoring
+Use classes this way:
 
-| Rating | Criteria |
-|--------|----------|
-| Very High | Citation bugs, knowledge cutoff, or chatbot artifacts present |
-| High | >30 issues OR >5% issue density |
-| Medium | >15 issues OR >2% issue density |
-| Low | <15 issues AND <2% density |
+- `P0`: fabricated or wrong source, materially unsupported claim, quote/number/name error, broken markup that changes meaning or publication viability.
+- `P1`: recurring audience-model failure, generic claim scaffold, citation metadata drift, vague attribution, unsupported quantitative/date/causal claim.
+- `P2`: isolated fluff, local style cleanup, minor formatting polish.
 
----
+Return the top 5-8 findings. Merge repeated symptoms under one root cause.
 
-## Customizing Patterns
+If the user asks to humanize, rewrite, polish, or clean up text, provide a compact replacement after any necessary findings. Preserve the user's meaning, voice, target format, and factual uncertainty. Do not add fake examples, unsupported claims, citations, numbers, case studies, or personal detail.
 
-Edit `scripts/patterns.json` to add/modify:
-- `ai_vocabulary` — words to flag
-- `significance_inflation` — puffery phrases
-- `promotional_language` — marketing speak
-- `copula_avoidance` — phrase → replacement
-- `filler_replacements` — phrase → simpler form
-- `chatbot_artifacts` — phrases triggering sentence removal
+## Optional Scripts
 
----
-
-## Batch Processing
+The scripts are helpers for a first-pass scan, not judges. Use them when the user provides a local file or asks for broad cleanup:
 
 ```bash
-# Scan all files
-for f in *.txt; do
-  echo "=== $f ==="
-  python scripts/detect.py "$f" -s
-done
-
-# Transform all markdown
-for f in *.md; do
-  python scripts/transform.py "$f" -a -o "${f%.md}_clean.md" -q
-done
+uv run agents/skills/humanize-ai-text/scripts/detect.py text.txt
+uv run agents/skills/humanize-ai-text/scripts/compare.py text.txt -o clean.txt
+uv run agents/skills/humanize-ai-text/scripts/transform.py text.txt -o clean.txt
 ```
 
----
+They can flag leaked citation tokens, boilerplate, filler, copula avoidance, punctuation drift, and repeated AI-shaped phrases. Manual review still decides what matters.
 
-## Reference
+## Guardrails
 
-Based on Wikipedia's [Signs of AI Writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing), maintained by WikiProject AI Cleanup. Patterns documented from thousands of AI-generated text examples.
+- Do not promise to bypass AI detectors or make text "undetectable".
+- Do not infer AI authorship from detector scores, a single style cue, perfect grammar, formal tone, multilingual English, or translation artifacts.
+- Treat suspicious markers as text-quality defects first. Name provenance risk only when objective residue or source failures justify it.
+- Verify citation existence before judging claim support. If sources are unavailable, label the check as unverified and recommend the narrowest follow-up.
+- Treat "lack of theory of mind" as an editorial diagnosis: the writing fails to model the reader, situation, objections, or next action. Do not use it as a claim about the writer.
+- Do not moralize, shame the writer, or perform detector-score theater.
+- Only patch files when the user asks for edits.
 
-Key insight: "LLMs use statistical algorithms to guess what should come next. The result tends toward the most statistically likely result that applies to the widest variety of cases."
+## Resource
+
+- `patterns.md`: compact artifact taxonomy, verification checks, and rewrite guidance.
