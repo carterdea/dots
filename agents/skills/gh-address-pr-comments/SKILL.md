@@ -23,7 +23,7 @@ Default to autonomous watch mode unless the user explicitly asks for a one-shot 
    - Run `gh pr checkout {PR_NUMBER}` unless already on that PR branch.
 
 3. Fetch thread-aware review data.
-   - Run `scripts/fetch_comments.py --pr {PR_NUMBER}`. It fetches `reviewThreads`, `isResolved`, `isOutdated`, file paths, line anchors, reviews, top-level PR comments, and PR reactions.
+   - Resolve `SKILL_DIR` to this skill's installed directory, then run `uv run "$SKILL_DIR/scripts/fetch_comments.py" --pr {PR_NUMBER}`. The helper fetches `reviewThreads`, `isResolved`, `isOutdated`, file paths, line anchors, reviews, top-level PR comments, and PR reactions.
    - If `approval.has_thumbs_up` is true, treat the PR as approved and exit the watch loop.
    - `approval.has_thumbs_up` must mean a thumbs-up from an app/bot login that looks like Codex/OpenAI/ChatGPT. Treat unrelated teammate or bot thumbs-up reactions as informational only.
    - Use flat reads only for quick fallback or top-level summaries:

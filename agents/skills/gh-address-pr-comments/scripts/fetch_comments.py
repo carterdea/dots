@@ -79,6 +79,7 @@ query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
           originalStartLine
           resolvedBy { __typename login }
           comments(first: 100) {
+            pageInfo { hasNextPage endCursor }
             nodes {
               id
               body
@@ -87,6 +88,25 @@ query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
               author { __typename login }
             }
           }
+        }
+      }
+    }
+  }
+}
+"""
+
+THREAD_COMMENTS_QUERY = """\
+query($threadId: ID!, $cursor: String) {
+  node(id: $threadId) {
+    ... on PullRequestReviewThread {
+      comments(first: 100, after: $cursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          id
+          body
+          createdAt
+          updatedAt
+          author { __typename login }
         }
       }
     }
@@ -110,14 +130,20 @@ def run_json(cmd: list[str], stdin: str | None = None) -> dict[str, Any]:
         raise RuntimeError(f"Failed to parse JSON: {exc}\nRaw:\n{out}") from exc
 
 
-def run_json_list(cmd: list[str], stdin: str | None = None) -> list[dict[str, Any]]:
+def run_json_value(cmd: list[str], stdin: str | None = None) -> Any:
     out = run(cmd, stdin=stdin)
     try:
-        data = json.loads(out)
+        return json.loads(out)
     except json.JSONDecodeError as exc:
         raise RuntimeError(f"Failed to parse JSON: {exc}\nRaw:\n{out}") from exc
+
+
+def run_json_list(cmd: list[str], stdin: str | None = None) -> list[dict[str, Any]]:
+    data = run_json_value(cmd, stdin=stdin)
     if not isinstance(data, list):
         raise RuntimeError(f"Expected JSON list from command: {' '.join(cmd)}")
+    if all(isinstance(page, list) for page in data):
+        return [item for page in data for item in page]
     return data
 
 
@@ -182,6 +208,13 @@ def gh_graphql(
     return run_json(cmd, stdin=query)
 
 
+def gh_thread_comments(thread_id: str, cursor: str | None = None) -> dict[str, Any]:
+    cmd = ["gh", "api", "graphql", "-F", "query=@-", "-F", f"threadId={thread_id}"]
+    if cursor:
+        cmd += ["-F", f"cursor={cursor}"]
+    return run_json(cmd, stdin=THREAD_COMMENTS_QUERY)
+
+
 def fetch_connection(owner: str, repo: str, number: int, query: str, key: str) -> list[dict[str, Any]]:
     nodes: list[dict[str, Any]] = []
     cursor: str | None = None
@@ -197,6 +230,25 @@ def fetch_connection(owner: str, repo: str, number: int, query: str, key: str) -
         cursor = page_info["endCursor"]
 
 
+def fetch_all_thread_comments(thread: dict[str, Any]) -> None:
+    comments = thread.get("comments") or {}
+    page_info = comments.get("pageInfo") or {}
+    if not page_info.get("hasNextPage"):
+        return
+
+    nodes = list(comments.get("nodes") or [])
+    cursor = page_info.get("endCursor")
+    while cursor:
+        payload = gh_thread_comments(thread["id"], cursor)
+        if payload.get("errors"):
+            raise RuntimeError(json.dumps(payload["errors"], indent=2))
+        connection = payload["data"]["node"]["comments"]
+        nodes.extend(connection.get("nodes") or [])
+        page_info = connection["pageInfo"]
+        cursor = page_info["endCursor"] if page_info["hasNextPage"] else None
+    thread["comments"] = {"nodes": nodes}
+
+
 def fetch_pr_reactions(owner: str, repo: str, number: int) -> list[dict[str, Any]]:
     return run_json_list(
         [
@@ -204,6 +256,8 @@ def fetch_pr_reactions(owner: str, repo: str, number: int) -> list[dict[str, Any
             "api",
             "-H",
             "Accept: application/vnd.github+json",
+            "--paginate",
+            "--slurp",
             f"repos/{owner}/{repo}/issues/{number}/reactions?per_page=100",
         ]
     )
@@ -247,6 +301,8 @@ def fetch_all(owner: str, repo: str, number: int) -> dict[str, Any]:
     conversation_comments = fetch_connection(owner, repo, number, COMMENTS_QUERY, "comments")
     reviews = fetch_connection(owner, repo, number, REVIEWS_QUERY, "reviews")
     review_threads = fetch_connection(owner, repo, number, THREADS_QUERY, "reviewThreads")
+    for thread in review_threads:
+        fetch_all_thread_comments(thread)
     reactions = fetch_pr_reactions(owner, repo, number)
 
     return {
