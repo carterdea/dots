@@ -9,42 +9,62 @@ import subprocess
 import sys
 from typing import Any
 
-QUERY = """\
-query(
-  $owner: String!,
-  $repo: String!,
-  $number: Int!,
-  $commentsCursor: String,
-  $reviewsCursor: String,
-  $threadsCursor: String
-) {
+META_QUERY = """\
+query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       number
       url
       title
       state
-      comments(first: 100, after: $commentsCursor) {
+    }
+  }
+}
+"""
+
+COMMENTS_QUERY = """\
+query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      comments(first: 100, after: $cursor) {
         pageInfo { hasNextPage endCursor }
         nodes {
           id
           body
           createdAt
           updatedAt
-          author { login }
+          author { __typename login }
         }
       }
-      reviews(first: 100, after: $reviewsCursor) {
+    }
+  }
+}
+"""
+
+REVIEWS_QUERY = """\
+query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      reviews(first: 100, after: $cursor) {
         pageInfo { hasNextPage endCursor }
         nodes {
           id
           state
           body
           submittedAt
-          author { login }
+          author { __typename login }
         }
       }
-      reviewThreads(first: 100, after: $threadsCursor) {
+    }
+  }
+}
+"""
+
+THREADS_QUERY = """\
+query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100, after: $cursor) {
         pageInfo { hasNextPage endCursor }
         nodes {
           id
@@ -57,14 +77,14 @@ query(
           startDiffSide
           originalLine
           originalStartLine
-          resolvedBy { login }
+          resolvedBy { __typename login }
           comments(first: 100) {
             nodes {
               id
               body
               createdAt
               updatedAt
-              author { login }
+              author { __typename login }
             }
           }
         }
@@ -114,9 +134,25 @@ def resolve_repo() -> tuple[str, str]:
     return repo["owner"]["login"], repo["name"]
 
 
+def parse_pr_url(url: str) -> tuple[str, str]:
+    marker = "github.com/"
+    if marker not in url:
+        raise RuntimeError(f"Cannot parse PR URL: {url}")
+    path = url.split(marker, 1)[1]
+    owner, repo, *_ = path.split("/")
+    return owner, repo
+
+
 def resolve_current_pr() -> tuple[str, str, int]:
-    pr = run_json(["gh", "pr", "view", "--json", "number,headRepositoryOwner,headRepository"])
-    return pr["headRepositoryOwner"]["login"], pr["headRepository"]["name"], int(pr["number"])
+    pr = run_json(["gh", "pr", "view", "--json", "number,url"])
+    owner, repo = parse_pr_url(pr["url"])
+    return owner, repo, int(pr["number"])
+
+
+def resolve_pr(owner: str, repo: str, number: int) -> tuple[str, str, int]:
+    pr = run_json(["gh", "pr", "view", str(number), "--repo", f"{owner}/{repo}", "--json", "number,url"])
+    base_owner, base_repo = parse_pr_url(pr["url"])
+    return base_owner, base_repo, int(pr["number"])
 
 
 def parse_repo(value: str) -> tuple[str, str]:
@@ -127,12 +163,11 @@ def parse_repo(value: str) -> tuple[str, str]:
 
 
 def gh_graphql(
+    query: str,
     owner: str,
     repo: str,
     number: int,
-    comments_cursor: str | None = None,
-    reviews_cursor: str | None = None,
-    threads_cursor: str | None = None,
+    cursor: str | None = None,
 ) -> dict[str, Any]:
     cmd = [
         "gh",
@@ -147,13 +182,24 @@ def gh_graphql(
         "-F",
         f"number={number}",
     ]
-    if comments_cursor:
-        cmd += ["-F", f"commentsCursor={comments_cursor}"]
-    if reviews_cursor:
-        cmd += ["-F", f"reviewsCursor={reviews_cursor}"]
-    if threads_cursor:
-        cmd += ["-F", f"threadsCursor={threads_cursor}"]
-    return run_json(cmd, stdin=QUERY)
+    if cursor:
+        cmd += ["-F", f"cursor={cursor}"]
+    return run_json(cmd, stdin=query)
+
+
+def fetch_connection(owner: str, repo: str, number: int, query: str, key: str) -> list[dict[str, Any]]:
+    nodes: list[dict[str, Any]] = []
+    cursor: str | None = None
+    while True:
+        payload = gh_graphql(query, owner, repo, number, cursor)
+        if payload.get("errors"):
+            raise RuntimeError(json.dumps(payload["errors"], indent=2))
+        connection = payload["data"]["repository"]["pullRequest"][key]
+        nodes.extend(connection.get("nodes") or [])
+        page_info = connection["pageInfo"]
+        if not page_info["hasNextPage"]:
+            return nodes
+        cursor = page_info["endCursor"]
 
 
 def fetch_pr_reactions(owner: str, repo: str, number: int) -> list[dict[str, Any]]:
@@ -190,43 +236,21 @@ def summarize_approval(reactions: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def fetch_all(owner: str, repo: str, number: int) -> dict[str, Any]:
-    conversation_comments: list[dict[str, Any]] = []
-    reviews: list[dict[str, Any]] = []
-    review_threads: list[dict[str, Any]] = []
-    comments_cursor: str | None = None
-    reviews_cursor: str | None = None
-    threads_cursor: str | None = None
-    pr_meta: dict[str, Any] | None = None
-
-    while True:
-        payload = gh_graphql(owner, repo, number, comments_cursor, reviews_cursor, threads_cursor)
-        if payload.get("errors"):
-            raise RuntimeError(json.dumps(payload["errors"], indent=2))
-
-        pr = payload["data"]["repository"]["pullRequest"]
-        if pr_meta is None:
-            pr_meta = {
-                "number": pr["number"],
-                "url": pr["url"],
-                "title": pr["title"],
-                "state": pr["state"],
-                "owner": owner,
-                "repo": repo,
-            }
-
-        comments = pr["comments"]
-        review_page = pr["reviews"]
-        threads = pr["reviewThreads"]
-        conversation_comments.extend(comments.get("nodes") or [])
-        reviews.extend(review_page.get("nodes") or [])
-        review_threads.extend(threads.get("nodes") or [])
-
-        comments_cursor = comments["pageInfo"]["endCursor"] if comments["pageInfo"]["hasNextPage"] else None
-        reviews_cursor = review_page["pageInfo"]["endCursor"] if review_page["pageInfo"]["hasNextPage"] else None
-        threads_cursor = threads["pageInfo"]["endCursor"] if threads["pageInfo"]["hasNextPage"] else None
-        if not (comments_cursor or reviews_cursor or threads_cursor):
-            break
-
+    payload = gh_graphql(META_QUERY, owner, repo, number)
+    if payload.get("errors"):
+        raise RuntimeError(json.dumps(payload["errors"], indent=2))
+    pr = payload["data"]["repository"]["pullRequest"]
+    pr_meta = {
+        "number": pr["number"],
+        "url": pr["url"],
+        "title": pr["title"],
+        "state": pr["state"],
+        "owner": owner,
+        "repo": repo,
+    }
+    conversation_comments = fetch_connection(owner, repo, number, COMMENTS_QUERY, "comments")
+    reviews = fetch_connection(owner, repo, number, REVIEWS_QUERY, "reviews")
+    review_threads = fetch_connection(owner, repo, number, THREADS_QUERY, "reviewThreads")
     reactions = fetch_pr_reactions(owner, repo, number)
 
     return {
@@ -250,10 +274,10 @@ def main() -> None:
         owner, repo = parse_repo(args.repo)
         if args.pr is None:
             raise SystemExit("--pr is required when --repo is provided")
-        number = args.pr
+        owner, repo, number = resolve_pr(owner, repo, args.pr)
     elif args.pr is not None:
         owner, repo = resolve_repo()
-        number = args.pr
+        owner, repo, number = resolve_pr(owner, repo, args.pr)
     else:
         owner, repo, number = resolve_current_pr()
 
