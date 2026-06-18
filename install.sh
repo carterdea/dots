@@ -114,6 +114,25 @@ create_symlink() {
     info "Linked: $target -> $source"
 }
 
+remove_deprecated_skill_symlinks() {
+    local skills_dir=$1
+    local deprecated_skills=("audit-ai-code" "audit-ai-writing")
+
+    for skill_name in "${deprecated_skills[@]}"; do
+        local target="$skills_dir/$skill_name"
+        if [[ -L "$target" ]]; then
+            if [[ "$DRY_RUN" == true ]]; then
+                info "[DRY RUN] Would remove deprecated skill symlink: $target"
+            else
+                rm "$target"
+                info "Removed deprecated skill symlink: $target"
+            fi
+        elif [[ -e "$target" ]]; then
+            warn "Deprecated skill path is not a symlink; leaving unchanged: $target"
+        fi
+    done
+}
+
 install_skill_dependencies() {
     if [[ ! -d "$DOTFILES_DIR/agents/skills" ]]; then
         return
@@ -215,6 +234,7 @@ install_claude() {
 
     # Install skills (skip skills meant for other agents)
     local CLAUDE_SKIP_SKILLS=("claude-review" "codex-review" "self-improve")
+    remove_deprecated_skill_symlinks "$HOME/.claude/skills"
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
@@ -244,6 +264,7 @@ install_codex() {
 
     # Install skills (skip skills meant for other agents)
     local CODEX_SKIP_SKILLS=()
+    remove_deprecated_skill_symlinks "$HOME/.agents/skills"
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
@@ -343,6 +364,7 @@ install_opencode() {
 
     # Install skills (skip skills meant for other agents)
     local OPENCODE_SKIP_SKILLS=("self-improve")
+    remove_deprecated_skill_symlinks "$HOME/.config/opencode/skills"
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
@@ -359,6 +381,7 @@ install_cursor() {
 
     # Install skills (skip skills meant for other agents)
     local CURSOR_SKIP_SKILLS=("self-improve")
+    remove_deprecated_skill_symlinks "$HOME/.cursor/skills"
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
@@ -378,6 +401,7 @@ install_pi() {
 
     # Install skills (skip skills meant for other agents)
     local PI_SKIP_SKILLS=()
+    remove_deprecated_skill_symlinks "$HOME/.pi/agent/skills"
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name
@@ -472,6 +496,7 @@ install_cursor_project() {
 
     # Install skills (skip skills meant for other agents)
     local CURSOR_PROJECT_SKIP_SKILLS=("self-improve")
+    remove_deprecated_skill_symlinks ".cursor/skills"
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
             local skill_name

@@ -7,6 +7,8 @@ allowed-tools:
   - StrReplace
   - Bash
   - Glob
+  - WebFetch
+  - WebSearch
 ---
 
 # Humanize AI Text
@@ -52,9 +54,9 @@ If the user asks to humanize, rewrite, polish, or clean up text, provide a compa
 The scripts are helpers for a first-pass scan, not judges. Use them when the user provides a local file or asks for broad cleanup:
 
 ```bash
-uv run agents/skills/humanize-ai-text/scripts/detect.py text.txt
-uv run agents/skills/humanize-ai-text/scripts/compare.py text.txt -o clean.txt
-uv run agents/skills/humanize-ai-text/scripts/transform.py text.txt -o clean.txt
+uv run scripts/detect.py text.txt
+uv run scripts/compare.py text.txt -o clean.txt
+uv run scripts/transform.py text.txt -o clean.txt
 ```
 
 They can flag leaked citation tokens, boilerplate, filler, copula avoidance, punctuation drift, and repeated AI-shaped phrases. Manual review still decides what matters.
