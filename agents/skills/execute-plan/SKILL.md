@@ -124,27 +124,15 @@ When all tasks are checked off (or all tasks in a phase are checked off):
 
 #### Next Step Block
 
-Gather git context:
-
-git branch --show-current
-git worktree list
-
 If unchecked `- [ ] QA:` items exist in the plan, output:
 
 /qa <plan-file-path>
-
-branch: <current-branch>
-worktree: <worktree-path>  # omit if not in a worktree
 
 If all QA items are already checked (or all were `QA: N/A`), output:
 
 /pre-pr
 
-branch: <current-branch>
-worktree: <worktree-path>  # omit if not in a worktree
-
-- `worktree` line -- only include if the current directory is a git worktree (not the main working tree)
-- Keep it copy-pastable with no extra commentary inside the block
+Keep it copy-pastable with no extra commentary inside the block.
 
 ## Rules
 

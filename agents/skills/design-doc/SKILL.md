@@ -176,20 +176,11 @@ After generating (and optionally saving):
 
 ### 6. Next Step Block
 
-Once the design doc is finalized and saved, output a **Next Step** block so the user can quickly kick off execution. Gather git context first:
-
-git branch --show-current
-git worktree list
-
-Then output:
+Once the design doc is finalized and saved, output a **Next Step** block so the user can quickly kick off execution:
 
 /execute-plan <plan-file-path>
 
-branch: <current-branch>
-worktree: <worktree-path>  # omit if not in a worktree
-
 - `<plan-file-path>` -- the path where the doc was saved (e.g., `docs/cart_upsell_PLAN.md`)
-- `worktree` line -- only include if the current directory is a git worktree (not the main working tree)
 - Keep it copy-pastable with no extra commentary inside the block
 
 ## Rules
