@@ -1,117 +1,103 @@
 ---
 name: pre-pr
-description: Run complete validation before creating a PR - security, tests, breaking changes, and generate PR description
+description: Run project-appropriate validation before opening a PR, then draft the PR summary.
 user-invocable: true
 ---
 
-# Pre-PR Validation Pipeline
+# Pre-PR
 
-Complete validation pipeline to run before creating a pull request.
+Run the checks this project already defines, inspect the change for release risk, and prepare a clear pull request description. This skill is stack-agnostic: do not assume Python, TypeScript, Ruby, or any particular directory layout.
 
-## Pipeline Overview
+## Principles
 
-PHASE 1: SECURITY & COMPLIANCE (Blocking)
-  1. Security Scanner      -> Secrets, OWASP
-  2. Compliance Checker    -> Project rules
-  3. Architecture Validator-> Layer boundaries
+- Prefer the repo's own quality gates over invented commands.
+- If `lefthook` is configured, treat it as the primary local gate; baseline-managed repos put the right stack checks there.
+- Detect stacks and workspaces from manifests before choosing commands.
+- Keep checks proportional to the diff. Run targeted checks for small changes, broader checks for shared code, migrations, auth, payments, data access, or public APIs.
+- Do not run dev servers or build commands unless the project docs, scripts, or user explicitly require them for PR validation.
+- If a check fails, stop and report the failing command plus the smallest useful output. Fix only when the user asked for a fix, or when the fix is clearly part of the current task.
 
-PHASE 2: QUALITY (Blocking)
-  4. Test Coverage Gate    -> Tests exist
-  5. Breaking Change Check -> API compatibility
-  6. Performance Analyzer  -> N+1, blocking I/O
+## 1. Gather Context
 
-PHASE 3: POLISH (Non-blocking)
-  7. Type Modernization    -> Modern Python types
-  8. Code Simplification   -> Refactoring suggestions
+Run:
 
-PHASE 4: OUTPUT
-  9. Run Tests             -> pytest / vitest
-  10. Run Linters          -> ruff, basedpyright, biome
-  11. Generate PR Desc     -> Ready-to-paste description
-
-## Execution
-
-### Step 1: Gather Context
+```bash
 git branch --show-current
-git log main..HEAD --oneline
-git diff --name-only main...HEAD
+git status --short
+git diff --stat
+base_ref="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || echo main)"
+git diff --name-only "$base_ref"...HEAD
+```
 
-### Step 2: Determine Scope
-Based on changed files, run appropriate checks:
-- `.py` files -> Python pipeline
-- `.ts` files -> TypeScript backend checks
-- `.tsx` files -> Frontend checks
+Also read project guidance when present: `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`, and package-specific docs touched by the diff.
 
-### Phase 1: Security & Compliance (BLOCKING)
+## 2. Detect Existing Gates
 
-#### 1.1 Security Scan
-- Hardcoded secrets
-- SQL/Command injection
-- SSRF risks
+Look for validation already wired by the repo:
 
-STOP if CRITICAL or HIGH issues found.
+- Hooks: `lefthook.yml`, `.lefthook.yml`, `.husky/`, `pre-commit-config.yaml`.
+- Scripts: `package.json`, `pyproject.toml`, `Gemfile`, `justfile`, `Makefile`, `Taskfile.yml`, `bin/`, `scripts/`.
+- CI: `.github/workflows/`, `.gitlab-ci.yml`, Buildkite, CircleCI, or project-specific CI files.
+- Configured tools: linters, formatters, typecheckers, test runners, dead-code scanners, security scanners, migration checks.
 
-#### 1.2 Compliance Check
-- Python: python-compliance-checker
-- TypeScript: Check for `any`, `let`, proper imports
+If `lefthook` exists, prefer:
 
-#### 1.3 Architecture Validation
-- Layer boundaries respected
-- No circular imports
-- Proper dependency injection
+```bash
+lefthook run pre-commit
+lefthook run pre-push
+```
 
-### Phase 2: Quality (BLOCKING)
+Use the repo's package-manager wrapper when needed, such as `bunx`, `pnpm exec`, `uv run`, or `bundle exec`.
 
-#### 2.1 Test Coverage
-- Check modified files have tests
-- Verify coverage meets minimum
+## 3. Choose Checks By Change Type
 
-#### 2.2 Breaking Changes
-- API changes
-- Schema changes
-- Configuration changes
+Use the repo's own commands for these categories when available:
 
-WARN if breaking changes detected.
+- Formatting and linting for changed languages.
+- Typechecking or static analysis for typed code.
+- Unit tests for touched behavior.
+- Integration, browser, or end-to-end tests for user flows and cross-service changes.
+- Migration/schema validation for database, API, GraphQL, protocol, or config changes.
+- Security checks for auth, authorization, secrets, payments, file upload, shell execution, SSRF, SQL, or dependency changes.
+- Accessibility and visual checks for UI changes.
+- Documentation or generated artifact checks when docs, schemas, SDKs, or snapshots changed.
 
-#### 2.3 Performance Analysis
-- N+1 queries
-- Blocking I/O
-- Inefficient patterns
+Do not invent missing infrastructure. If a repo has no obvious check for a category, note the gap instead of manufacturing a one-off command.
 
-### Phase 3: Polish (NON-BLOCKING)
+## 4. Review Release Risk
 
-#### 3.1 Type Modernization
-- Suggest modern type syntax
-- Offer to fix automatically
+Inspect the diff for:
 
-#### 3.2 Code Simplification
-- Complexity reduction opportunities
-- Refactoring suggestions
+- Breaking API, schema, config, environment variable, or CLI changes.
+- Data migrations, backfills, irreversible writes, or changed defaults.
+- Permission, authentication, authorization, billing, or privacy behavior.
+- Background jobs, scheduled tasks, queues, retries, cache invalidation, and idempotency.
+- Error handling and rollback paths.
+- User-facing copy, empty states, loading states, and failure states.
+- Missing or stale tests around changed behavior.
 
-### Phase 4: Final Verification
+Call out risks in the PR body even when checks pass.
 
-#### 4.1 Run Tests
-# Python
-cd chat-services && uv run pytest -x -v
+## 5. Final Output
 
-# TypeScript Backend
-cd backend && bun run test
+Before opening the PR, provide:
 
-# Frontend
-cd frontend && bun run test
+- Checks run, with pass/fail status.
+- Checks intentionally skipped and why.
+- Remaining risks or unresolved questions.
+- A concise PR title and body.
 
-#### 4.2 Run Linters
-# Python
-cd chat-services && uv run ruff check . && uv run basedpyright
+PR body template:
 
-# TypeScript
-bun run lint && bun run typecheck
+```markdown
+## Summary
+- ...
 
-#### 4.3 Generate PR Description
+## Validation
+- ...
 
-## Options
+## Risks / Notes
+- ...
+```
 
-- `--quick` - Fast mode, critical checks only
-- `--no-tests` - Skip test execution
-- `--python-only` - Only check Python code
-- `--typescript-only` - Only check TypeScript code
+Omit empty sections. Keep it factual; do not invent metrics, case studies, or test coverage.
