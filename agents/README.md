@@ -19,8 +19,7 @@ agents/
     ├── baseline/                         # Install quality baseline (linter, hooks, dead-code)
     ├── claude-review/                    # Second opinion via Claude Code CLI
     ├── clean-coder/                      # Invoked when user swears or is upset
-    ├── clean-gone/                       # Delete local branches gone from remote
-    ├── clean-worktrees/                  # Audit/clean agent worktrees safely
+    ├── clean-worktrees/                  # Audit/clean agent worktrees and gone branches safely
     ├── code-simplifier/                  # Simplify recently modified code
     ├── codex-review/                     # Second opinion via OpenAI Codex CLI
     ├── de-slop/                          # Clean AI-shaped code before PR
@@ -29,12 +28,12 @@ agents/
     ├── domain-model/                     # Grilling session that maintains CONTEXT.md + ADRs
     ├── emil-design-engineering/          # Design engineering principles
     ├── execute-plan/                     # Work through plan file task-by-task
-    ├── garry-tan-code-review/            # Interactive opinionated code review
     ├── gh-address-pr-comments/           # Watch PR comments and fix valid feedback
     ├── gh-commit/                        # Conventional commit messages
     ├── gh-fix-ci/                        # Fix first failing CI check
     ├── gh-review-pr/                     # Review GitHub PR
     ├── gh-ship/                          # Commit, push, PR in one step
+    ├── grilling/                         # Relentless one-question-at-a-time planning interview
     ├── grill-me/                         # Stress-test plan via relentless interview
     ├── handoff/                          # Generate continuation prompt
     ├── humanize-ai-text/                 # Humanize AI-shaped writing and citation cleanup
@@ -42,9 +41,8 @@ agents/
     ├── iterate-forever/                  # Visual-reference-to-app loop
     ├── make-tests/                       # Add tests for current change
     ├── merge-conflicts/                  # Rebase, resolve conflicts, force-push
-    ├── new-skill/                        # Create skill from conversation
-    ├── pair-programming/                 # Senior engineer pairing mode
-    ├── pre-pr/                           # Full pre-PR validation pipeline
+    ├── loop-me/                          # Specify recurring workflows through grilling
+    ├── pre-pr/                           # Project-appropriate PR validation and summary
     ├── prove-it-bug-fix/                 # Failing test before fix
     ├── qa/                               # Browser QA against plan file
     ├── rams/                             # Accessibility / visual design review
@@ -115,15 +113,13 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/gh-review-pr` — Thorough PR review (correctness, tests, risk)
 - `/gh-address-pr-comments` — Watch PR comments and fix valid review feedback
 - `/gh-fix-ci` — Debug and fix first failing CI check
-- `/clean-gone` — Remove local branches gone from remote
-- `/clean-worktrees` — Audit and clean agent worktrees safely
+- `/clean-worktrees` — Audit and clean agent worktrees and gone branches safely
 - `/trello-delivery` — Ship a Trello ticket end to end as a reviewable PR (non-Shopify web apps). Requires the `trello-cli` binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 ### Code Quality and Review
 
-- `/pre-pr` — Full validation pipeline (security, types, tests, breaking changes)
+- `/pre-pr` — Project-appropriate validation, release-risk review, and PR summary
 - `/rams` — Accessibility and visual design review against WCAG
-- `/garry-tan-code-review` — Interactive opinionated review with sign-off
 - `/codex-review` — Second opinion via OpenAI Codex CLI
 - `/claude-review` — Second opinion via Claude Code CLI
 - `/code-simplifier` — Simplify recently modified code
@@ -137,10 +133,11 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 ### Planning and Thinking
 
 - `/grill-me` — Stress-test a plan via relentless interview until each branch resolves
+- `/grilling` — Relentless one-question-at-a-time planning interview
+- `/loop-me` — Specify recurring workflows through grilling
 - `/domain-model` — Grilling session that updates `CONTEXT.md` (glossary) and `docs/adr/` inline as decisions crystallize. Pairs with `/improve-codebase-architecture`
 - `/zoom-out` — Higher-level perspective on a section of code
 - `/subagent-orchestrator` — Coordinate sub-agents on complex long-horizon tasks
-- `/pair-programming` — Senior engineer pairing with pushback and scope discipline
 - `/prove-it-bug-fix` — Failing reproduction test before fixing
 
 ### Frontend and Design
@@ -176,7 +173,6 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 
 ### Meta
 
-- `/new-skill` — Create a new skill from current conversation
 - `/skill-creator` — Create, edit, evaluate, and benchmark skills
 - `/self-improve` — Codex session-driven self-improvement
 - `/clean-coder` — Invoked when user swears or is upset

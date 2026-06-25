@@ -1,11 +1,11 @@
 ---
 name: clean-worktrees
-description: Audit and clean agent-created Git worktrees (Codex, Claude Code, OpenCode, Pi, or plain `git worktree add`) and leftover worktree directories safely. Use when disk usage appears inflated by `~/.codex/worktrees`, per-repo `.claude/worktrees`, `.worktrees`, other agent worktree roots, Git worktree metadata, detached worktrees, stale branch worktrees, or when the user asks to map worktrees to pull requests before deletion.
+description: Audit and clean agent-created Git worktrees, leftover worktree directories, and local branches whose upstream is gone. Use when disk usage appears inflated by `~/.codex/worktrees`, per-repo `.claude/worktrees`, `.worktrees`, other agent worktree roots, Git worktree metadata, detached worktrees, stale branch worktrees, `[gone]` branches, or when the user asks to map worktrees to pull requests before deletion.
 ---
 
 # Clean Worktrees
 
-Use this skill when any agent's worktree root is large, when `git worktree list` has accumulated cruft, or when the user asks which worktrees are safe to remove. Works for every harness that creates worktrees.
+Use this skill when any agent's worktree root is large, when `git worktree list` has accumulated cruft, when local branches are marked `[gone]`, or when the user asks which worktrees are safe to remove. Works for every harness that creates worktrees.
 
 ## Known Worktree Roots
 
@@ -90,6 +90,34 @@ gh -C <repo> pr list --head <branch> --json number,title,url,state,headRefName,b
 ```
 
 Detached worktrees do not map cleanly to PRs by branch. Treat them as not PR-backed unless the worktree has a named branch or a remote branch can be inferred from local metadata.
+
+## Gone Branch Cleanup
+
+Use this only after the worktree audit is clear, because a branch marked `[gone]` can still have a local worktree with useful changes.
+
+1. Refresh upstream state:
+   ```bash
+   git -C ~/path/to/repo fetch --prune
+   git -C ~/path/to/repo branch -vv
+   git -C ~/path/to/repo worktree list
+   ```
+
+2. Identify gone branches:
+   ```bash
+   git -C ~/path/to/repo branch -vv | grep '\[gone\]'
+   ```
+
+3. For each gone branch:
+   - If it has a worktree, inspect that worktree first with `git status --porcelain` and the audit script.
+   - If it is dirty, save audit artifacts before removal.
+   - If it has an open PR or looks active, keep it unless the user explicitly says to delete it.
+   - Remove the worktree with `git worktree remove --force <path>` before deleting the branch.
+   - Delete the branch with `git branch -D <branch>`.
+
+4. Prune metadata after removals:
+   ```bash
+   git -C ~/path/to/repo worktree prune
+   ```
 
 ## Safety Rules
 
