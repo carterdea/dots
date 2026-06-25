@@ -1,6 +1,6 @@
 ---
 name: gh-address-pr-comments
-description: Resolve actionable GitHub pull request review feedback and watch for new comments. Use when the user wants to inspect or continuously poll unresolved review threads, requested changes, inline comments, or PR conversation comments, then automatically implement valid fixes while filtering bots, outdated comments, duplicates, and non-actionable noise. Stop watch loops when the PR has a thumbs-up approval reaction.
+description: Resolve actionable GitHub pull request review feedback and watch for new comments until an agent approval arrives. Use when the user wants to inspect or continuously poll unresolved review threads, requested changes, inline comments, or PR conversation comments, then automatically implement valid fixes while filtering bots, outdated comments, duplicates, and non-actionable noise.
 ---
 
 # Address PR Comments
@@ -23,9 +23,12 @@ Default to autonomous watch mode unless the user explicitly asks for a one-shot 
    - Run `gh pr checkout {PR_NUMBER}` unless already on that PR branch.
 
 3. Fetch thread-aware review data.
-   - Resolve `SKILL_DIR` to this skill's installed directory, then run `uv run "$SKILL_DIR/scripts/fetch_comments.py" --pr {PR_NUMBER}`. The helper fetches `reviewThreads`, `isResolved`, `isOutdated`, file paths, line anchors, reviews, top-level PR comments, and PR reactions.
-   - If `approval.has_thumbs_up` is true, treat the PR as approved and exit the watch loop.
-   - `approval.has_thumbs_up` must mean a thumbs-up from an app/bot login that looks like Codex/OpenAI/ChatGPT. Treat unrelated teammate or bot thumbs-up reactions as informational only.
+   - Resolve `SKILL_DIR` to this skill's installed directory, then run `uv run "$SKILL_DIR/scripts/fetch_comments.py" --pr {PR_NUMBER}`. The helper fetches `reviewThreads`, `isResolved`, `isOutdated`, file paths, line anchors, reviews, top-level PR comments, PR reactions, and agent approval signals.
+   - If `approval.has_agent_approval` is true, treat the PR as approved and exit the watch loop.
+   - `approval.has_agent_approval` means either:
+     - the latest GitHub review from a Codex/OpenAI/ChatGPT/Claude-like app or bot login has `state: APPROVED`, or
+     - a thumbs-up PR reaction from a Codex/OpenAI/ChatGPT/Claude-like app or bot login.
+   - Treat unrelated teammate or bot approvals/reactions as informational only unless the user explicitly says they count.
    - Use flat reads only for quick fallback or top-level summaries:
      `gh pr view {PR_NUMBER} --json title,body,state,author,headRefName,baseRefName,url,reviews`
      `gh api repos/{OWNER}/{REPO}/pulls/{PR_NUMBER}/comments --jq '.[] | {id, path, line, position, body, user: .user.login, user_type: .user.type}'`
@@ -69,18 +72,20 @@ Default to autonomous watch mode unless the user explicitly asks for a one-shot 
 ## Watch Loop
 
 - Poll every 5 minutes (`sleep 300`) after each fetch/fix/check cycle.
+- Watch mode is open-ended. Do not stop merely because the current fetch has no actionable comments; that usually means the review agent is still thinking or has not posted the next review yet.
 - Continue until one of these happens:
-  - `scripts/fetch_comments.py` reports `approval.has_thumbs_up: true` for a Codex/OpenAI/ChatGPT-like approval reaction.
+  - `scripts/fetch_comments.py` reports `approval.has_agent_approval: true` for a latest-agent-review approval or an agent thumbs-up reaction.
   - There are no unresolved actionable comments and the user asked for one-shot mode.
   - `gh` auth/rate limits block progress.
   - A comment is ambiguous or risky enough to need user judgment.
 - In each cycle:
   1. Fetch comments/reactions.
-  2. Exit if a PR-level thumbs-up approval reaction is present.
+  2. Exit if an agent approval signal is present.
   3. Filter resolved/outdated/noise comments.
   4. Apply all valid fixes automatically.
   5. Run the narrowest relevant checks.
-  6. Summarize what changed, then wait 5 minutes and fetch again.
+  6. If fixes were made, commit/push only when the surrounding workflow requested shipping changes; otherwise leave the working tree ready and report status.
+  7. Summarize what changed or that no actionable comments were present, then wait 5 minutes and fetch again.
 
 ## Write Safety
 

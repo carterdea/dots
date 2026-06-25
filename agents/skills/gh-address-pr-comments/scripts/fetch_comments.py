@@ -263,25 +263,71 @@ def fetch_pr_reactions(owner: str, repo: str, number: int) -> list[dict[str, Any
     )
 
 
-def summarize_approval(reactions: list[dict[str, Any]]) -> dict[str, Any]:
+def is_review_agent(author: dict[str, Any] | None) -> bool:
+    if not author:
+        return False
+    login = (author.get("login") or "").lower()
+    typename = (author.get("__typename") or "").lower()
+    return (
+        "codex" in login
+        or "openai" in login
+        or "chatgpt" in login
+        or "claude" in login
+        or "anthropic" in login
+        or (typename == "bot" and ("codex" in login or "claude" in login))
+    )
+
+
+def summarize_approval(reactions: list[dict[str, Any]], reviews: list[dict[str, Any]]) -> dict[str, Any]:
     thumbs_up = [reaction for reaction in reactions if reaction.get("content") == "+1"]
     codex_like = []
     for reaction in thumbs_up:
         user = reaction.get("user") or {}
         login = (user.get("login") or "").lower()
         user_type = (user.get("type") or "").lower()
-        if "codex" in login or "openai" in login or "chatgpt" in login or user_type == "bot":
+        if (
+            "codex" in login
+            or "openai" in login
+            or "chatgpt" in login
+            or "claude" in login
+            or "anthropic" in login
+            or (user_type == "bot" and ("codex" in login or "claude" in login))
+        ):
             codex_like.append(reaction)
+
+    agent_reviews = [review for review in reviews if is_review_agent(review.get("author"))]
+    agent_approvals = [review for review in agent_reviews if review.get("state") == "APPROVED"]
+    latest_agent_review = max(agent_reviews, key=lambda review: review.get("submittedAt") or "", default=None)
+    latest_agent_review_approves = bool(latest_agent_review and latest_agent_review.get("state") == "APPROVED")
     return {
+        "has_agent_approval": bool(latest_agent_review_approves or codex_like),
         "has_thumbs_up": bool(codex_like),
         "has_any_thumbs_up": bool(thumbs_up),
         "has_codex_like_thumbs_up": bool(codex_like),
+        "has_agent_review_approval": latest_agent_review_approves,
         "thumbs_up_count": len(thumbs_up),
         "thumbs_up_authors": [
             (reaction.get("user") or {}).get("login")
             for reaction in thumbs_up
             if (reaction.get("user") or {}).get("login")
         ],
+        "agent_approval_reviews": [
+            {
+                "id": review.get("id"),
+                "state": review.get("state"),
+                "submittedAt": review.get("submittedAt"),
+                "author": (review.get("author") or {}).get("login"),
+            }
+            for review in agent_approvals
+        ],
+        "latest_agent_review": {
+            "id": latest_agent_review.get("id"),
+            "state": latest_agent_review.get("state"),
+            "submittedAt": latest_agent_review.get("submittedAt"),
+            "author": (latest_agent_review.get("author") or {}).get("login"),
+        }
+        if latest_agent_review
+        else None,
     }
 
 
@@ -311,7 +357,7 @@ def fetch_all(owner: str, repo: str, number: int) -> dict[str, Any]:
         "reviews": reviews,
         "review_threads": review_threads,
         "pr_reactions": reactions,
-        "approval": summarize_approval(reactions),
+        "approval": summarize_approval(reactions, reviews),
     }
 
 
