@@ -224,14 +224,12 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/gh-review-pr` - Thorough PR review
 - `/gh-address-pr-comments` - Watch PR comments and fix valid review feedback
 - `/gh-fix-ci` - Fix first failing CI check
-- `/clean-gone` - Remove local branches gone from remote
-- `/clean-worktrees` - Audit and clean agent worktrees safely
+- `/clean-worktrees` - Audit and clean agent worktrees and gone branches safely
 - `/trello-delivery` - Ship a Trello ticket end to end as a reviewable PR (non-Shopify web apps). Requires the `trello-cli` binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 **Code Quality and Review:**
-- `/pre-pr` - Pre-PR validation pipeline (security, types, tests, breaking changes)
+- `/pre-pr` - Project-appropriate validation, release-risk review, and PR summary
 - `/rams` - Accessibility and visual design review
-- `/garry-tan-code-review` - Interactive opinionated code review with sign-off
 - `/codex-review` - Second opinion via OpenAI Codex CLI
 - `/claude-review` - Second opinion via Claude Code CLI
 - `/code-simplifier` - Simplify recently modified code
@@ -243,10 +241,11 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 
 **Planning and Thinking:**
 - `/grill-me` - Stress-test plan via relentless interview
+- `/grilling` - Relentless one-question-at-a-time planning interview
+- `/loop-me` - Specify recurring workflows through grilling
 - `/domain-model` - Grilling session that maintains CONTEXT.md (glossary) and docs/adr/ inline
 - `/zoom-out` - Higher-level perspective on a section of code
 - `/subagent-orchestrator` - Coordinate sub-agents on long-horizon tasks
-- `/pair-programming` - Senior engineer pairing with pushback and scope discipline
 - `/prove-it-bug-fix` - Failing reproduction test before fix
 
 **Frontend and Design:**
@@ -276,7 +275,6 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/trello-cli` - Drive Trello (boards, lists, cards, comments, checklists, labels) through the `trello-cli`. Requires the binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 **Meta:**
-- `/new-skill` - Create skill from current conversation
 - `/skill-creator` - Create, edit, evaluate, benchmark skills
 - `/self-improve` - Codex session-driven self-improvement
 - `/clean-coder` - Invoked when user swears or is upset

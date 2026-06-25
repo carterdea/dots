@@ -78,6 +78,8 @@ Inspect the diff for:
 
 Call out risks in the PR body even when checks pass.
 
+For concrete issues, use file and line references. When the fix is not obvious, present the realistic options, including "do nothing" when that is a valid tradeoff, then recommend one. Keep the issue count proportional to the diff; do not manufacture review theater.
+
 ## 5. Final Output
 
 Before opening the PR, provide:
