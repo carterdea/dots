@@ -281,6 +281,20 @@ def is_review_agent(author: dict[str, Any] | None) -> bool:
     )
 
 
+def review_has_actionable_body(review: dict[str, Any]) -> bool:
+    body = (review.get("body") or "").strip()
+    if not body:
+        return False
+
+    normalized = " ".join(body.lower().split())
+    is_codex_boilerplate = (
+        "codex review" in normalized
+        and "here are some automated review suggestions for this pull request" in normalized
+        and "codex can also answer questions or update the pr" in normalized
+    )
+    return not is_codex_boilerplate
+
+
 def latest_active_feedback_update(
     review_threads: list[dict[str, Any]],
     conversation_comments: list[dict[str, Any]],
@@ -300,7 +314,11 @@ def latest_active_feedback_update(
         if updated_at:
             timestamps.append(updated_at)
     for review in reviews:
-        if review.get("state") != "APPROVED" and review.get("submittedAt"):
+        if (
+            review.get("state") != "APPROVED"
+            and review_has_actionable_body(review)
+            and review.get("submittedAt")
+        ):
             timestamps.append(review["submittedAt"])
     return max(timestamps, default=None)
 
@@ -329,7 +347,12 @@ def summarize_approval(
         ):
             codex_like.append(reaction)
 
-    agent_reviews = [review for review in reviews if is_review_agent(review.get("author"))]
+    agent_reviews = [
+        review
+        for review in reviews
+        if is_review_agent(review.get("author"))
+        and (review.get("state") == "APPROVED" or review_has_actionable_body(review))
+    ]
     latest_active_feedback_at = latest_active_feedback_update(
         review_threads, conversation_comments, reviews
     )
