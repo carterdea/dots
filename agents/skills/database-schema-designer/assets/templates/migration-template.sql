@@ -1,60 +1,49 @@
 -- Migration: YYYYMMDDHHMMSS_descriptive_name.sql
 -- Description: [What this migration does]
+-- Dialect: PostgreSQL
 -- Author: [Your Name]
 -- Date: YYYY-MM-DD
+--
+-- Notes:
+-- - PostgreSQL supports transactional DDL for these statements.
+-- - For MySQL/MariaDB, remove the transaction wrapper and account for implicit
+--   commits around DDL.
+-- - Replace placeholder table/column names before use.
 
--- ============================================================================
--- UP MIGRATION
--- ============================================================================
-
+-- migrate:up
 BEGIN;
 
--- Step 1: Create table
 CREATE TABLE IF NOT EXISTS table_name (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  column_name VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  id BIGSERIAL PRIMARY KEY,
+  reference_id BIGINT,
+  column_name TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Step 2: Add indexes
-CREATE INDEX idx_table_column ON table_name(column_name);
+CREATE INDEX idx_table_column ON table_name (column_name);
+CREATE INDEX idx_table_reference_id ON table_name (reference_id);
 
--- Step 3: Add foreign keys
 ALTER TABLE table_name
   ADD CONSTRAINT fk_table_reference
   FOREIGN KEY (reference_id) REFERENCES other_table(id)
   ON DELETE CASCADE;
 
--- Step 4: Data migration (if needed)
+-- Data migration, if needed:
 -- UPDATE table_name SET new_column = old_column;
 
 COMMIT;
 
--- ============================================================================
--- DOWN MIGRATION
--- ============================================================================
+-- migrate:down
+BEGIN;
 
--- BEGIN;
--- ALTER TABLE table_name DROP FOREIGN KEY fk_table_reference;
--- DROP INDEX idx_table_column ON table_name;
--- DROP TABLE IF EXISTS table_name;
--- COMMIT;
+ALTER TABLE table_name DROP CONSTRAINT IF EXISTS fk_table_reference;
+DROP INDEX IF EXISTS idx_table_reference_id;
+DROP INDEX IF EXISTS idx_table_column;
+DROP TABLE IF EXISTS table_name;
 
--- ============================================================================
--- VALIDATION
--- ============================================================================
+COMMIT;
 
--- Check table exists:
--- SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
--- WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'table_name';
-
--- Check indexes:
--- SHOW INDEX FROM table_name;
-
--- ============================================================================
--- NOTES
--- ============================================================================
--- Estimated time: [X seconds on Y rows]
--- Requires downtime: [Yes/No]
--- Rollback tested: [Yes/No]
+-- Validation examples:
+-- SELECT to_regclass('public.table_name');
+-- SELECT indexname FROM pg_indexes WHERE tablename = 'table_name';

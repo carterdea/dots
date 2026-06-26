@@ -412,10 +412,8 @@ PRIMARY KEY (student_id, course_id)
 
 ```sql
 FOREIGN KEY (customer_id) REFERENCES customers(id)
-  ON DELETE CASCADE     -- Delete children with parent
-  ON DELETE RESTRICT    -- Prevent deletion if referenced
-  ON DELETE SET NULL    -- Set to NULL when parent deleted
-  ON UPDATE CASCADE     -- Update children when parent changes
+  ON DELETE RESTRICT    -- Choose exactly one: CASCADE, RESTRICT, or SET NULL
+  ON UPDATE CASCADE
 ```
 
 | Strategy | Use When |
@@ -601,13 +599,16 @@ ALTER TABLE users MODIFY phone VARCHAR(20) NOT NULL;
 -- Step 1: Add new column
 ALTER TABLE users ADD COLUMN email_address VARCHAR(255);
 
--- Step 2: Copy data
-UPDATE users SET email_address = email;
+-- Step 2: Deploy code that dual-writes email and email_address,
+-- and reads COALESCE(email_address, email) for backward compatibility.
 
--- Step 3: Deploy code reading from new column
--- Step 4: Deploy code writing to new column
+-- Step 3: Backfill existing rows, then repeat for deltas created during deploy
+UPDATE users SET email_address = email WHERE email_address IS NULL;
+-- Repeat the same statement after dual-write has been live long enough to catch deltas.
 
--- Step 5: Drop old column
+-- Step 4: Switch reads to email_address after dual-write/backfill is verified
+
+-- Step 5: Drop old column in a later deploy
 ALTER TABLE users DROP COLUMN email;
 ```
 
@@ -624,7 +625,7 @@ COMMIT;
 
 -- DOWN
 BEGIN;
-DROP INDEX idx_users_phone ON users;
+DROP INDEX idx_users_phone;
 ALTER TABLE users DROP COLUMN phone;
 COMMIT;
 ```

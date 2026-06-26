@@ -40,7 +40,9 @@ Look for validation already wired by the repo:
 - CI: `.github/workflows/`, `.gitlab-ci.yml`, Buildkite, CircleCI, or project-specific CI files.
 - Configured tools: linters, formatters, typecheckers, test runners, dead-code scanners, security scanners, migration checks.
 
-If `lefthook` exists, prefer:
+If `lefthook` exists, inspect `lefthook.yml` before treating hooks as sufficient. `pre-commit` jobs often use staged-file placeholders such as `{staged_files}` and can become no-ops after the work is already committed or the index is clean.
+
+Use hook runs as a baseline, then run the repo's changed-file or full-repo scripts for the touched areas:
 
 ```bash
 lefthook run pre-commit
