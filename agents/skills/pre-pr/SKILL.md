@@ -24,8 +24,8 @@ Run:
 ```bash
 git branch --show-current
 git status --short
-git diff --stat
 base_ref="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || echo main)"
+git diff --stat "$base_ref"...HEAD
 git diff --name-only "$base_ref"...HEAD
 ```
 

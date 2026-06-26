@@ -36,7 +36,7 @@ Complete checklist for designing and reviewing database schemas.
 - [ ] **Appropriate Types**: Correct data types for each column
 - [ ] **String Sizes**: VARCHAR sized appropriately
 - [ ] **Numeric Precision**: DECIMAL for money, INT for counts
-- [ ] **Dates in UTC**: TIMESTAMP for datetime columns
+- [ ] **Dates in UTC**: Use `TIMESTAMPTZ` for PostgreSQL instants; use the dialect's UTC-safe datetime type elsewhere
 
 ### Constraints
 
