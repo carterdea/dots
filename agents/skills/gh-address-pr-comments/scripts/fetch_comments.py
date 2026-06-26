@@ -281,8 +281,24 @@ def is_review_agent(author: dict[str, Any] | None) -> bool:
     )
 
 
+def latest_active_thread_update(review_threads: list[dict[str, Any]]) -> str | None:
+    timestamps: list[str] = []
+    for thread in review_threads:
+        if thread.get("isResolved") or thread.get("isOutdated"):
+            continue
+        comments = ((thread.get("comments") or {}).get("nodes")) or []
+        for comment in comments:
+            updated_at = comment.get("updatedAt") or comment.get("createdAt")
+            if updated_at:
+                timestamps.append(updated_at)
+    return max(timestamps, default=None)
+
+
 def summarize_approval(
-    reactions: list[dict[str, Any]], reviews: list[dict[str, Any]], head_ref_oid: str | None
+    reactions: list[dict[str, Any]],
+    reviews: list[dict[str, Any]],
+    head_ref_oid: str | None,
+    review_threads: list[dict[str, Any]],
 ) -> dict[str, Any]:
     thumbs_up = [reaction for reaction in reactions if reaction.get("content") == "+1"]
     codex_like = []
@@ -302,11 +318,13 @@ def summarize_approval(
             codex_like.append(reaction)
 
     agent_reviews = [review for review in reviews if is_review_agent(review.get("author"))]
+    latest_active_feedback_at = latest_active_thread_update(review_threads)
     agent_approvals = [
         review
         for review in agent_reviews
         if review.get("state") == "APPROVED"
         and (not head_ref_oid or (review.get("commit") or {}).get("oid") == head_ref_oid)
+        and (not latest_active_feedback_at or (review.get("submittedAt") or "") >= latest_active_feedback_at)
     ]
     latest_agent_review = max(agent_reviews, key=lambda review: review.get("submittedAt") or "", default=None)
     latest_agent_review_commit = (latest_agent_review.get("commit") or {}).get("oid") if latest_agent_review else None
@@ -317,6 +335,7 @@ def summarize_approval(
         latest_agent_review
         and latest_agent_review.get("state") == "APPROVED"
         and latest_agent_review_matches_head
+        and (not latest_active_feedback_at or (latest_agent_review.get("submittedAt") or "") >= latest_active_feedback_at)
     )
     return {
         "has_agent_approval": latest_agent_review_approves,
@@ -324,6 +343,7 @@ def summarize_approval(
         "has_any_thumbs_up": bool(thumbs_up),
         "has_codex_like_thumbs_up": bool(codex_like),
         "has_agent_review_approval": latest_agent_review_approves,
+        "latest_active_feedback_at": latest_active_feedback_at,
         "thumbs_up_count": len(thumbs_up),
         "thumbs_up_authors": [
             (reaction.get("user") or {}).get("login")
@@ -380,7 +400,7 @@ def fetch_all(owner: str, repo: str, number: int) -> dict[str, Any]:
         "reviews": reviews,
         "review_threads": review_threads,
         "pr_reactions": reactions,
-        "approval": summarize_approval(reactions, reviews, pr_meta["headRefOid"]),
+        "approval": summarize_approval(reactions, reviews, pr_meta["headRefOid"], review_threads),
     }
 
 
