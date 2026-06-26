@@ -636,6 +636,9 @@ ALTER TABLE users DROP COLUMN email;
 -- UP
 BEGIN;
 ALTER TABLE users ADD COLUMN phone VARCHAR(20);
+-- Plain CREATE INDEX inside a transaction is safe for new/empty tables.
+-- For large existing PostgreSQL tables, create the index outside the
+-- transaction with CREATE INDEX CONCURRENTLY.
 CREATE INDEX idx_users_phone ON users(phone);
 COMMIT;
 

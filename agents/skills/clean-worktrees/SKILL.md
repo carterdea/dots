@@ -108,7 +108,7 @@ Use this only after the worktree audit is clear, because a branch marked `[gone]
    ```
 
 3. For each gone branch:
-   - If it has a worktree, inspect that worktree first with `git status --porcelain` and the audit script.
+   - If it has a worktree, inspect that worktree first with `git -C <worktree-path> status --porcelain` and the audit script scoped to that path.
    - If it is dirty, save audit artifacts before removal.
    - If it has an open PR or looks active, keep it unless the user explicitly says to delete it.
    - Before deleting the branch, try `git -C ~/path/to/repo branch -d <branch>` so Git refuses unmerged commits.

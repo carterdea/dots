@@ -319,7 +319,7 @@ def summarize_approval(
         and latest_agent_review_matches_head
     )
     return {
-        "has_agent_approval": bool(latest_agent_review_approves or codex_like),
+        "has_agent_approval": latest_agent_review_approves,
         "has_thumbs_up": bool(codex_like),
         "has_any_thumbs_up": bool(thumbs_up),
         "has_codex_like_thumbs_up": bool(codex_like),
