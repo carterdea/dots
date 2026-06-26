@@ -281,7 +281,11 @@ def is_review_agent(author: dict[str, Any] | None) -> bool:
     )
 
 
-def latest_active_thread_update(review_threads: list[dict[str, Any]]) -> str | None:
+def latest_active_feedback_update(
+    review_threads: list[dict[str, Any]],
+    conversation_comments: list[dict[str, Any]],
+    reviews: list[dict[str, Any]],
+) -> str | None:
     timestamps: list[str] = []
     for thread in review_threads:
         if thread.get("isResolved") or thread.get("isOutdated"):
@@ -291,6 +295,13 @@ def latest_active_thread_update(review_threads: list[dict[str, Any]]) -> str | N
             updated_at = comment.get("updatedAt") or comment.get("createdAt")
             if updated_at:
                 timestamps.append(updated_at)
+    for comment in conversation_comments:
+        updated_at = comment.get("updatedAt") or comment.get("createdAt")
+        if updated_at:
+            timestamps.append(updated_at)
+    for review in reviews:
+        if review.get("state") != "APPROVED" and review.get("submittedAt"):
+            timestamps.append(review["submittedAt"])
     return max(timestamps, default=None)
 
 
@@ -299,6 +310,7 @@ def summarize_approval(
     reviews: list[dict[str, Any]],
     head_ref_oid: str | None,
     review_threads: list[dict[str, Any]],
+    conversation_comments: list[dict[str, Any]],
 ) -> dict[str, Any]:
     thumbs_up = [reaction for reaction in reactions if reaction.get("content") == "+1"]
     codex_like = []
@@ -318,7 +330,9 @@ def summarize_approval(
             codex_like.append(reaction)
 
     agent_reviews = [review for review in reviews if is_review_agent(review.get("author"))]
-    latest_active_feedback_at = latest_active_thread_update(review_threads)
+    latest_active_feedback_at = latest_active_feedback_update(
+        review_threads, conversation_comments, reviews
+    )
     agent_approvals = [
         review
         for review in agent_reviews
@@ -400,7 +414,9 @@ def fetch_all(owner: str, repo: str, number: int) -> dict[str, Any]:
         "reviews": reviews,
         "review_threads": review_threads,
         "pr_reactions": reactions,
-        "approval": summarize_approval(reactions, reviews, pr_meta["headRefOid"], review_threads),
+        "approval": summarize_approval(
+            reactions, reviews, pr_meta["headRefOid"], review_threads, conversation_comments
+        ),
     }
 
 

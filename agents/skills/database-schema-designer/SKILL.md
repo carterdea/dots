@@ -327,7 +327,7 @@ price FLOAT  -- Rounding errors!
 DATE        -- 2025-10-31
 TIME        -- 14:30:00
 DATETIME    -- 2025-10-31 14:30:00
-TIMESTAMP   -- Auto timezone conversion
+TIMESTAMPTZ -- PostgreSQL: timezone-aware instant, display-adjusted per session
 
 -- Always store in UTC
 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -624,7 +624,9 @@ UPDATE users SET email_address = email WHERE email_address IS NULL;
 
 -- Step 4: Switch reads to email_address after dual-write/backfill is verified
 
--- Step 5: Drop old column in a later deploy
+-- Step 5: Deploy code/jobs that stop writing or referencing email
+
+-- Step 6: Drop old column in a later deploy after old writers are gone
 ALTER TABLE users DROP COLUMN email;
 ```
 
