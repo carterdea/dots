@@ -22,6 +22,7 @@ agents/
     ├── clean-worktrees/                  # Audit/clean agent worktrees and gone branches safely
     ├── code-simplifier/                  # Simplify recently modified code
     ├── codex-review/                     # Second opinion via OpenAI Codex CLI
+    ├── database-schema-designer/         # SQL/NoSQL schema design patterns
     ├── de-slop/                          # Clean AI-shaped code before PR
     ├── design-doc/                       # Create technical design documents
     ├── dogfood/                          # Exploratory test web app, structured bug report
@@ -123,6 +124,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/codex-review` — Second opinion via OpenAI Codex CLI
 - `/claude-review` — Second opinion via Claude Code CLI
 - `/code-simplifier` — Simplify recently modified code
+- `/database-schema-designer` — Design robust SQL and NoSQL schemas
 - `/baseline` — Install quality baseline (linter, formatter, hooks, dead-code scan)
 - `/react-doctor` — Catch React issues after changes
 - `/react-native-skills` — React Native and Expo performance patterns

@@ -233,6 +233,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/codex-review` - Second opinion via OpenAI Codex CLI
 - `/claude-review` - Second opinion via Claude Code CLI
 - `/code-simplifier` - Simplify recently modified code
+- `/database-schema-designer` - Design robust SQL and NoSQL schemas
 - `/baseline` - Install quality baseline (linter, hooks, dead-code scan)
 - `/react-doctor` - Catch React issues after changes
 - `/vercel-react-best-practices` - React/Next.js performance patterns
