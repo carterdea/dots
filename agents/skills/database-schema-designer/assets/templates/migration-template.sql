@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS table_name (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- These plain CREATE INDEX statements are safe for new/empty tables created in
+-- this migration. For large existing tables, create indexes outside the
+-- transaction with CREATE INDEX CONCURRENTLY.
 CREATE INDEX idx_table_column ON table_name (column_name);
 CREATE INDEX idx_table_reference_id ON table_name (reference_id);
 
