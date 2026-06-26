@@ -1,11 +1,15 @@
 ---
 name: quality-typescript
-description: Use when a TypeScript codebase needs stronger domain types, discriminated unions, end-to-end type flow, derived types instead of duplicated interfaces, real integration tests over mocks, or OpenTelemetry instrumentation.
+description: Use when a TypeScript codebase needs stronger domain types, branded types, discriminated unions with exhaustiveness checks, strict compiler flags, `satisfies`/`unknown`/`as const` over `enum`, end-to-end type flow, derived types instead of duplicated interfaces, real integration tests over mocks, or OpenTelemetry instrumentation.
 ---
 
 # Writing quality full-stack TypeScript
 
 Apply these principles when writing or reviewing TypeScript code.
+
+## Turn on the flags that make this bite
+
+None of the discipline below holds without a strict compiler. Enable `strict`, plus `noUncheckedIndexedAccess` (array/record access yields `T | undefined`) and `exactOptionalPropertyTypes` (a missing key and an explicit `undefined` stop being the same thing). Without `noUncheckedIndexedAccess` especially, "impossible states" leaks at every index access.
 
 ## Make impossible states unrepresentable
 
@@ -13,10 +17,13 @@ Use the type system to make invalid states fail at compile time. Fewer reachable
 
 ### Branded types
 
-Brand primitives so they can't be mixed up. Validate once at the boundary; downstream code trusts the type.
+Brand primitives so they can't be mixed up. Validate once at the boundary; downstream code trusts the type. Use a `unique symbol` brand so two brands can't structurally collide and the phantom key stays invisible to tooling:
 
 ```ts
-type PhoneNumber = string & { __brand: "PhoneNumber" };
+declare const brand: unique symbol;
+type Brand<T, B> = T & { readonly [brand]: B };
+
+type PhoneNumber = Brand<string, "PhoneNumber">;
 
 function parsePhone(input: string): PhoneNumber {
   if (!/^\+?\d{10,15}$/.test(input)) throw new Error(`Invalid: ${input}`);
@@ -28,7 +35,7 @@ function sendSMS(to: PhoneNumber, body: string) {
 }
 ```
 
-If the project already uses a library with native branded-type support (e.g. Effect), use their primitives instead of rolling your own.
+Throwing at the boundary is fine; returning a `Result` (or the project validator's output) composes better when the caller wants to handle failure. If the project already uses a library with native branded-type support (e.g. Effect), use their primitives instead of rolling your own.
 
 ### Discriminated unions over flag bags
 
@@ -41,6 +48,27 @@ type State =
   | { status: "loading" }
   | { status: "success"; user: User }
   | { status: "error"; error: string };
+```
+
+Pair every union with an exhaustiveness check so adding a variant becomes a compile error, not a silent fallthrough:
+
+```ts
+function assertNever(x: never): never {
+  throw new Error(`Unhandled: ${JSON.stringify(x)}`);
+}
+
+function render(state: State) {
+  switch (state.status) {
+    case "loading":
+      return spinner();
+    case "success":
+      return profile(state.user);
+    case "error":
+      return banner(state.error);
+    default:
+      return assertNever(state); // new variant -> type error here
+  }
+}
 ```
 
 ## Let the types flow end-to-end
@@ -72,7 +100,33 @@ sendEmail("Welcome!", "Hi there");
 sendEmail({ to: "alice@x.com", body: "Hi there" });
 ```
 
-Skip on hot perf-critical paths; use elsewhere by default.
+Positional is fine for one or two distinct, well-typed params. Switch to an object once you have three or more, or any same-typed neighbors that could be swapped silently.
+
+## Prefer `satisfies`, `unknown`, and `as const`
+
+`satisfies` checks a value against a type without widening it - you keep the narrow literal type and still get the constraint. This is the right tool whenever an annotation would throw away information:
+
+```ts
+// Annotation widens: routes.home is now string, keys aren't checked against a union
+const routes: Record<string, string> = { home: "/", about: "/about" };
+
+// satisfies keeps literal types AND verifies the shape
+const routes = {
+  home: "/",
+  about: "/about",
+} satisfies Record<string, `/${string}`>;
+// routes.home is "/", typos in values are still caught
+```
+
+Two more defaults in the same spirit:
+
+- **`unknown` over `any`** at every untyped boundary (JSON, `catch`, third-party). `unknown` forces you to narrow before use; `any` disables the checker silently.
+- **`as const` unions or const objects over `enum`.** Enums emit runtime code, don't behave like plain unions, and have surprising assignability. A `const` object plus a derived union covers the same ground with none of the footguns:
+
+```ts
+const Role = { admin: "admin", member: "member" } as const;
+type Role = (typeof Role)[keyof typeof Role]; // "admin" | "member"
+```
 
 ## Standard Schema for shared validation
 
@@ -109,6 +163,8 @@ Don't mock things you can run. Spin up real services:
 
 Mock only third-party services that have no test environment.
 
-## OpenTelemetry, not print logging
+Real services are slower, so don't make every test pay for them: real services at the integration boundary, fast isolated tests for pure logic underneath.
 
-When adding observability, instrument with OTel spans. The setup cost pays back the first time a user sends a request ID and you can answer instead of guess.
+## Reach for tracing when you cross service boundaries
+
+Traces, metrics, and logs are complementary, not substitutes. When you need to follow a request across services, instrument with OpenTelemetry spans rather than scattering `console.log` - the setup cost pays back the first time a user sends a request ID and you can answer instead of guess. Structured logging stays legitimate, and full OTel is overkill for a CLI or a single small service.
