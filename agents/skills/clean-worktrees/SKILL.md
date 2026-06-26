@@ -104,7 +104,7 @@ Use this only after the worktree audit is clear, because a branch marked `[gone]
 
 2. Identify gone branches:
    ```bash
-   git -C ~/path/to/repo branch -vv | grep '\[gone\]'
+   git -C ~/path/to/repo branch -vv | grep ': gone]'
    ```
 
 3. For each gone branch:

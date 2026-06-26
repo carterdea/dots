@@ -89,7 +89,7 @@ Default to autonomous watch mode unless the user explicitly asks for a one-shot 
   3. Filter resolved/outdated/noise comments.
   4. Apply all valid fixes automatically.
   5. Run the narrowest relevant checks.
-  6. If fixes were made, commit/push only when the surrounding workflow requested shipping changes; otherwise leave the working tree ready and report status.
+  6. If fixes were made in watch mode, commit and push them before counting clean polls so the remote PR reflects the addressed feedback. In one-shot/manual mode, leave changes unstaged unless the user asked to ship.
   7. If no actionable comments were present and no fixes were made, increment `clean_poll_count`; otherwise reset it to `0`.
   8. Summarize what changed or that no actionable comments were present, including `clean_poll_count/4`.
   9. If `clean_poll_count >= 4`, stop; otherwise wait 5 minutes and fetch again.

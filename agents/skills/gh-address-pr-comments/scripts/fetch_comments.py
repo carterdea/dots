@@ -268,13 +268,14 @@ def is_review_agent(author: dict[str, Any] | None) -> bool:
         return False
     login = (author.get("login") or "").lower()
     typename = (author.get("__typename") or "").lower()
+    if typename not in {"bot", "app"}:
+        return False
     return (
         "codex" in login
         or "openai" in login
         or "chatgpt" in login
         or "claude" in login
         or "anthropic" in login
-        or (typename == "bot" and ("codex" in login or "claude" in login))
     )
 
 
@@ -285,13 +286,14 @@ def summarize_approval(reactions: list[dict[str, Any]], reviews: list[dict[str, 
         user = reaction.get("user") or {}
         login = (user.get("login") or "").lower()
         user_type = (user.get("type") or "").lower()
+        if user_type not in {"bot", "app"}:
+            continue
         if (
             "codex" in login
             or "openai" in login
             or "chatgpt" in login
             or "claude" in login
             or "anthropic" in login
-            or (user_type == "bot" and ("codex" in login or "claude" in login))
         ):
             codex_like.append(reaction)
 
