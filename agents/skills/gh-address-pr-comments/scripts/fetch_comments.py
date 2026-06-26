@@ -17,6 +17,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
       url
       title
       state
+      headRefOid
     }
   }
 }
@@ -52,6 +53,7 @@ query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
           state
           body
           submittedAt
+          commit { oid }
           author { __typename login }
         }
       }
@@ -279,7 +281,9 @@ def is_review_agent(author: dict[str, Any] | None) -> bool:
     )
 
 
-def summarize_approval(reactions: list[dict[str, Any]], reviews: list[dict[str, Any]]) -> dict[str, Any]:
+def summarize_approval(
+    reactions: list[dict[str, Any]], reviews: list[dict[str, Any]], head_ref_oid: str | None
+) -> dict[str, Any]:
     thumbs_up = [reaction for reaction in reactions if reaction.get("content") == "+1"]
     codex_like = []
     for reaction in thumbs_up:
@@ -298,9 +302,22 @@ def summarize_approval(reactions: list[dict[str, Any]], reviews: list[dict[str, 
             codex_like.append(reaction)
 
     agent_reviews = [review for review in reviews if is_review_agent(review.get("author"))]
-    agent_approvals = [review for review in agent_reviews if review.get("state") == "APPROVED"]
+    agent_approvals = [
+        review
+        for review in agent_reviews
+        if review.get("state") == "APPROVED"
+        and (not head_ref_oid or (review.get("commit") or {}).get("oid") == head_ref_oid)
+    ]
     latest_agent_review = max(agent_reviews, key=lambda review: review.get("submittedAt") or "", default=None)
-    latest_agent_review_approves = bool(latest_agent_review and latest_agent_review.get("state") == "APPROVED")
+    latest_agent_review_commit = (latest_agent_review.get("commit") or {}).get("oid") if latest_agent_review else None
+    latest_agent_review_matches_head = bool(
+        latest_agent_review and (not head_ref_oid or latest_agent_review_commit == head_ref_oid)
+    )
+    latest_agent_review_approves = bool(
+        latest_agent_review
+        and latest_agent_review.get("state") == "APPROVED"
+        and latest_agent_review_matches_head
+    )
     return {
         "has_agent_approval": bool(latest_agent_review_approves or codex_like),
         "has_thumbs_up": bool(codex_like),
@@ -319,6 +336,7 @@ def summarize_approval(reactions: list[dict[str, Any]], reviews: list[dict[str, 
                 "state": review.get("state"),
                 "submittedAt": review.get("submittedAt"),
                 "author": (review.get("author") or {}).get("login"),
+                "commitOid": (review.get("commit") or {}).get("oid"),
             }
             for review in agent_approvals
         ],
@@ -327,6 +345,8 @@ def summarize_approval(reactions: list[dict[str, Any]], reviews: list[dict[str, 
             "state": latest_agent_review.get("state"),
             "submittedAt": latest_agent_review.get("submittedAt"),
             "author": (latest_agent_review.get("author") or {}).get("login"),
+            "commitOid": latest_agent_review_commit,
+            "matchesHead": latest_agent_review_matches_head,
         }
         if latest_agent_review
         else None,
@@ -343,6 +363,7 @@ def fetch_all(owner: str, repo: str, number: int) -> dict[str, Any]:
         "url": pr["url"],
         "title": pr["title"],
         "state": pr["state"],
+        "headRefOid": pr["headRefOid"],
         "owner": owner,
         "repo": repo,
     }
@@ -359,7 +380,7 @@ def fetch_all(owner: str, repo: str, number: int) -> dict[str, Any]:
         "reviews": reviews,
         "review_threads": review_threads,
         "pr_reactions": reactions,
-        "approval": summarize_approval(reactions, reviews),
+        "approval": summarize_approval(reactions, reviews, pr_meta["headRefOid"]),
     }
 
 

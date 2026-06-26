@@ -21,6 +21,21 @@ CREATE TABLE table_name (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE OR REPLACE FUNCTION set_table_name_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_table_name_updated_at
+BEFORE UPDATE ON table_name
+FOR EACH ROW
+EXECUTE FUNCTION set_table_name_updated_at();
+
 -- These plain CREATE INDEX statements are safe for new/empty tables created in
 -- this migration. For large existing tables, create indexes outside the
 -- transaction with CREATE INDEX CONCURRENTLY.
@@ -41,6 +56,8 @@ COMMIT;
 BEGIN;
 
 ALTER TABLE table_name DROP CONSTRAINT IF EXISTS fk_table_reference;
+DROP TRIGGER IF EXISTS trg_table_name_updated_at ON table_name;
+DROP FUNCTION IF EXISTS set_table_name_updated_at();
 DROP INDEX IF EXISTS idx_table_reference_id;
 DROP INDEX IF EXISTS idx_table_column;
 DROP TABLE IF EXISTS table_name;

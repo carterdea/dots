@@ -111,8 +111,10 @@ Use this only after the worktree audit is clear, because a branch marked `[gone]
    - If it has a worktree, inspect that worktree first with `git status --porcelain` and the audit script.
    - If it is dirty, save audit artifacts before removal.
    - If it has an open PR or looks active, keep it unless the user explicitly says to delete it.
-   - Remove the worktree with `git -C ~/path/to/repo worktree remove --force <path>` before deleting the branch.
-   - Delete the branch with `git -C ~/path/to/repo branch -D <branch>`.
+   - Before deleting the branch, try `git -C ~/path/to/repo branch -d <branch>` so Git refuses unmerged commits.
+   - If `-d` refuses, inspect `git -C ~/path/to/repo log --oneline <base>..<branch>` and save/merge/cherry-pick anything valuable before considering `-D`.
+   - Remove the worktree with `git -C ~/path/to/repo worktree remove --force <path>` only after the branch is merged, backed up, or explicitly approved for force deletion.
+   - Use `git -C ~/path/to/repo branch -D <branch>` only after the unmerged-commit check is understood and accepted.
 
 4. Prune metadata after removals:
    ```bash
