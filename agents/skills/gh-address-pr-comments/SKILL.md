@@ -25,10 +25,8 @@ Default to autonomous watch mode unless the user explicitly asks for a one-shot 
 3. Fetch thread-aware review data.
    - Resolve `SKILL_DIR` to this skill's installed directory, then run `uv run "$SKILL_DIR/scripts/fetch_comments.py" --pr {PR_NUMBER}`. The helper fetches `reviewThreads`, `isResolved`, `isOutdated`, file paths, line anchors, reviews, top-level PR comments, PR reactions, and agent approval signals.
    - If `approval.has_agent_approval` is true, treat the PR as approved and exit the watch loop.
-   - `approval.has_agent_approval` means either:
-     - the latest GitHub review from a Codex/OpenAI/ChatGPT/Claude-like app or bot login has `state: APPROVED`, or
-     - a thumbs-up PR reaction from a Codex/OpenAI/ChatGPT/Claude-like app or bot login.
-   - Treat unrelated teammate or bot approvals/reactions as informational only unless the user explicitly says they count.
+   - `approval.has_agent_approval` means the latest GitHub review from a Codex/OpenAI/ChatGPT/Claude-like app or bot login has `state: APPROVED` and matches the current PR head commit.
+   - Treat reactions and unrelated teammate/bot approvals as informational only unless the user explicitly says they count.
    - Use flat reads only for quick fallback or top-level summaries:
      `gh pr view {PR_NUMBER} --json title,body,state,author,headRefName,baseRefName,url,reviews`
      `gh api repos/{OWNER}/{REPO}/pulls/{PR_NUMBER}/comments --jq '.[] | {id, path, line, position, body, user: .user.login, user_type: .user.type}'`
@@ -78,7 +76,7 @@ Default to autonomous watch mode unless the user explicitly asks for a one-shot 
   - Reset it to `0` whenever new actionable feedback appears, a fix is made, checks fail, or the branch is pushed.
   - Four consecutive clean polls equals about 20 minutes of quiet (`4 * sleep 300`).
 - Continue until one of these happens:
-  - `scripts/fetch_comments.py` reports `approval.has_agent_approval: true` for a latest-agent-review approval or an agent thumbs-up reaction.
+  - `scripts/fetch_comments.py` reports `approval.has_agent_approval: true` for a latest-agent-review approval on the current PR head.
   - Watch mode reaches 4 consecutive clean polls after the last actionable feedback/fix/push.
   - There are no unresolved actionable comments and the user asked for one-shot mode.
   - `gh` auth/rate limits block progress.
@@ -89,7 +87,7 @@ Default to autonomous watch mode unless the user explicitly asks for a one-shot 
   3. Filter resolved/outdated/noise comments.
   4. Apply all valid fixes automatically.
   5. Run the narrowest relevant checks.
-  6. If fixes were made in watch mode, commit and push them before counting clean polls so the remote PR reflects the addressed feedback. In one-shot/manual mode, leave changes unstaged unless the user asked to ship.
+  6. If fixes were made in watch mode, commit and push them only after the relevant checks pass. If checks fail, stop with the changes local and report the failure instead of updating the remote PR with known-bad code. In one-shot/manual mode, leave changes unstaged unless the user asked to ship.
   7. If no actionable comments were present and no fixes were made, increment `clean_poll_count`; otherwise reset it to `0`.
   8. Summarize what changed or that no actionable comments were present, including `clean_poll_count/4`.
   9. If `clean_poll_count >= 4`, stop; otherwise wait 5 minutes and fetch again.
