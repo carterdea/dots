@@ -13,7 +13,7 @@
 -- migrate:up
 BEGIN;
 
-CREATE TABLE IF NOT EXISTS table_name (
+CREATE TABLE table_name (
   id BIGSERIAL PRIMARY KEY,
   reference_id BIGINT,
   column_name TEXT NOT NULL,
