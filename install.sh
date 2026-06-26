@@ -116,7 +116,15 @@ create_symlink() {
 
 remove_deprecated_skill_symlinks() {
     local skills_dir=$1
-    local deprecated_skills=("audit-ai-code" "audit-ai-writing" "loop-on-ci")
+    local deprecated_skills=(
+        "audit-ai-code"
+        "audit-ai-writing"
+        "clean-gone"
+        "garry-tan-code-review"
+        "loop-on-ci"
+        "new-skill"
+        "pair-programming"
+    )
 
     for skill_name in "${deprecated_skills[@]}"; do
         local target="$skills_dir/$skill_name"
