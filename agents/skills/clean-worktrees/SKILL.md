@@ -111,8 +111,8 @@ Use this only after the worktree audit is clear, because a branch marked `[gone]
    - If it has a worktree, inspect that worktree first with `git status --porcelain` and the audit script.
    - If it is dirty, save audit artifacts before removal.
    - If it has an open PR or looks active, keep it unless the user explicitly says to delete it.
-   - Remove the worktree with `git worktree remove --force <path>` before deleting the branch.
-   - Delete the branch with `git branch -D <branch>`.
+   - Remove the worktree with `git -C ~/path/to/repo worktree remove --force <path>` before deleting the branch.
+   - Delete the branch with `git -C ~/path/to/repo branch -D <branch>`.
 
 4. Prune metadata after removals:
    ```bash

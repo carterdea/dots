@@ -99,17 +99,18 @@ Output:
 
 ```sql
 CREATE TABLE users (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id BIGSERIAL PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE orders (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id),
-  total DECIMAL(10,2) NOT NULL,
-  INDEX idx_orders_user (user_id)
+  total DECIMAL(10,2) NOT NULL
 );
+
+CREATE INDEX idx_orders_user ON orders(user_id);
 ```
 
 ### Available Commands
@@ -129,18 +130,17 @@ Include these details in your request for best results:
 - **Entities** - users, products, orders
 - **Key relationships** - users have orders, orders have items
 - **Scale hints** - high-traffic, millions of records
-- **Database preference** - SQL or NoSQL (defaults to SQL if not specified)
+- **Database preference and SQL dialect** - PostgreSQL, MySQL/MariaDB, SQLite, MongoDB (defaults to PostgreSQL-style SQL if not specified)
 - **Access patterns** - read-heavy analytics, write-heavy transactions
 
 ## Prerequisites
 
-No special tools or dependencies required. The skill generates standard SQL or NoSQL schema definitions that work with:
+No special tools or dependencies required. The skill generates SQL or NoSQL schema definitions. Current examples and templates default to PostgreSQL-style SQL unless you ask for another dialect:
 
-- MySQL / MariaDB
 - PostgreSQL
-- SQLite
+- MySQL / MariaDB (translate identity columns, timestamp updates, and indexes)
+- SQLite (translate data types, constraints, and migration limitations)
 - MongoDB
-- And other compatible databases
 
 ## Output
 
