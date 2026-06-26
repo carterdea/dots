@@ -1,6 +1,6 @@
 ---
 name: gh-address-pr-comments
-description: Resolve actionable GitHub pull request review feedback and watch for new comments until an agent approval arrives. Use when the user wants to inspect or continuously poll unresolved review threads, requested changes, inline comments, or PR conversation comments, then automatically implement valid fixes while filtering bots, outdated comments, duplicates, and non-actionable noise.
+description: Resolve actionable GitHub pull request review feedback and watch for new comments until approval or a sustained quiet period. Use when the user wants to inspect or continuously poll unresolved review threads, requested changes, inline comments, or PR conversation comments, then automatically implement valid fixes while filtering bots, outdated comments, duplicates, and non-actionable noise.
 ---
 
 # Address PR Comments
@@ -72,9 +72,14 @@ Default to autonomous watch mode unless the user explicitly asks for a one-shot 
 ## Watch Loop
 
 - Poll every 5 minutes (`sleep 300`) after each fetch/fix/check cycle.
-- Watch mode is open-ended. Do not stop merely because the current fetch has no actionable comments; that usually means the review agent is still thinking or has not posted the next review yet.
+- Watch mode is quiet-window based. Do not stop after the first fetch with no actionable comments; that usually means the review agent is still thinking or has not posted the next review yet.
+- Track `clean_poll_count`, starting at `0`.
+  - Increment it only when a cycle finds no unresolved actionable comments and makes no fixes.
+  - Reset it to `0` whenever new actionable feedback appears, a fix is made, checks fail, or the branch is pushed.
+  - Four consecutive clean polls equals about 20 minutes of quiet (`4 * sleep 300`).
 - Continue until one of these happens:
   - `scripts/fetch_comments.py` reports `approval.has_agent_approval: true` for a latest-agent-review approval or an agent thumbs-up reaction.
+  - Watch mode reaches 4 consecutive clean polls after the last actionable feedback/fix/push.
   - There are no unresolved actionable comments and the user asked for one-shot mode.
   - `gh` auth/rate limits block progress.
   - A comment is ambiguous or risky enough to need user judgment.
@@ -85,7 +90,9 @@ Default to autonomous watch mode unless the user explicitly asks for a one-shot 
   4. Apply all valid fixes automatically.
   5. Run the narrowest relevant checks.
   6. If fixes were made, commit/push only when the surrounding workflow requested shipping changes; otherwise leave the working tree ready and report status.
-  7. Summarize what changed or that no actionable comments were present, then wait 5 minutes and fetch again.
+  7. If no actionable comments were present and no fixes were made, increment `clean_poll_count`; otherwise reset it to `0`.
+  8. Summarize what changed or that no actionable comments were present, including `clean_poll_count/4`.
+  9. If `clean_poll_count >= 4`, stop; otherwise wait 5 minutes and fetch again.
 
 ## Write Safety
 
