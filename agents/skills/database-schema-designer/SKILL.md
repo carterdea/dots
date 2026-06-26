@@ -594,11 +594,19 @@ ALTER TABLE users ADD COLUMN phone VARCHAR(20);
 
 -- Step 2: Deploy code that writes to new column
 
--- Step 3: Backfill existing rows
-UPDATE users SET phone = '' WHERE phone IS NULL;
+-- Step 3: Backfill existing rows in batches outside the DDL deploy
+-- Repeat with a bounded predicate/key range until no rows remain.
+UPDATE users
+SET phone = ''
+WHERE phone IS NULL
+  AND id BETWEEN 1 AND 10000;
 
--- Step 4: Make required (if needed)
+-- Step 4: For large PostgreSQL tables, validate before enforcing NOT NULL
+ALTER TABLE users
+  ADD CONSTRAINT users_phone_not_null CHECK (phone IS NOT NULL) NOT VALID;
+ALTER TABLE users VALIDATE CONSTRAINT users_phone_not_null;
 ALTER TABLE users ALTER COLUMN phone SET NOT NULL;
+ALTER TABLE users DROP CONSTRAINT users_phone_not_null;
 ```
 
 ### Renaming a Column (Zero-Downtime)
