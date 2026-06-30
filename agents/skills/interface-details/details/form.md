@@ -23,7 +23,8 @@ Every control must be focusable and operable without a pointer: Tab reaches it, 
 <div role="button" tabIndex={0}
   onClick={submit}
   onKeyDown={(e) => {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); submit(); }
+    // !e.repeat: holding the key auto-repeats keydown and would submit repeatedly
+    if ((e.key === "Enter" || e.key === " ") && !e.repeat) { e.preventDefault(); submit(); }
   }}
 />
 ```

@@ -32,7 +32,10 @@ Show process state (loading, active, complete) with a small persistent indicator
 	transition: all 0.3s ease;
 }
 .status-dot.active {
-	animation: pulse 1.5s ease-in-out infinite;
+	background: var(--accent); /* static active state is the reduced-motion fallback */
+}
+@media (prefers-reduced-motion: no-preference) {
+	.status-dot.active { animation: pulse 1.5s ease-in-out infinite; }
 }
 .status-dot.done {
 	background: var(--success);
@@ -89,7 +92,7 @@ Scan user-generated content for predictable mistakes (missing unsubscribe link, 
 ```js
 function preflight(email) {
 	const warnings = [];
-	if (!email.body.includes("unsubscribe"))
+	if (!/unsubscribe/i.test(email.body)) // case-insensitive: "Unsubscribe" counts
 		warnings.push("No unsubscribe link");
 	// Allow absolute http(s), mailto/tel, in-page anchors, and ESP merge tags
 	// ({{...}}, %%...%%, *|...|*); warn only on un-rewritten relative links so a
