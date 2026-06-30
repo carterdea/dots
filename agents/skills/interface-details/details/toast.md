@@ -92,8 +92,11 @@ Scan user-generated content for predictable mistakes (missing unsubscribe link, 
 ```js
 function preflight(email) {
 	const warnings = [];
-	if (!/unsubscribe/i.test(email.body)) // case-insensitive: "Unsubscribe" counts
-		warnings.push("No unsubscribe link");
+	// Require a real unsubscribe *link* (href or ESP merge tag), not just the word
+	// in the copy — a footer that says "Unsubscribe" with no link still fails compliance.
+	const hasUnsub = /href=(["'])[^"']*unsubscribe[^"']*\1/i.test(email.body)
+		|| /\{\{\s*unsubscribe|%%unsubscribe%%|\*\|UNSUB\|\*/i.test(email.body);
+	if (!hasUnsub) warnings.push("No unsubscribe link");
 	// Allow absolute http(s), mailto/tel, in-page anchors, and ESP merge tags
 	// ({{...}}, %%...%%, *|...|*); warn only on un-rewritten relative links so a
 	// valid campaign isn't blocked.

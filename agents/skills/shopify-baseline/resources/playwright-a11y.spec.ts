@@ -34,9 +34,10 @@ for (const [index, path] of paths.entries()) {
     // disambiguates distinct paths that normalize to the same slug (/foo-bar vs
     // /foo/bar), and project name + retry keep multi-project (e.g. desktop/mobile)
     // and retried runs separate.
-    const parts = [testInfo.project.name, `${index}-${slug}`].filter(Boolean);
+    const project = testInfo.project.name.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "");
+    const parts = [project, `${index}-${slug}`].filter(Boolean);
     if (testInfo.retry) parts.push(`retry${testInfo.retry}`);
-    const artifact = `${outDir}/${parts.join("-")}.json`;
+    const artifact = `${outDir}/${parts.join("-")}.json`; // slug project too: "desktop/chromium" would break the path
     writeFileSync(artifact, JSON.stringify(violations, null, 2));
 
     const byImpact = violations.reduce<Record<string, number>>((acc, v) => {

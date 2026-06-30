@@ -63,7 +63,10 @@ Encode filters, search query, sort, view mode, selection, and even scroll positi
 // state, feature flags, section anchor) survive — set only the keys this control
 // owns rather than replacing the whole query string.
 const url = new URL(location.href);
-for (const [k, v] of Object.entries({ q: query, sort, view })) url.searchParams.set(k, v);
+for (const [k, v] of Object.entries({ q: query, sort, view })) {
+  if (v == null || v === "") url.searchParams.delete(k); // don't write ?sort=undefined
+  else url.searchParams.set(k, v);
+}
 history.replaceState(null, "", url);
 ```
 
