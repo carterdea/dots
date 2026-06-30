@@ -18,7 +18,7 @@ const outDir = process.env.SHOPIFY_A11Y_OUT_DIR ?? "test-results/a11y";
 test.skip(!baseUrl, "Set BASE_URL or SHOPIFY_PREVIEW_URL to run Shopify accessibility smoke tests.");
 
 for (const [index, path] of paths.entries()) {
-  test(`axe scan ${path}`, async ({ page }) => {
+  test(`axe scan ${path}`, async ({ page }, testInfo) => {
     const url = new URL(path, targetBaseUrl).toString();
     await page.goto(url, { waitUntil: "domcontentloaded" });
 
@@ -30,9 +30,13 @@ for (const [index, path] of paths.entries()) {
 
     const slug = path.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "root";
     mkdirSync(outDir, { recursive: true });
-    // Prefix the loop index so distinct paths that normalize to the same slug
-    // (e.g. /foo-bar and /foo/bar) don't overwrite each other's report.
-    const artifact = `${outDir}/${index}-${slug}.json`;
+    // Qualify the filename so reports never overwrite each other: the loop index
+    // disambiguates distinct paths that normalize to the same slug (/foo-bar vs
+    // /foo/bar), and project name + retry keep multi-project (e.g. desktop/mobile)
+    // and retried runs separate.
+    const parts = [testInfo.project.name, `${index}-${slug}`].filter(Boolean);
+    if (testInfo.retry) parts.push(`retry${testInfo.retry}`);
+    const artifact = `${outDir}/${parts.join("-")}.json`;
     writeFileSync(artifact, JSON.stringify(violations, null, 2));
 
     const byImpact = violations.reduce<Record<string, number>>((acc, v) => {
