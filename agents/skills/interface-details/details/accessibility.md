@@ -25,6 +25,7 @@ Tools invoked dozens of times a day should prioritize speed over spectacle — d
     animation-iteration-count: 1 !important; /* without this, infinite spinners
                                                 just flicker faster, not less */
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important; /* don't animate anchor/focus jumps either */
   }
 }
 ```
@@ -53,12 +54,15 @@ A displayed email address has two jobs: launch the user's mail client, and let t
 ### 5. Make collapsed content findable with Cmd+F
 Sections hidden with `display: none` or plain `hidden` are invisible to browser find-in-page, forcing users to expand everything to search. `hidden="until-found"` keeps content visually collapsed but searchable — on a match the browser reveals the section, fires `beforematch` (hook it for animation/state), scrolls in, and highlights. Degrades gracefully where unsupported. Use it on a region you collapse with your own state, not inside `<details>`: the native toggle never clears the `hidden` attribute, so an opened disclosure would still render empty (and modern browsers already auto-expand a closed `<details>` on find-in-page anyway).
 ```html
-<button aria-expanded="false" onclick="reveal()">Section Title</button>
+<button id="btn" aria-expanded="false">Section Title</button>
 <div id="sec" hidden="until-found">Content that can be found with Cmd+F</div>
 <script>
+  const btn = document.getElementById("btn");
   const sec = document.getElementById("sec");
-  // beforematch fires when find-in-page reveals it — sync your open state here.
-  sec.addEventListener("beforematch", () => syncOpen(true));
+  const open = () => { sec.hidden = false; btn.setAttribute("aria-expanded", "true"); };
+  btn.addEventListener("click", open);
+  // beforematch fires when find-in-page reveals it — sync the same open state.
+  sec.addEventListener("beforematch", open);
 </script>
 ```
 
