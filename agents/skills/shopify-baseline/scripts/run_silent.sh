@@ -15,12 +15,18 @@
 
 VERBOSE="${VERBOSE:-0}"
 
+# Redact secret-looking args (e.g. shopify --password "$SHOPIFY_CLI_THEME_TOKEN")
+# so neither the verbose echo nor a failure line leaks a token into logs/chat.
+_redact_cmd() {
+    printf '%s' "$*" | sed -E 's/(--(password|token|secret)[ =])[^ ]+/\1***/g; s/shptka_[A-Za-z0-9]+/shptka_***/g'
+}
+
 run_silent() {
     local description="$1"
     shift
 
     if [ "$VERBOSE" = "1" ]; then
-        printf "  → %s\n" "$*"
+        printf "  → %s\n" "$(_redact_cmd "$@")"
         "$@"
         return $?
     fi
@@ -47,11 +53,7 @@ run_silent() {
     fi
 
     printf "  \033[31m✗\033[0m %s\n" "$description"
-    # Redact secret-looking args (e.g. shopify --password "$SHOPIFY_CLI_THEME_TOKEN")
-    # so a failing command can't leak a token into logs/chat.
-    local shown
-    shown=$(printf '%s' "$*" | sed -E 's/(--(password|token|secret)[ =])[^ ]+/\1***/g; s/shptka_[A-Za-z0-9]+/shptka_***/g')
-    printf "  \033[31mCommand failed:\033[0m %s\n" "$shown"
+    printf "  \033[31mCommand failed:\033[0m %s\n" "$(_redact_cmd "$@")"
     cat "$tmp_file"
     rm -f "$tmp_file"
     return "$exit_code"
