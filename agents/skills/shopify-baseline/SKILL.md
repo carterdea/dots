@@ -124,12 +124,7 @@ Resource templates default to Bun. In pnpm repos, rewrite `bun install`, `bun ru
 
 Patch `package.json` with scripts that match installed tools. Preserve existing project scripts unless replacing an old equivalent.
 
-Use the detected package manager when composing scripts:
-
-- Bun repo: `<run>` is `bun run`
-- pnpm repo: `<run>` is `pnpm run`
-
-Default script shape after substitution:
+Default script shape:
 
 ```json
 {
@@ -146,7 +141,7 @@ Default script shape after substitution:
 }
 ```
 
-For pnpm repos, the granular `check:*` bodies should use `pnpm run ...`; for Bun repos, use `bun run ...`. Do not use npm or yarn as the package-manager fallback.
+The granular `check:*` bodies stay direct tool commands — `biome check .`, `tsc --noEmit`, etc. resolve through `node_modules/.bin` whether the leaf runs under pnpm or Bun, so they need no `pnpm run`/`bun run` wrapper (wrapping makes the package manager look for a *script* of that name, e.g. `pnpm run biome check .` fails). Reach for `pnpm exec`/`bunx` only where a binary genuinely needs a package-manager wrapper. Do not use npm or yarn as the package-manager fallback.
 
 `check` runs through `scripts/check.sh`, which sources `run_silent.sh` and wraps every `check:*` so a clean run is one line per check and only failures print output (the full failure log, so the agent has everything to diagnose; set `VERBOSE=1` to stream raw output live). This is the entry point CI and agents should call — never the raw `&&` chain, which floods context on every run. `check.sh` auto-detects pnpm vs Bun from `pnpm-lock.yaml`, so it needs no substitution.
 

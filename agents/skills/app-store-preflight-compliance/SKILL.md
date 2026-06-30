@@ -70,6 +70,17 @@ greenlight preflight .
 
 Continue until output reports GREENLIT (zero `CRITICAL` findings).
 
+## Step 4: Verify Runtime Flows (when present)
+
+GREENLIT only confirms flow-dependent guidelines *exist* in source. When the app has account creation, in-app purchases, or social login, run the optional runtime tier before declaring it submission-ready — Apple rejects these flows for being broken, not just absent (e.g. account deletion §5.1.1(v)):
+
+```bash
+greenlight verify . --dry-run                                  # show claimed flows + generated tests, no device
+greenlight verify . --build-name "My App" --flows account-deletion   # run a flow on a device
+```
+
+Flow names: `account-deletion` (§5.1.1), `restore-purchases` (§3.1.1), `sign-in-apple` (§4.8); only the flows the app actually claims are run. Unlike the static scanner, `verify` is opt-in and **not** offline — it runs on a cloud device via the `revyl` CLI (account + registered build required). Skip it when none of those flows are present.
+
 ## Useful Commands
 
 ```bash
