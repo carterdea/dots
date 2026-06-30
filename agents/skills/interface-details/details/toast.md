@@ -98,8 +98,8 @@ function preflight(email) {
 	// ({{...}}, %%...%%, *|...|*); warn only on un-rewritten relative links so a
 	// valid campaign isn't blocked.
 	const safeHref = /^(https?:|mailto:|tel:|#|\{\{|%%|\*\|)/;
-	for (const m of email.body.matchAll(/href="([^"]*)"/g))
-		if (!safeHref.test(m[1])) warnings.push(`Suspicious link: ${m[1]}`);
+	for (const m of email.body.matchAll(/href\s*=\s*(["'])(.*?)\1/gi)) // both quote styles
+		if (!safeHref.test(m[2])) warnings.push(`Suspicious link: ${m[2]}`);
 	return warnings; // block send while non-empty
 }
 ```
