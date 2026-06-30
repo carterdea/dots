@@ -142,7 +142,7 @@ Theme commands authenticate interactively (collaborator/OAuth) or with a **Theme
 
 ### `.shopifyignore`
 
-`.shopifyignore` at the theme root tells `shopify theme push`/`pull` which **theme** files to skip. Patterns are bare paths, `*` wildcards, or `/regex/`. Scope note: push only touches the standard theme folders (`assets`, `blocks`, `config`, `layout`, `locales`, `sections`, `snippets`, `templates`) — repo tooling like `node_modules/`, `src/`, `scripts/`, and `.github/` is never pushed, so it doesn't belong here.
+`.shopifyignore` at the theme root tells `shopify theme push`/`pull` which files to skip. Patterns are bare paths, `*` wildcards, or `/regex/`. When the repo root is also the theme root, defensively exclude repo tooling and source (`node_modules/`, `src/`, `scripts/`, `.github/`, lockfiles, configs) so the CLI can't push them to the live theme or disturb them on pull — Shopify's docs recommend listing any repo files you don't want the CLI to interact with. The shipped default does this; reconcile the paths to the repo's actual layout.
 
 - Write `resources/shopifyignore.default` to `.shopifyignore` when missing. Defaults: `assets/*.map` (sourcemaps shouldn't ship) and `*.DS_Store`.
 - **`.shopifyignore` is bidirectional — it blocks both push and pull.** Do **not** default-ignore `config/settings_data.json`: it would also block *pulling* the live store's customizer settings (e.g. the `shopify-theme-pull` workflow's `pull --only config/settings_data.json`). To stop a push from clobbering merchant settings, pass `--ignore config/settings_data.json` on the push command instead.
