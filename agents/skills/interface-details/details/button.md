@@ -69,6 +69,7 @@ In non-compositional, high-frequency views (a dashboard, not a doc editor), bind
 ```js
 document.addEventListener("keydown", (e) => {
   if (e.target.matches("input, textarea, [contenteditable]")) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return; // let native chords (Cmd+F) through
   if (e.key === "f") openFind();
 });
 ```

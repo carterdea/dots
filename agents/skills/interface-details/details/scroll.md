@@ -71,13 +71,23 @@ When content scrolls beneath a sticky header, a flat white-to-transparent gradie
 ### 8. Provide a scroll landmark back to the top
 Long pages need a discoverable, persistent way back to the top that also remembers where the user was. Platform shortcuts (iOS status-bar tap, Home key) are device-specific, undiscoverable, and can't return to the original position.
 ```jsx
-<button onClick={() => {
-  // smooth scroll is a vestibular trigger on long pages — honor reduced motion
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
-}}>
-  ↑ Top
-</button>
+function BackToTop() {
+  const prev = useRef(0);
+  const [canReturn, setCanReturn] = useState(false);
+  const onClick = () => {
+    // smooth scroll is a vestibular trigger on long pages — honor reduced motion
+    const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    if (canReturn) {
+      window.scrollTo({ top: prev.current, behavior }); // back to where they were
+      setCanReturn(false);
+    } else {
+      prev.current = window.scrollY; // remember the spot before jumping
+      window.scrollTo({ top: 0, behavior });
+      setCanReturn(true);
+    }
+  };
+  return <button onClick={onClick}>{canReturn ? '↓ Back' : '↑ Top'}</button>;
+}
 ```
 
 ### 9. Highlight the ToC by visibility, not last anchor
