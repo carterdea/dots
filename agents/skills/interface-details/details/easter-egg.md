@@ -23,8 +23,9 @@ Where a product generates a throwaway string — an invite code, a share link �
 ```js
 const palette = { tomato: "#FF6347", azure: "#007FFF", amber: "#FFBF00" };
 const name = pickRandomKey(palette);
-// The color is decoration; real uniqueness needs entropy. Without a random
-// suffix there's one guessable code per color and repeats collide.
-const suffix = crypto.randomUUID().slice(0, 6);
-const code = `${name}-${palette[name].slice(1)}-${suffix}`; // "azure-007FFF-3f9a2c"
+// The color is decoration; real uniqueness needs entropy. Keep a long random
+// component (~48 bits here) and still check/store each code for uniqueness —
+// 6 hex chars collide within a few thousand issued codes.
+const suffix = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+const code = `${name}-${palette[name].slice(1)}-${suffix}`; // "azure-007FFF-3f9a2c8b1d04"
 ```

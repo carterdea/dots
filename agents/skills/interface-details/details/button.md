@@ -69,7 +69,7 @@ btn.addEventListener("click", (e) => {
 In non-compositional, high-frequency views (a dashboard, not a doc editor), bind bare keys without Cmd/Ctrl/Alt — press `F` and the find menu opens instantly. Removing the modifier shaves a micro-decision off every action and rewards mastery. Skip the shortcut when focus is in a text field, where the keypress should compose text.
 ```js
 document.addEventListener("keydown", (e) => {
-  if (e.target.matches("input, textarea, [contenteditable]")) return;
+  if (e.target.closest("input, textarea, [contenteditable]")) return; // closest: also nested rich-text nodes
   if (e.metaKey || e.ctrlKey || e.altKey) return; // let native chords (Cmd+F) through
   if (e.key === "f") openFind();
 });

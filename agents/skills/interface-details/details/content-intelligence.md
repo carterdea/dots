@@ -10,9 +10,11 @@ Smart defaults, context-aware behavior, and automatic detection that anticipate 
 Auto-name screenshots and exports from the visible app, page title, or content at capture time — don't try to be clever with timestamps and metadata prefixes, just name the thing what it is. A file named `Stripe-dashboard.png` is findable months later; `Screenshot 2026-06-29.png` is a graveyard entry.
 ```js
 // Slugify first — a raw title like "Reports/Q2" or "ACME: Billing" would create
-// nested paths or fail to write on common filesystems.
+// nested paths or fail to write. Keep Unicode letters/digits (\p{L}\p{N}) so a
+// non-ASCII title like "請求書" still names the file, and fall back when empty.
 const raw = detectVisibleTitle() ?? activeApp;
-const name = `${raw.replace(/[^\w.-]+/g, "-").replace(/^-+|-+$/g, "")}.png`;
+const slug = raw.replace(/[^\p{L}\p{N}.-]+/gu, "-").replace(/^-+|-+$/g, "");
+const name = `${slug || "capture"}.png`;
 ```
 
 ### 2. Auto-segment video chapters
