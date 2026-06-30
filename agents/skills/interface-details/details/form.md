@@ -14,11 +14,17 @@ Wire `<label for="id">` to the input's `id` so clicking the label focuses the co
 ```
 
 ### 2. Make every interaction keyboard-reachable
-Every control must be focusable and operable without a pointer: Tab reaches it, Enter/Space activates it, Esc dismisses. Verify by unplugging the mouse and completing the whole form. Custom widgets need `tabindex` and key handlers.
+Every control must be focusable and operable without a pointer: Tab reaches it, Enter/Space activates it, Esc dismisses. Verify by unplugging the mouse and completing the whole form. Reach for a native `<button>` first — it's focusable, Enter/Space-activated, and screen-reader-labelled for free. Only a genuinely custom widget needs `tabindex` and key handlers, and then you must restore those semantics by hand (including `preventDefault` so Space doesn't scroll or repeat).
 ```jsx
+// Default: native element, keyboard-operable with zero extra code.
+<button type="button" onClick={submit}>Submit</button>
+
+// Only when no native control fits:
 <div role="button" tabIndex={0}
   onClick={submit}
-  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && submit()}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); submit(); }
+  }}
 />
 ```
 

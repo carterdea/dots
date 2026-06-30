@@ -46,14 +46,15 @@ A displayed email address has two jobs: launch the user's mail client, and let t
 ```
 
 ### 5. Make collapsed content findable with Cmd+F
-Sections hidden with `display: none` or plain `hidden` are invisible to browser find-in-page, forcing users to expand everything to search. `hidden="until-found"` keeps content visually collapsed but searchable — on a match the browser reveals the section, fires `beforematch` (hook it for animation/state), scrolls in, and highlights. Degrades gracefully where unsupported.
+Sections hidden with `display: none` or plain `hidden` are invisible to browser find-in-page, forcing users to expand everything to search. `hidden="until-found"` keeps content visually collapsed but searchable — on a match the browser reveals the section, fires `beforematch` (hook it for animation/state), scrolls in, and highlights. Degrades gracefully where unsupported. Use it on a region you collapse with your own state, not inside `<details>`: the native toggle never clears the `hidden` attribute, so an opened disclosure would still render empty (and modern browsers already auto-expand a closed `<details>` on find-in-page anyway).
 ```html
-<details>
-  <summary>Section Title</summary>
-  <div hidden="until-found">
-    Content that can be found with Cmd+F
-  </div>
-</details>
+<button aria-expanded="false" onclick="reveal()">Section Title</button>
+<div id="sec" hidden="until-found">Content that can be found with Cmd+F</div>
+<script>
+  const sec = document.getElementById("sec");
+  // beforematch fires when find-in-page reveals it — sync your open state here.
+  sec.addEventListener("beforematch", () => syncOpen(true));
+</script>
 ```
 
 ### 6. Bind global shortcuts to the right window

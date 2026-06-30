@@ -116,7 +116,7 @@ Copy these resources from this skill into the target repo when missing:
 
 Append `resources/agent-instructions.snippet.md` to existing root `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/*.mdc` if they do not already mention `run_silent.sh`. Do not create agent instruction files from scratch unless the user asks.
 
-Add `test-results/` (Playwright/axe artifacts) and `qa/` (QA screenshots/reports) to `.gitignore` if not already ignored.
+Add `test-results/` (Playwright/axe artifacts) and `/qa/` (QA screenshots/reports) to `.gitignore` if not already ignored. Anchor `qa` to the repo root with the leading slash so an unanchored pattern doesn't also hide source dirs named `qa` at any depth.
 
 Resource templates default to Bun. In pnpm repos, rewrite `bun install`, `bun run`, and `bunx` to the pnpm equivalents before writing the file.
 
@@ -143,7 +143,7 @@ Default script shape:
 
 The granular `check:*` bodies stay direct tool commands — `biome check .`, `tsc --noEmit`, etc. resolve through `node_modules/.bin` whether the leaf runs under pnpm or Bun, so they need no `pnpm run`/`bun run` wrapper (wrapping makes the package manager look for a *script* of that name, e.g. `pnpm run biome check .` fails). Reach for `pnpm exec`/`bunx` only where a binary genuinely needs a package-manager wrapper. Do not use npm or yarn as the package-manager fallback.
 
-`check` runs through `scripts/check.sh`, which sources `run_silent.sh` and wraps every `check:*` so a clean run is one line per check and only failures print output (the full failure log, so the agent has everything to diagnose; set `VERBOSE=1` to stream raw output live). This is the entry point CI and agents should call — never the raw `&&` chain, which floods context on every run. `check.sh` auto-detects pnpm vs Bun from `pnpm-lock.yaml`, so it needs no substitution.
+`check` runs through `scripts/check.sh`, which sources `run_silent.sh` and wraps every `check:*` so a clean run is one line per check and only failures print output (the full failure log, so the agent has everything to diagnose; set `VERBOSE=1` to stream raw output live). This is the entry point agents and local dev should call — never the raw `&&` chain, which floods context on every run. (CI runs the `check:*` steps discretely so each tool gets its own status and isolated failure log; GitHub already collapses clean step output, so the backpressure wrapper buys nothing there.) `check.sh` auto-detects pnpm vs Bun from `pnpm-lock.yaml`, so it needs no substitution.
 
 ## Biome Configuration
 
