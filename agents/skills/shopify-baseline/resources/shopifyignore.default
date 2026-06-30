@@ -1,0 +1,17 @@
+# .shopifyignore — files Shopify CLI must not push or pull.
+# Syntax: bare paths (config/settings_data.json), * wildcards (assets/*.map,
+# *.DS_Store), or /regex/ (/\.(zip|tar)$/). Only theme files matter here — repo
+# tooling like node_modules/, src/, scripts/, and .github/ lives outside the
+# theme folder structure and is never pushed regardless.
+
+# Merchant-owned theme settings. `shopify theme push` overwrites remote files
+# from your local copy (and deletes ones you don't have, unless --nodelete), so
+# syncing this would clobber the live store's customizer settings. Pull it
+# deliberately when you actually want the store's values.
+config/settings_data.json
+
+# Build leftovers that shouldn't ship to the live theme.
+assets/*.map
+
+# OS cruft that can sneak into assets/.
+*.DS_Store

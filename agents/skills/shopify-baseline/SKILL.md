@@ -1,6 +1,6 @@
 ---
 name: shopify-baseline
-description: Install or upgrade a quality baseline for Shopify Online Store 2.0 theme repos — Theme Check, Biome, Vite, Playwright + axe accessibility, optional Vitest, fallow dead-code, lefthook hooks, GitHub Actions CI, Shopify Lighthouse CI, Claude Code PR review, and a context-efficient run_silent.sh wrapper, with sane defaults.
+description: Install or upgrade a quality baseline for Shopify Online Store 2.0 theme repos — Theme Check, Biome, Vite, Playwright + axe accessibility, optional Vitest, fallow dead-code, lefthook hooks, GitHub Actions CI, Shopify Lighthouse CI, Claude Code PR review, a context-efficient run_silent.sh wrapper, Theme Access token handling via .env, and a .shopifyignore, with sane defaults.
 user-invocable: true
 ---
 
@@ -58,6 +58,8 @@ Detect existing tooling:
 - Hooks: `lefthook.yml`, `lefthook.yaml`, or `.lefthook.yml`
 - Claude Code Action: `.github/workflows/*` containing `anthropics/claude-code-action`
 - Shopify Lighthouse CI: `.github/workflows/*` containing `shopify/lighthouse-ci-action`
+- Theme env config: `shopify.theme.toml` with `[environments.<name>]` sections — note a committed `password = "shptka_…"`, which is a leaked secret to migrate (see Theme Access & Ignore Files)
+- Ignore file: `.shopifyignore` at the theme root
 
 If the theme is not at the repository root, stop after detection and propose a root strategy before writing files. Current default is one Shopify theme per repo; future monorepos should put hooks/workflows at repo root and theme configs/scripts under the theme directory.
 
@@ -113,12 +115,35 @@ Copy these resources from this skill into the target repo when missing:
 - `.theme-check.yml` from `resources/theme-check.yml` when Theme Check has no config
 - `biome.json` from `resources/biome.shopify.json` when Biome has no config (see Biome Configuration — never clobber an existing `biome.json`/`biome.jsonc`)
 - `.fallowrc.jsonc` from `resources/fallow.shopify.jsonc` **only when `src/` exists and fallow has no config** (see Fallow (Dead Code))
+- `.shopifyignore` from `resources/shopifyignore.default` when missing (see Theme Access & Ignore Files — never clobber an existing one)
+- `.env.example` from `resources/env.shopify.example` when missing (see Theme Access & Ignore Files)
 
 Append `resources/agent-instructions.snippet.md` to existing root `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/*.mdc`. The snippet opens with a `<!-- shopify-baseline:run-silent -->` sentinel: if that marker block already exists, **replace it in place** so an upgrade from an older snippet learns the `bash scripts/check.sh` entry point; otherwise append. Key the idempotency skip on a `scripts/check.sh` mention, not merely `run_silent.sh` — older installs reference `run_silent.sh` but call the tools manually and would otherwise never pick up the new entry point. Do not create agent instruction files from scratch unless the user asks.
 
-Add `test-results/` (Playwright/axe artifacts) and the QA artifact subdirectories `/qa/screenshots/` and `/qa/reports/` to `.gitignore` if not already ignored. Ignore the concrete subdirectories rather than the whole `qa/` tree, so a repo that source-controls QA automation under `qa/` keeps those files tracked.
+Add to `.gitignore` if not already ignored: `test-results/` (Playwright/axe artifacts), the QA artifact subdirectories `/qa/screenshots/` and `/qa/reports/`, and `.env` plus `.env.*` **except** `.env.example` (e.g. `.env`, `.env.*`, `!.env.example`) — the secrets file must never be committed, but the example scaffold must stay tracked. Ignore the concrete QA subdirectories rather than the whole `qa/` tree, so a repo that source-controls QA automation under `qa/` keeps those files tracked. Append only; never rewrite existing entries.
 
 Resource templates default to Bun. In pnpm repos, rewrite `bun install`, `bun run`, and `bunx` to the pnpm equivalents before writing the file.
+
+## Theme Access & Ignore Files
+
+These steps apply when `shopify.theme.toml` exists (or the repo otherwise uses the Shopify CLI). They wire up non-interactive auth safely and keep the CLI from syncing the wrong files.
+
+### Theme Access token in `.env`
+
+Theme commands authenticate interactively (collaborator/OAuth) or with a **Theme Access password** (`shptka_…`, from the Theme Access app). The password is the path for CI and scripted runs. The CLI reads it from the `SHOPIFY_CLI_THEME_TOKEN` environment variable (the `--password` flag's env form).
+
+- **Never commit the token.** If `shopify.theme.toml` (or any committed file) contains a literal `password = "shptka_…"`, treat it as a leaked secret: move the value into `.env` as `SHOPIFY_CLI_THEME_TOKEN`, delete the `password` line from the toml, and tell the user to **rotate it** in the Theme Access app — it's already in git history. Keep `store` and `theme` in the toml; only the secret moves out.
+- **If a token is available** (the user provides one, or you just migrated one), write `SHOPIFY_CLI_THEME_TOKEN=shptka_…` to `.env`. **Never invent a token.** If none exists, write only `.env.example` and tell the user to create one in the Theme Access app and drop it into `.env`.
+- Write `.env.example` from `resources/env.shopify.example` so the variable is documented for the next contributor.
+- Ensure `.gitignore` ignores `.env` / `.env.*` but keeps `!.env.example` (handled in Files To Write).
+- **Loading:** the CLI does not auto-load `.env` for theme commands — it reads the live environment. Tell the user to load it via direnv (`.envrc` containing `dotenv`) or `set -a; source .env; set +a` before running `shopify` commands, and to set it as a masked secret in CI.
+
+### `.shopifyignore`
+
+`.shopifyignore` at the theme root tells `shopify theme push`/`pull` which **theme** files to skip. Patterns are bare paths, `*` wildcards, or `/regex/`. Scope note: push only touches the standard theme folders (`assets`, `blocks`, `config`, `layout`, `locales`, `sections`, `snippets`, `templates`) — repo tooling like `node_modules/`, `src/`, `scripts/`, and `.github/` is never pushed, so it doesn't belong here.
+
+- Write `resources/shopifyignore.default` to `.shopifyignore` when missing. Defaults: `config/settings_data.json` (push overwrites — and without `--nodelete`, deletes — remote files from your local copy, so syncing it clobbers the live store's customizer settings), `assets/*.map` (sourcemaps shouldn't ship), and `*.DS_Store`.
+- **Don't clobber an existing `.shopifyignore`.** Reconcile toward these defaults and report what changed rather than overwriting. Leave `config/settings_schema.json` and `locales/*.json` tracked — those are theme code, not merchant data.
 
 ## Package Scripts
 
