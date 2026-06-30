@@ -68,7 +68,9 @@ Keyboard shortcuts attached to `window` silently break when the component is ren
 useEffect(() => {
   const win = ref.current?.ownerDocument.defaultView || window;
   const onKey = (e) => {
-    if (e.metaKey && e.key === "d") { e.preventDefault(); toggleTheme(); }
+    // Use a non-reserved combo: bare Cmd+<key> chords are browser shortcuts
+    // (Cmd+D bookmark, Cmd+S save, Cmd+P print) — don't preventDefault those.
+    if (e.metaKey && e.shiftKey && e.key.toLowerCase() === "k") { e.preventDefault(); toggleTheme(); }
   };
   win.addEventListener("keydown", onKey);
   return () => win.removeEventListener("keydown", onKey);
@@ -100,7 +102,7 @@ function middleTruncate(path, max = 40) {
 In specialized tools, offer single-key shortcuts alongside modifier combos. Chording is physically costly for users with motor limitations; a bare key cuts the effort. Scope them so they don't fire while typing in inputs.
 ```js
 document.addEventListener("keydown", (e) => {
-  if (e.target.matches("input, textarea, [contenteditable]")) return;
+  if (e.target.closest("input, textarea, [contenteditable]")) return; // closest: also nested rich-text nodes
   if (e.metaKey || e.ctrlKey || e.altKey) return; // let native chords through
   if (e.key === "/") openSearch();
 });

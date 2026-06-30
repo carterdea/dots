@@ -48,7 +48,7 @@ Prefer `brew`/`go install` — both land `greenlight` on `PATH` directly. The re
 
 Fix in order:
 
-1. `CRITICAL`: must fix before submission.
+1. `CRITICAL` (and any higher blocking tier — `BLOCK` from `verify`, or `HIGH` if your Greenlight build emits it): must fix before submission.
 2. `WARN`: high rejection risk, strongly recommended to fix.
 3. `INFO`: best-practice improvements.
 
@@ -72,7 +72,7 @@ Common fixes:
 greenlight preflight .
 ```
 
-Continue until output reports GREENLIT (zero `CRITICAL` findings).
+Continue until output reports GREENLIT — zero `CRITICAL` findings, and zero of any higher blocking tier your Greenlight build reports (`BLOCK`/`HIGH`). Don't declare readiness on `CRITICAL` alone if the report still lists blocking findings under another label.
 
 ## Step 4: Verify Runtime Flows (when present)
 
