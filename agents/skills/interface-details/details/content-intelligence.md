@@ -57,8 +57,12 @@ const annotated = text.replace(/(\d+)°F/g, (m, f) => `${m} (${Math.round((f - 3
 ### 8. Respect whitespace on cut and paste
 When cutting or pasting words in space-delimited languages, fix up the surrounding spaces so the user never lands on doubled or missing whitespace. A 1984-era Mac detail that still trips up most editors. Skip for languages without word spaces (Chinese, Japanese, Thai).
 ```js
-// deleting a word: collapse the leftover double space
-text = text.replace(/  +/g, ' ').replace(/ ([.,!?])/g, '$1');
+// Fix only the seam left by deleting [start, end). Normalizing the whole field
+// would collapse intentional spacing elsewhere (code, email, pre-formatted text).
+const left = text.slice(0, start).replace(/ +$/, "");
+const right = text.slice(end).replace(/^ +/, "");
+const joiner = !left || !right || /^[.,!?]/.test(right) ? "" : " ";
+text = left + joiner + right;
 ```
 
 ### 9. Tap an amount in a photo to convert it

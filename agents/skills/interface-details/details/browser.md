@@ -59,8 +59,12 @@ Almost anything on the page can respond to light/dark mode — not just colors. 
 Encode filters, search query, sort, view mode, selection, and even scroll position as URL params. The view becomes shareable, bookmarkable, and survives back-button and refresh — a saved URL is a snapshot of a configuration, not just a destination. For one-way data it also avoids a database round-trip entirely.
 
 ```js
-const params = new URLSearchParams({ q: query, sort, view });
-history.replaceState(null, "", `?${params}`);
+// Start from the current URL so existing query params and #hash (auth/preview
+// state, feature flags, section anchor) survive — set only the keys this control
+// owns rather than replacing the whole query string.
+const url = new URL(location.href);
+for (const [k, v] of Object.entries({ q: query, sort, view })) url.searchParams.set(k, v);
+history.replaceState(null, "", url);
 ```
 
 ### 6. Serve from the apex domain

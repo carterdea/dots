@@ -54,8 +54,8 @@ A disabled button that simply ignores clicks feels broken. A quick horizontal sh
 ```
 ```js
 btn.addEventListener("click", (e) => {
+  e.preventDefault(); // JS owns the action — a submit button must not also submit natively
   if (btn.getAttribute("aria-disabled") === "true") {
-    e.preventDefault(); // aria-disabled won't stop a native form submit
     btn.classList.remove("clicked");
     void btn.offsetWidth; // reflow so the animation restarts on each click
     btn.classList.add("clicked");
