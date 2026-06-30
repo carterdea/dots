@@ -132,8 +132,10 @@ These steps apply when `shopify.theme.toml` exists (or the repo otherwise uses t
 
 Theme commands authenticate interactively (collaborator/OAuth) or with a **Theme Access password** (`shptka_…`, from the Theme Access app). The password is the path for CI and scripted runs. The CLI reads it from the `SHOPIFY_CLI_THEME_TOKEN` environment variable (the `--password` flag's env form).
 
-- **Never commit the token.** If `shopify.theme.toml` (or any committed file) contains a literal `password = "shptka_…"`, treat it as a leaked secret: move the value into `.env` as `SHOPIFY_CLI_THEME_TOKEN`, delete the `password` line from the toml, and tell the user to **rotate it** in the Theme Access app — it's already in git history. Keep `store` and `theme` in the toml; only the secret moves out.
-- **If a token is available** (the user provides one, or you just migrated one), write `SHOPIFY_CLI_THEME_TOKEN=shptka_…` to `.env`. **Never invent a token.** If none exists, write only `.env.example` and tell the user to create one in the Theme Access app and drop it into `.env`.
+- **Never commit the token.** If `shopify.theme.toml` (or any committed file) contains a literal `password = "shptka_…"`, treat it as a leaked secret: move the value into `.env`, delete the `password` line from the toml, and tell the user to **rotate it** in the Theme Access app — it's already in git history. Keep `store` and `theme` in the toml; only the secret moves out.
+- **One environment (or all environments share a store/token):** write `SHOPIFY_CLI_THEME_TOKEN=shptka_…` to `.env`. The CLI uses it for every environment.
+- **Multiple environments with distinct stores/tokens:** do **not** collapse them into one process-wide `SHOPIFY_CLI_THEME_TOKEN` — that authenticates every store with the same token, and `shopify theme push -e staging -e production` would then misauth or skip an environment. Store each environment's token under its own key (e.g. `SHOPIFY_CLI_THEME_TOKEN_STAGING`, `…_PRODUCTION`) in `.env`, and select per command with `shopify theme push -e staging --password "$SHOPIFY_CLI_THEME_TOKEN_STAGING"` (or a small wrapper that exports the matching token before each run).
+- **Never invent a token.** If none exists, write only `.env.example` and tell the user to create one in the Theme Access app and drop it into `.env`.
 - Write `.env.example` from `resources/env.shopify.example` so the variable is documented for the next contributor.
 - Ensure `.gitignore` ignores `.env` / `.env.*` but keeps `!.env.example` (handled in Files To Write).
 - **Loading:** the CLI does not auto-load `.env` for theme commands — it reads the live environment. Tell the user to load it via direnv (`.envrc` containing `dotenv`) or `set -a; source .env; set +a` before running `shopify` commands, and to set it as a masked secret in CI.
@@ -142,8 +144,9 @@ Theme commands authenticate interactively (collaborator/OAuth) or with a **Theme
 
 `.shopifyignore` at the theme root tells `shopify theme push`/`pull` which **theme** files to skip. Patterns are bare paths, `*` wildcards, or `/regex/`. Scope note: push only touches the standard theme folders (`assets`, `blocks`, `config`, `layout`, `locales`, `sections`, `snippets`, `templates`) — repo tooling like `node_modules/`, `src/`, `scripts/`, and `.github/` is never pushed, so it doesn't belong here.
 
-- Write `resources/shopifyignore.default` to `.shopifyignore` when missing. Defaults: `config/settings_data.json` (push overwrites — and without `--nodelete`, deletes — remote files from your local copy, so syncing it clobbers the live store's customizer settings), `assets/*.map` (sourcemaps shouldn't ship), and `*.DS_Store`.
-- **Don't clobber an existing `.shopifyignore`.** Reconcile toward these defaults and report what changed rather than overwriting. Leave `config/settings_schema.json` and `locales/*.json` tracked — those are theme code, not merchant data.
+- Write `resources/shopifyignore.default` to `.shopifyignore` when missing. Defaults: `assets/*.map` (sourcemaps shouldn't ship) and `*.DS_Store`.
+- **`.shopifyignore` is bidirectional — it blocks both push and pull.** Do **not** default-ignore `config/settings_data.json`: it would also block *pulling* the live store's customizer settings (e.g. the `shopify-theme-pull` workflow's `pull --only config/settings_data.json`). To stop a push from clobbering merchant settings, pass `--ignore config/settings_data.json` on the push command instead.
+- **Don't clobber an existing `.shopifyignore`.** Reconcile toward these defaults and report what changed rather than overwriting. Leave `config/settings_schema.json` and `locales/*.json` tracked — those are theme code.
 
 ## Package Scripts
 
@@ -226,7 +229,7 @@ Default accessibility gate:
 - Use WCAG A/AA tags: `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa` when supported
 - Cover home, collection, product, cart, search, mobile navigation, drawer/modal states when URLs/selectors are known
 - Configure scanned paths with `SHOPIFY_A11Y_PATHS`, a comma-separated list such as `/,/collections/all,/products/example-product`
-- On a violation, the spec writes full axe JSON to `SHOPIFY_A11Y_OUT` (default `test-results/a11y/<page>.json`) and fails with a compact summary (counts by impact + top rules + artifact path). The agent reads the artifact only when it needs node-level detail — keeping a noisy a11y run from flooding context.
+- On a violation, the spec writes full axe JSON into the `SHOPIFY_A11Y_OUT_DIR` *directory* (default `test-results/a11y/`, one `<index>-<page>.json` per scanned path) and fails with a compact summary (counts by impact + top rules + artifact path). The agent reads a file only when it needs node-level detail — keeping a noisy a11y run from flooding context. `SHOPIFY_A11Y_OUT_DIR` must be a directory, not a file path.
 
 Do not add ESLint only for accessibility if the repo is Biome-first and mostly Liquid. Do not add WAVE to the default baseline; WAVE's API path needs API credits or a licensed stand-alone engine, so it belongs in a separate paid/enterprise workflow. Consider `pa11y-ci` or `html-validate` only as optional extensions when the user asks for deeper URL/sitemap or rendered-HTML validation.
 

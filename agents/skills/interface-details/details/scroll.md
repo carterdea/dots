@@ -71,7 +71,11 @@ When content scrolls beneath a sticky header, a flat white-to-transparent gradie
 ### 8. Provide a scroll landmark back to the top
 Long pages need a discoverable, persistent way back to the top that also remembers where the user was. Platform shortcuts (iOS status-bar tap, Home key) are device-specific, undiscoverable, and can't return to the original position.
 ```jsx
-<button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+<button onClick={() => {
+  // smooth scroll is a vestibular trigger on long pages — honor reduced motion
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+}}>
   ↑ Top
 </button>
 ```
