@@ -45,7 +45,8 @@ const id = `${project.prefix}-${project.nextSequence++}`; // "DTD-123"
 ### 7. Offer inline unit conversion
 Detect units — temperature, distance, weight, currency — in text and offer inline conversion to the user's preferred system. Kills mental math and app-switching at the point of reading.
 ```js
-text.replace(/(\d+)°F/g, (m, f) => `${m} (${Math.round((f - 32) * 5 / 9)}°C)`);
+// replace() is non-mutating — assign the result, or the UI keeps the original text.
+const annotated = text.replace(/(\d+)°F/g, (m, f) => `${m} (${Math.round((f - 32) * 5 / 9)}°C)`);
 ```
 
 ### 8. Respect whitespace on cut and paste

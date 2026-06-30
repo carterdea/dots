@@ -35,10 +35,14 @@ brew install revylai/tap/greenlight
 # Go
 go install github.com/RevylAI/greenlight/cmd/greenlight@latest
 
-# Build from source
+# Build from source — make build only writes ./build/greenlight, which isn't on
+# PATH, so install it before returning to the app project to run the scan.
 git clone https://github.com/RevylAI/greenlight.git
 cd greenlight && make build
+sudo install build/greenlight /usr/local/bin/greenlight
 ```
+
+Prefer `brew`/`go install` — both land `greenlight` on `PATH` directly. The rest of this workflow runs from the app project, so a source build is only usable once its binary is on `PATH`.
 
 ## Step 2: Fix Findings
 

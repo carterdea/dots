@@ -87,8 +87,15 @@ const date = chrono.parseDate("next Friday"); // → Date
 ### 10. Auto-convert common character sequences
 Replace typed sequences with their intended glyphs as the user types — `->` becomes `→`, `--` becomes `—` (Notion and Linear both do this). Convert only unambiguous patterns so the editor feels smart without fighting the user.
 ```js
-input.addEventListener("input", () => {
-  input.value = input.value.replace(/->/g, "→");
+input.addEventListener("input", (e) => {
+  if (e.isComposing) return;            // don't rewrite mid-IME-composition
+  const next = input.value.replace(/->/g, "→");
+  if (next === input.value) return;
+  // Reassigning value jumps the caret to the end — restore it, adjusted for the
+  // length the replacement removed, so typing in the middle of the field works.
+  const caret = input.selectionStart - (input.value.length - next.length);
+  input.value = next;
+  input.setSelectionRange(caret, caret);
 });
 ```
 
