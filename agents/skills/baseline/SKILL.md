@@ -1,6 +1,6 @@
 ---
 name: baseline
-description: Install a quality baseline on a repo — linter, formatter, dead-code scanner, lefthook hooks, named local URLs (portless), and a context-efficient backpressure wrapper.
+description: Install a quality baseline on a repo — detect the stack (TS/JS, Python, or Ruby) and framework, then set up a linter, formatter, dead-code scanner, typechecker, git hooks (lefthook), CI, stable local-dev URLs (portless), and a context-efficient output wrapper, all with sane defaults.
 user-invocable: true
 ---
 
@@ -8,11 +8,7 @@ user-invocable: true
 
 First-pass guardrails for vibe-coded repos. Detects the stack and framework, installs the standard toolchain with sane defaults, wires git hooks, installs portless for stable local-dev URLs, drops in a backpressure helper for agent-friendly output.
 
-## When to use
-
-- Fresh repo with no linter / formatter / hooks.
-- Vibe-coded codebase that needs a quality floor before more work lands.
-- Re-running on a repo to fill in missing pieces — checks what exists, installs only what is missing.
+Safe to re-run: it checks what exists and installs only what's missing.
 
 ## Non-goals
 
@@ -58,9 +54,9 @@ Marker files:
 | FastAPI           | `fastapi` in deps                                   | Ruff preset: `FAST` + `ASYNC` + `B` + `SIM` + `UP` + `I` + `S`      |
 | Rails             | `config/application.rb`                             | `rubocop-rails` gem; `require: rubocop-rails` in config             |
 
-Fallow auto-detects most framework plugins from `package.json` — no config needed if a plugin exists. It covers 90+ frameworks (Next, Nuxt, Remix, SvelteKit, Astro, Vite, Vitest, Nest, Storybook, Tailwind, ESLint, TypeScript, etc.).
+Fallow auto-detects framework plugins from `package.json` — no config needed if a plugin exists.
 
-Biome has first-class `nextjs`/`react`/`test`/`solid` domains in v2+. For NestJS and Hono, Biome recommended is enough — no dedicated domain exists; Fallow handles dead-code detection there.
+Biome has first-class `nextjs`/`react`/`test`/`solid` domains in v2+. For NestJS and Hono, Biome recommended is enough; Fallow handles dead-code detection there.
 
 ### 3. Install linter (skip if present)
 
@@ -167,13 +163,9 @@ Skip if `fallow.json`, `fallow.jsonc`, `fallow.toml`, or `fallow` key in `packag
 bun add -d fallow
 ```
 
-**Always install fallow even when a knip config exists.** The hook and CI templates this skill writes call `bunx fallow`, so a pre-existing `knip.json` does not exempt the repo from needing `fallow` in `devDependencies`. Log a one-line migration hint pointing the user at `bunx fallow migrate` to convert their existing knip config, but proceed with the fallow install regardless. Leave the knip config in place — the user can delete it (and the `knip` dev dep) after they're satisfied with the migration. Don't auto-remove `knip`.
+Install fallow even when a `knip` config exists — the hook and CI templates call `bunx fallow`. Log a one-line hint at `bunx fallow migrate` to convert an existing knip config, but leave knip in place; the user removes it later. Don't auto-remove `knip`.
 
-Fallow is a Rust-native codebase analyzer (the same niche as knip, ~3–14× faster, no Node runtime overhead at exec time). It finds unused files, exports, dependencies, types, enum / class members, circular dependencies, duplicate exports, and unresolved imports. It also offers duplication detection (`fallow dupes`) and a complexity report (`fallow health`) — baseline doesn't wire those into hooks by default but they're available.
-
-Fallow auto-detects common frameworks (Next, Nuxt, Remix, Vite, Vitest, Nest, Astro, SvelteKit, Storybook, Tailwind, ESLint, Playwright, Cypress). For Hono and other frameworks without a named plugin, fallow still works via entry-point detection from `package.json` `bin` / `main` / `exports`.
-
-Hook / CI commands use `bunx fallow` (full audit: dead code + duplication + circular deps + complexity). Runs sub-second on most projects and matches the "comprehensive checks on push" principle. Use `bunx fallow dead-code` if a repo needs to scope down (legacy code with high duplication that would flood the report).
+Hook / CI commands use `bunx fallow` (full audit). Use `bunx fallow dead-code` to scope down on legacy repos that would flood the report.
 
 ### 5. Install lefthook
 
@@ -231,6 +223,8 @@ Copy `scripts/run_silent.sh` into the target repo at `scripts/run_silent.sh` (cr
 
 Skip if the file already exists.
 
+Ensure the repo's `.gitignore` ignores test/QA artifacts — append `test-results/` and `qa/` if missing. Append only; never rewrite existing entries.
+
 **First, reconcile the agent-instructions file to a single source of truth.** The point is the user maintains *one* file, not two copies that drift. **`CLAUDE.md` is always canonical; `AGENTS.md` is only ever a symlink to it.** Decide per what's at the repo root:
 
 - **`AGENTS.md` exists as a regular file** (not a symlink) → **stop the agent-instructions reconcile** (the rest of baseline still runs). Do not clobber, append to, or convert it — merging is a non-goal. Log: "AGENTS.md is a real file — merge it into CLAUDE.md, replace it with `ln -s CLAUDE.md AGENTS.md`, then re-run baseline." Skip the snippet appends below.
@@ -255,21 +249,19 @@ Never append the TS snippet to a Python or Ruby repo — match the stack you det
 - Python → `resources/agent-instructions.portless.py.snippet.md` (`portless run uv run uvicorn ... --port $PORT`)
 - Ruby   → `resources/agent-instructions.portless.rb.snippet.md` (`portless run bundle exec rails server -p $PORT`)
 
-**Per-stack idempotency**: each snippet starts with a hidden HTML-comment sentinel — `<!-- baseline:portless:ts -->`, `<!-- baseline:portless:py -->`, `<!-- baseline:portless:rb -->`. Skip the append for a given stack only if that exact sentinel is already in the canonical file. This matters in **mixed-stack monorepos**: with a generic `portless` marker, the first stack's snippet would block every subsequent stack's snippet. Per-stack sentinels let TS + Python (or any combination) coexist in the same canonical file.
+**Per-stack idempotency**: each snippet starts with a hidden HTML-comment sentinel — `<!-- baseline:portless:ts -->`, `<!-- baseline:portless:py -->`, `<!-- baseline:portless:rb -->`. Skip the append for a given stack only if that exact sentinel is already in the canonical file. Per-stack (not generic) sentinels let multiple stacks coexist in one mixed-stack monorepo file.
 
-Why: the wrapper is invisible unless agents know to use it. Putting a short pointer in the target repo's agent-instructions file means any agent that reads them (Claude Code, Codex, OpenCode, Cursor) discovers the helper on first pass.
+The pointer makes the otherwise-invisible wrapper discoverable to any agent that reads the repo's instructions (Claude Code, Codex, OpenCode, Cursor).
 
 ### 8. Install portless (runtime ports — all stacks)
 
-Portless replaces `localhost:<random-port>` with stable `https://<project>.localhost` URLs for local dev. It's a global binary (Node), so it works across TS/JS, Python, and Ruby projects from the same install.
+Portless gives every project stable `https://<project>.localhost` dev URLs instead of `localhost:<random-port>`. One global Node binary serves TS/JS, Python, and Ruby.
 
-**Why we install it by default:**
+How it works:
 
-- Stable URL across restarts → cookies, `localStorage`, OAuth redirect URIs, CORS allowlists, and `.env` files don't break when ports shuffle.
-- Deterministic for AI agents — `https://myapp.localhost` is unambiguous, while "I think the server is on 3000? or 3001?" is not.
-- Git worktrees get auto-prefixed subdomains (`fix-ui.myapp.localhost`) with zero config. Each worktree is independently addressable — critical for parallel agent workflows.
-- Auto-injects `PORT=<random 4000–4999>` and `HOST=127.0.0.1` into the child process. JS frameworks (Next, Express, Nuxt) read `PORT` automatically; Vite / Astro / React Router / Angular / Expo / RN get `--port` and `--host` injected directly. Python / Ruby commands must reference `$PORT` explicitly on the command line — see the per-stack snippets in step 7.
-- HTTPS by default with a locally-trusted CA — first run does `portless trust` automatically (sudo on macOS / Linux for port 443).
+- Auto-injects `PORT=<random 4000–4999>` and `HOST=127.0.0.1` into the child process. Next / Express / Nuxt read `PORT`; Vite / Astro / React Router / Angular / Expo / RN get `--port` and `--host` injected. Python / Ruby commands reference `$PORT` explicitly — see the per-stack snippets in step 7.
+- Git worktrees get auto-prefixed subdomains (`fix-ui.myapp.localhost`), so parallel agents each get a distinct URL.
+- HTTPS via a locally-trusted CA (`portless trust`).
 
 **Skip condition**: `portless` already on `$PATH` (`command -v portless`). Otherwise:
 
@@ -277,7 +269,7 @@ Portless replaces `localhost:<random-port>` with stable `https://<project>.local
 bun add -g portless           # global; works for all stacks (Node binary)
 ```
 
-If bun isn't available (rare in this org's repos), fall back to `npm install -g portless`. Don't install per-repo as a dev dep — the binary serves every stack and every worktree from one install.
+If bun isn't available, fall back to `npm install -g portless`. Don't install per-repo as a dev dep — the binary serves every stack and every worktree from one install.
 
 **Trust the local CA only when interactive.** `portless trust` adds a CA to the system trust store and prompts for sudo; in headless / CI / non-TTY runs it can hang or fail, blocking the rest of baseline setup. Gate it:
 
@@ -289,7 +281,7 @@ else
 fi
 ```
 
-The proxy still works without CA trust — the browser just shows a one-time self-signed-cert warning per origin until the user runs `portless trust` later. That's a worse first-run UX, but it keeps `/baseline` finishing cleanly in agent / container runs.
+Without CA trust the proxy still works; the browser shows a one-time self-signed-cert warning per origin until the user runs `portless trust`.
 
 **Don't rewrite source files.** For TS/JS, keep `"dev": "next dev"` (or whatever it is) in `package.json` — portless reads that script. For Python / Ruby, don't change how the server is started in code; the change happens at the invocation layer (`portless run uv run uvicorn ...`). The per-stack snippet appended in step 7 gives agents the right invocation for the detected framework.
 
@@ -301,9 +293,9 @@ portless alias db 5432              # -> https://db.localhost
 portless alias --remove db          # to undo
 ```
 
-Aliases persist across stale-route cleanup, so they survive proxy restarts. For Docker Compose stacks, drop a small `scripts/portless-aliases.sh` that runs `portless alias` for each container after `docker compose up -d`. Don't auto-generate this file from the skill — leave it to the user since the alias names are project-specific.
+Aliases survive proxy restarts. For Docker Compose stacks, the user can add a `scripts/portless-aliases.sh` that runs `portless alias` per container after `docker compose up -d` — don't auto-generate it, since alias names are project-specific.
 
-**Pre-1.0 caveat.** Portless is pre-1.0 and the state directory format can change between releases. If a contributor's `portless trust` warning appears after an upgrade, re-run it. Log a single-line note about this when installing.
+**Pre-1.0 caveat.** Portless's state-directory format can change between releases; if a `portless trust` warning reappears after an upgrade, re-run it. Log a one-line note when installing.
 
 ### 9. GitHub Actions (quality gate)
 
