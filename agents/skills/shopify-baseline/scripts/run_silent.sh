@@ -47,7 +47,11 @@ run_silent() {
     fi
 
     printf "  \033[31m✗\033[0m %s\n" "$description"
-    printf "  \033[31mCommand failed:\033[0m %s\n" "$*"
+    # Redact secret-looking args (e.g. shopify --password "$SHOPIFY_CLI_THEME_TOKEN")
+    # so a failing command can't leak a token into logs/chat.
+    local shown
+    shown=$(printf '%s' "$*" | sed -E 's/(--(password|token|secret)[ =])[^ ]+/\1***/g; s/shptka_[A-Za-z0-9]+/shptka_***/g')
+    printf "  \033[31mCommand failed:\033[0m %s\n" "$shown"
     cat "$tmp_file"
     rm -f "$tmp_file"
     return "$exit_code"

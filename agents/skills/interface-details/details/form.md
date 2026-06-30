@@ -37,7 +37,9 @@ let composing = false;
 input.addEventListener("compositionstart", () => (composing = true));
 input.addEventListener("compositionend", () => (composing = false));
 input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !composing) submit();
+  // also check e.isComposing/keyCode 229: some IMEs fire compositionend before
+  // the Enter keydown that confirms the candidate, so `composing` is already false
+  if (e.key === "Enter" && !composing && !e.isComposing && e.keyCode !== 229) submit();
 });
 ```
 

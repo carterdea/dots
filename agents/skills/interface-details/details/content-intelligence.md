@@ -29,7 +29,10 @@ if (Math.abs(handleX - edgeX) < SNAP_THRESHOLD) handleX = edgeX;
 ### 4. Pre-flight user content for missing pieces
 Scan user content for omissions that will cause real harm — a missing unsubscribe link before sending a broadcast, "I've attached" with no attachment, a merge with unresolved conflicts — and block or warn before the irreversible action. This is poka-yoke: move the checklist off the user and onto the system.
 ```js
-if (action === 'send' && !/unsubscribe/i.test(emailHtml)) {
+// require a real link/merge tag, not just the word "unsubscribe" in the copy
+const hasUnsub = /href=(["'])[^"']*unsubscribe[^"']*\1/i.test(emailHtml)
+  || /\{\{\s*unsubscribe|%%unsubscribe%%|\*\|UNSUB\|\*/i.test(emailHtml);
+if (action === 'send' && !hasUnsub) {
   block('No unsubscribe link found — add one before sending.');
 }
 ```
