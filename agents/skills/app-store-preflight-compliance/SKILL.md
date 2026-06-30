@@ -77,9 +77,10 @@ GREENLIT only confirms flow-dependent guidelines *exist* in source. When the app
 ```bash
 greenlight verify . --dry-run            # show claimed flows + generated tests, no device
 
-# Registered Revyl build. Login-gated flows (account deletion, restore purchases)
-# need test credentials, or the run dead-ends unauthenticated and proves nothing.
-greenlight verify . --build-name "My App" --flows account-deletion \
+# Registered Revyl build. Runs every claimed flow by default; login-gated flows
+# (account deletion, restore purchases) need test credentials, or the run
+# dead-ends unauthenticated and proves nothing.
+greenlight verify . --build-name "My App" \
   --var email=<test account> --var password=<test password>
 
 # Local, unregistered build: upload it with --artifact. Revyl runs cloud
@@ -88,7 +89,7 @@ greenlight verify . --build-name "My App" --artifact ./build/MyApp.app \
   --var email=<test account> --var password=<test password>
 ```
 
-Flow names: `account-deletion` (§5.1.1), `restore-purchases` (§3.1.1), `sign-in-apple` (§4.8); only the flows the app actually claims are run. Unlike the static scanner, `verify` is opt-in and **not** offline — it runs on a cloud device via the `revyl` CLI (account required). Pass `--var` credentials for any login-gated flow and `--artifact` for a build that isn't already registered. The app is submission-ready only when `preflight` is GREENLIT **and** `verify` reports no failed flows; skip `verify` when none of those flows are present.
+`verify` runs **every** flow the app claims by default — keep it that way so no claimed flow goes unexercised; `--flows account-deletion` is only a deliberate narrowing knob for debugging a single flow. Flow names: `account-deletion` (§5.1.1), `restore-purchases` (§3.1.1), `sign-in-apple` (§4.8). Unlike the static scanner, `verify` is opt-in and **not** offline — it runs on a cloud device via the `revyl` CLI (account required). Pass `--var` credentials for any login-gated flow and `--artifact` for a build that isn't already registered. The app is submission-ready only when `preflight` is GREENLIT **and** `verify` reports no failed flows; skip `verify` when none of those flows are present.
 
 ## Useful Commands
 

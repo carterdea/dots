@@ -116,7 +116,7 @@ Copy these resources from this skill into the target repo when missing:
 
 Append `resources/agent-instructions.snippet.md` to existing root `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/*.mdc` if they do not already mention `run_silent.sh`. Do not create agent instruction files from scratch unless the user asks.
 
-Add `test-results/` (Playwright/axe artifacts) and `/qa/` (QA screenshots/reports) to `.gitignore` if not already ignored. Anchor `qa` to the repo root with the leading slash so an unanchored pattern doesn't also hide source dirs named `qa` at any depth.
+Add `test-results/` (Playwright/axe artifacts) and the QA artifact subdirectories `/qa/screenshots/` and `/qa/reports/` to `.gitignore` if not already ignored. Ignore the concrete subdirectories rather than the whole `qa/` tree, so a repo that source-controls QA automation under `qa/` keeps those files tracked.
 
 Resource templates default to Bun. In pnpm repos, rewrite `bun install`, `bun run`, and `bunx` to the pnpm equivalents before writing the file.
 

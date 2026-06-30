@@ -57,6 +57,18 @@ jobs:
         if: ${{ env.SHOPIFY_PREVIEW_URL != '' }}
         run: bun run check:a11y
 
+      # The axe check writes full per-node violation detail to test-results/a11y/
+      # and keeps the step log a compact summary. Upload it on failure so the
+      # failing selectors are inspectable instead of discarded with the runner.
+      - name: Upload axe reports
+        if: ${{ failure() && env.SHOPIFY_PREVIEW_URL != '' }}
+        # Pinned from actions/upload-artifact@v7.0.1 on 2026-06-30.
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: axe-a11y-reports
+          path: test-results/a11y/
+          if-no-files-found: ignore
+
       - name: Playwright accessibility skipped
         if: ${{ env.SHOPIFY_PREVIEW_URL == '' }}
         run: |

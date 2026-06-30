@@ -62,7 +62,7 @@ Do NOT use Chrome MCP (mcp__claude-in-chrome__*) when agent-browser is installed
    - Read the instruction and relevant source code
    - Navigate and interact using the selected browser tool (agent-browser or Playwright CLI)
    - Take a snapshot to inspect page state (`agent-browser snapshot -i` or equivalent)
-   - Screenshot the result and save to qa/
+   - Screenshot the result and save to `qa/screenshots/` (the baseline gitignores that subdir)
    - Pass: check it off `- [x] QA:`
    - Fail: leave unchecked, add a `> FAIL:` annotation describing what went wrong
    - Continue to next item regardless of pass/fail

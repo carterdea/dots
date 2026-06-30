@@ -33,8 +33,11 @@ run_silent() {
     if [ "$exit_code" -eq 0 ]; then
         # A check that opts out echoes "skipped: <reason>" and exits 0. Surface
         # that as its own status so an unrun scan never masquerades as a pass.
-        if head -n1 "$tmp_file" | grep -qi '^skipped:'; then
-            printf "  \033[33m⊘\033[0m %s (%s)\n" "$description" "$(head -n1 "$tmp_file")"
+        # bun/pnpm print a run banner before the script's own output, so the
+        # "skipped:" line isn't necessarily first — scan the whole capture.
+        local skip_line
+        if skip_line=$(grep -im1 '^skipped:' "$tmp_file"); then
+            printf "  \033[33m⊘\033[0m %s (%s)\n" "$description" "$skip_line"
             rm -f "$tmp_file"
             return 0
         fi
