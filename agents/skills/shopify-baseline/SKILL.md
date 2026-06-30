@@ -1,6 +1,6 @@
 ---
 name: shopify-baseline
-description: Install or upgrade a quality baseline for Shopify theme repos. Use this whenever the user asks to add Shopify theme linting, Biome, Theme Check, Playwright accessibility checks, Vitest, Vite build tooling, lefthook hooks, GitHub Actions CI, Shopify Lighthouse CI, Claude Code PR review workflows, or a context-efficient run_silent.sh setup across Shopify sites.
+description: Install or upgrade a quality baseline for Shopify Online Store 2.0 theme repos — Theme Check, Biome, Vite, Playwright + axe accessibility, optional Vitest, fallow dead-code, lefthook hooks, GitHub Actions CI, Shopify Lighthouse CI, Claude Code PR review, and a context-efficient run_silent.sh wrapper, with sane defaults.
 user-invocable: true
 ---
 
@@ -102,6 +102,7 @@ pnpm exec playwright install chromium
 Copy these resources from this skill into the target repo when missing:
 
 - `scripts/run_silent.sh` from `scripts/run_silent.sh`
+- `scripts/check.sh` from `scripts/check.sh`
 - `lefthook.yml` from `resources/lefthook.shopify.yml`
 - `.github/workflows/ci.yml` from `resources/github-actions.shopify-ci.yml`
 - `.github/workflows/claude-code-review.yml` from `resources/github-actions.claude-code-review.yml`
@@ -114,6 +115,8 @@ Copy these resources from this skill into the target repo when missing:
 - `.fallowrc.jsonc` from `resources/fallow.shopify.jsonc` **only when `src/` exists and fallow has no config** (see Fallow (Dead Code))
 
 Append `resources/agent-instructions.snippet.md` to existing root `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/*.mdc` if they do not already mention `run_silent.sh`. Do not create agent instruction files from scratch unless the user asks.
+
+Add `test-results/` (Playwright/axe artifacts) and `qa/` (QA screenshots/reports) to `.gitignore` if not already ignored.
 
 Resource templates default to Bun. In pnpm repos, rewrite `bun install`, `bun run`, and `bunx` to the pnpm equivalents before writing the file.
 
@@ -131,7 +134,7 @@ Default script shape after substitution:
 ```json
 {
   "scripts": {
-    "check": "<run> check:theme && <run> check:biome && <run> check:type && <run> check:dead-code && <run> check:test && <run> check:a11y",
+    "check": "bash scripts/check.sh",
     "check:theme": "shopify theme check",
     "check:biome": "biome check .",
     "check:type": "if [ -f tsconfig.json ]; then tsc --noEmit; fi",
@@ -143,19 +146,9 @@ Default script shape after substitution:
 }
 ```
 
-For pnpm repos, the script body should use `pnpm run ...`; for Bun repos, use `bun run ...`. Do not use npm or yarn as the package-manager fallback.
+For pnpm repos, the granular `check:*` bodies should use `pnpm run ...`; for Bun repos, use `bun run ...`. Do not use npm or yarn as the package-manager fallback.
 
-Use `scripts/run_silent.sh` for composite CI or agent-facing scripts:
-
-```bash
-source scripts/run_silent.sh
-run_silent "theme check" bun run check:theme
-run_silent "biome" bun run check:biome
-run_silent "typecheck" bun run check:type
-run_silent "dead code" bun run check:dead-code
-run_silent "vitest" bun run check:test
-run_silent "playwright axe" bun run check:a11y
-```
+`check` runs through `scripts/check.sh`, which sources `run_silent.sh` and wraps every `check:*` so a clean run is one line per check and only failures print output (the full failure log, so the agent has everything to diagnose; set `VERBOSE=1` to stream raw output live). This is the entry point CI and agents should call — never the raw `&&` chain, which floods context on every run. `check.sh` auto-detects pnpm vs Bun from `pnpm-lock.yaml`, so it needs no substitution.
 
 ## Biome Configuration
 
@@ -177,7 +170,7 @@ Fallow finds dead code by building a module graph from entry points. Shopify the
 
 - **Gate on `src/`.** Install and configure fallow **only when a `src/` directory of bundled JS source exists** (the kind Vite compiles into `assets/`). For loose-`assets/` themes with no `src/`, skip fallow entirely — every file would look unreachable (false positives), and theme scripts are usually side-effect IIFEs with no exports to analyze.
 - **Scope to public `src/` roots; never `assets/` or `dist/`.** `assets/` is build output or Liquid-referenced scripts with no import graph; `dist/` is generated. The shipped `resources/fallow.shopify.jsonc` starts from common bundler entry files (`src/theme.*`, `src/index.*`, `src/main.*`, `src/app.*`) and ignores `assets/`, `dist/`, and the Shopify-managed theme directories. If the repo uses different build entries, reconcile Fallow's `entry` list to those files before enabling it.
-- **Runs pre-push and in CI, not on commit** — like the `/baseline` skill, fallow has no staged-file mode. The `check:dead-code` script self-skips unless `src/` and a fallow config both exist, so it's safe to wire unconditionally.
+- **Runs pre-push and in CI, not on commit** — fallow has no staged-file mode. The `check:dead-code` script self-skips unless `src/` and a fallow config both exist, so it's safe to wire unconditionally.
 - **Don't clobber an existing fallow config.** If one exists, leave it; reconcile toward the `src/`-only scoping and report rather than overwriting.
 - The Shopify-shaped question fallow does **not** answer — "which `assets/*.js` is no longer referenced by any Liquid template" — needs a Liquid-aware grep, not fallow. Out of scope here.
 
@@ -213,6 +206,7 @@ Default accessibility gate:
 - Use WCAG A/AA tags: `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa` when supported
 - Cover home, collection, product, cart, search, mobile navigation, drawer/modal states when URLs/selectors are known
 - Configure scanned paths with `SHOPIFY_A11Y_PATHS`, a comma-separated list such as `/,/collections/all,/products/example-product`
+- On a violation, the spec writes full axe JSON to `SHOPIFY_A11Y_OUT` (default `test-results/a11y/<page>.json`) and fails with a compact summary (counts by impact + top rules + artifact path). The agent reads the artifact only when it needs node-level detail — keeping a noisy a11y run from flooding context.
 
 Do not add ESLint only for accessibility if the repo is Biome-first and mostly Liquid. Do not add WAVE to the default baseline; WAVE's API path needs API credits or a licensed stand-alone engine, so it belongs in a separate paid/enterprise workflow. Consider `pa11y-ci` or `html-validate` only as optional extensions when the user asks for deeper URL/sitemap or rendered-HTML validation.
 
@@ -248,67 +242,7 @@ Create or update three separate workflow surfaces:
 
 ### Shopify Lighthouse Credentials
 
-These credentials are easy to use but need an authenticated Shopify Dev Dashboard session. The app is created in the user's Shopify organization in Dev Dashboard, not inside an individual theme repo. Then it is installed on the selected benchmark store, which can be a dev store, client transfer store, or merchant-owned collaboration store if the organization has access.
-
-Prefer a supervised headed-browser setup for this API-only Lighthouse app: open the browser, let the user log in and complete 2FA, then automate the setup steps with the user's explicit approval.
-
-1. Open `https://dev.shopify.com/dashboard` in a headed browser.
-2. Ask the user to log in and complete any 2FA, organization selection, store selection, collaborator approval, or app install approval.
-3. Create a Dev Dashboard app for the benchmark store.
-4. Create/release a version with:
-   - app URL `https://shopify.dev/apps/default-app-home`
-   - the newest stable Webhooks API version offered by the UI
-   - scopes `read_products` and `write_themes`
-5. Install the app on the benchmark store and approve the scopes.
-6. Open the app Settings page and gather the Client ID and Client secret.
-
-Shopify CLI note:
-
-- Shopify CLI can create app projects and app records in the Dev Dashboard, for example with `shopify app init --name <name> --organization-id <org-id> --template <template>`.
-- Do not use CLI app scaffolding as the default Lighthouse credential path for theme repos. It creates a conventional app project and is heavier than needed for an API-only benchmark-store integration.
-- If the user specifically wants CLI-managed app configuration, create it outside the theme repo or in a clearly named separate app directory, then link/deploy app configuration intentionally. Still expect user auth/approval for the target store and secret handling.
-
-Automate the repo-side setup after those values are known:
-
-```bash
-gh secret set SHOP_STORE --body "<store>.myshopify.com"
-gh secret set SHOP_CLIENT_ID --body "<client-id>"
-gh secret set SHOP_CLIENT_SECRET --body "<client-secret>"
-# Only when the benchmark store is password protected:
-gh secret set SHOP_PASSWORD --body "<storefront-password>"
-```
-
-Secret-handling rule:
-
-- Do not print the Client secret in chat, logs, PRs, or files.
-- Prefer piping from the clipboard or a hidden prompt directly into `gh secret set`.
-- If the browser reveals the secret to the agent, immediately store it as `SHOP_CLIENT_SECRET`, avoid repeating it, and clear any temporary notes/clipboard when practical.
-
-Useful commands for secret capture:
-
-```bash
-# After the user copies the Client secret from the browser:
-pbpaste | gh secret set SHOP_CLIENT_SECRET
-
-# For non-secret values the agent may set directly:
-gh secret set SHOP_STORE --body "<store>.myshopify.com"
-gh secret set SHOP_CLIENT_ID --body "<client-id>"
-```
-
-The skill can infer or help gather:
-
-- `SHOP_STORE` from `shopify.theme.toml`, existing deploy workflows, or the user's supplied store domain.
-- `SHOPIFY_LIGHTHOUSE_PRODUCT_HANDLE` and `SHOPIFY_LIGHTHOUSE_COLLECTION_HANDLE` by browsing the preview/store and choosing representative stable pages. These are repository variables, not secrets:
-
-```bash
-gh variable set SHOPIFY_LIGHTHOUSE_PRODUCT_HANDLE --body "<product-handle>"
-gh variable set SHOPIFY_LIGHTHOUSE_COLLECTION_HANDLE --body "<collection-handle>"
-```
-
-The skill cannot safely automate:
-
-- Login, 2FA, organization selection, or any approval screen that requires the user's credentials or judgment.
-- Secret handling that would require printing the Client secret into conversation history.
+Gathering the benchmark-store secrets (`SHOP_STORE`, `SHOP_CLIENT_ID`, `SHOP_CLIENT_SECRET`) needs a supervised Dev Dashboard browser session and careful secret handling. See `references/lighthouse-credentials.md` for the full walkthrough; only read it when actually wiring up Lighthouse CI.
 
 3. `claude-code-review.yml`
    - Uses `anthropics/claude-code-action@v1`.
