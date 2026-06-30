@@ -75,11 +75,20 @@ Continue until output reports GREENLIT (zero `CRITICAL` findings).
 GREENLIT only confirms flow-dependent guidelines *exist* in source. When the app has account creation, in-app purchases, or social login, run the optional runtime tier before declaring it submission-ready — Apple rejects these flows for being broken, not just absent (e.g. account deletion §5.1.1(v)):
 
 ```bash
-greenlight verify . --dry-run                                  # show claimed flows + generated tests, no device
-greenlight verify . --build-name "My App" --flows account-deletion   # run a flow on a device
+greenlight verify . --dry-run            # show claimed flows + generated tests, no device
+
+# Registered Revyl build. Login-gated flows (account deletion, restore purchases)
+# need test credentials, or the run dead-ends unauthenticated and proves nothing.
+greenlight verify . --build-name "My App" --flows account-deletion \
+  --var email=<test account> --var password=<test password>
+
+# Local, unregistered build: upload it with --artifact. Revyl runs cloud
+# simulators, so pass a simulator .app (iOS) or .apk (Android) — NOT a device .ipa.
+greenlight verify . --build-name "My App" --artifact ./build/MyApp.app \
+  --var email=<test account> --var password=<test password>
 ```
 
-Flow names: `account-deletion` (§5.1.1), `restore-purchases` (§3.1.1), `sign-in-apple` (§4.8); only the flows the app actually claims are run. Unlike the static scanner, `verify` is opt-in and **not** offline — it runs on a cloud device via the `revyl` CLI (account + registered build required). Skip it when none of those flows are present.
+Flow names: `account-deletion` (§5.1.1), `restore-purchases` (§3.1.1), `sign-in-apple` (§4.8); only the flows the app actually claims are run. Unlike the static scanner, `verify` is opt-in and **not** offline — it runs on a cloud device via the `revyl` CLI (account required). Pass `--var` credentials for any login-gated flow and `--artifact` for a build that isn't already registered. The app is submission-ready only when `preflight` is GREENLIT **and** `verify` reports no failed flows; skip `verify` when none of those flows are present.
 
 ## Useful Commands
 

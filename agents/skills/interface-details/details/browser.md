@@ -11,9 +11,15 @@ How an app integrates with browser chrome, OS theming, URLs, link previews, and 
 The address bar shouldn't be a white strip. Match `<meta name="theme-color">` to the current background so the browser chrome merges with the app for a native-like, immersive feel. Update it dynamically on scroll, theme, or route changes — not just at load.
 
 ```js
-document
-	.querySelector('meta[name="theme-color"]')
-	.setAttribute("content", getComputedStyle(document.body).backgroundColor);
+// Create the tag if the page doesn't ship one — querySelector returns null
+// otherwise, and .setAttribute on null throws, breaking everything after it.
+let meta = document.querySelector('meta[name="theme-color"]');
+if (!meta) {
+	meta = document.createElement("meta");
+	meta.name = "theme-color";
+	document.head.appendChild(meta);
+}
+meta.setAttribute("content", getComputedStyle(document.body).backgroundColor);
 ```
 
 ### 2. Ship light/dark favicon variants
