@@ -56,7 +56,9 @@ Seed empty fields with realistic, editable sample values — not just gray place
 ### 6. Offer paste-from-clipboard near paste-heavy fields
 Add a one-tap paste button beside fields that usually receive pasted data — URLs, OTP codes, addresses. It removes the tap-hold-select-paste sequence, which is especially painful on touch.
 ```jsx
-<button onClick={async () => setValue(await navigator.clipboard.readText())}>
+// type="button" is required: inside a <form> a bare <button> defaults to
+// type="submit", so clicking Paste would submit the form before the read runs.
+<button type="button" onClick={async () => setValue(await navigator.clipboard.readText())}>
   Paste
 </button>
 ```
