@@ -17,10 +17,17 @@ Concentric corners must stay parallel. Set the inner radius to the outer radius 
 Mathematically centered isn't always perceptually centered — icons with visual weight on one side, triangles, and glyphs read as off-center. Blur or squint at the layout (watch a recording at 0.5x) and nudge until it sits right; misalignments that survive the blur are real.
 
 ### 3. Use an inset ring instead of a border on images
-A solid `border` adds a hard line that competes with the image and shifts layout by its width. A semi-transparent inset `box-shadow` sits inside the bounds, blends with light or dark content, and gives the edge a softer, more natural boundary.
+A solid `border` adds a hard line that competes with the image and shifts layout by its width. A semi-transparent inset ring sits inside the bounds, blends with light or dark content, and gives the edge a softer, more natural boundary. An inset `box-shadow` set directly on an `<img>` paints *behind* the replaced image content and never shows, so overlay it from a wrapper's `::after` instead.
 ```css
-img {
+.img-frame { position: relative; display: inline-block; }
+.img-frame img { display: block; border-radius: inherit; }
+.img-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
 }
 ```
 

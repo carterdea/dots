@@ -106,8 +106,10 @@ Don't hard-truncate or block typing at a visual boundary — let the value scrol
 ```
 
 ### 12. Combine magic-link and password into one login field
-Let a single field accept either an email (for a magic link) or a password, branching on what was entered instead of forcing the user to pick an auth method up front. One field reads as less work than a choice between two flows.
+Let a single field accept either an email (for a magic link) or a password, branching on what was entered instead of forcing the user to pick an auth method up front. One field reads as less work than a choice between two flows. Password auth still needs an account identifier, so reserve this one-field shortcut for a remembered-account or unlock screen where the email is already known.
 ```js
 const isEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value);
-isEmail ? sendMagicLink(value) : signInWithPassword(value);
+// knownEmail comes from the remembered session — a cold login still needs the
+// identifier collected before the password branch can authenticate.
+isEmail ? sendMagicLink(value) : signInWithPassword(knownEmail, value);
 ```

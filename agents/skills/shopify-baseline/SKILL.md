@@ -114,7 +114,7 @@ Copy these resources from this skill into the target repo when missing:
 - `biome.json` from `resources/biome.shopify.json` when Biome has no config (see Biome Configuration — never clobber an existing `biome.json`/`biome.jsonc`)
 - `.fallowrc.jsonc` from `resources/fallow.shopify.jsonc` **only when `src/` exists and fallow has no config** (see Fallow (Dead Code))
 
-Append `resources/agent-instructions.snippet.md` to existing root `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/*.mdc` if they do not already mention `run_silent.sh`. Do not create agent instruction files from scratch unless the user asks.
+Append `resources/agent-instructions.snippet.md` to existing root `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/*.mdc`. The snippet opens with a `<!-- shopify-baseline:run-silent -->` sentinel: if that marker block already exists, **replace it in place** so an upgrade from an older snippet learns the `bash scripts/check.sh` entry point; otherwise append. Key the idempotency skip on a `scripts/check.sh` mention, not merely `run_silent.sh` — older installs reference `run_silent.sh` but call the tools manually and would otherwise never pick up the new entry point. Do not create agent instruction files from scratch unless the user asks.
 
 Add `test-results/` (Playwright/axe artifacts) and the QA artifact subdirectories `/qa/screenshots/` and `/qa/reports/` to `.gitignore` if not already ignored. Ignore the concrete subdirectories rather than the whole `qa/` tree, so a repo that source-controls QA automation under `qa/` keeps those files tracked.
 
