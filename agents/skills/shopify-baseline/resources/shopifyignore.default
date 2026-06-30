@@ -22,10 +22,17 @@ package.json
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+bun.lock
 bun.lockb
 tsconfig.json
 biome.json
+biome.jsonc
 vite.config.*
+vitest.config.*
+playwright.config.*
+lefthook.yml
+.theme-check.yml
+.fallowrc.*
 .env*
 README*
 

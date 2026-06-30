@@ -47,7 +47,11 @@ Detect addresses, phone numbers, and links in document and message viewers and m
 ### 6. Use human-readable IDs
 For user-visible identifiers, generate readable project-scoped IDs like `DTD-123` instead of UUIDs or raw auto-increments — they're easy to remember, say aloud, and reference in conversation. For IDs users never see, like a database index, random strings are fine.
 ```js
-const id = `${project.prefix}-${project.nextSequence++}`; // "DTD-123"
+// Reserve the sequence atomically in durable storage (DB sequence / a
+// transaction with a unique constraint) — an in-memory counter reissues the
+// same visible ID under concurrent creates or after a restart.
+const seq = await db.nextSequence(project.id);
+const id = `${project.prefix}-${seq}`; // "DTD-123"
 ```
 
 ### 7. Offer inline unit conversion
