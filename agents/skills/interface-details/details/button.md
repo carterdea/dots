@@ -42,7 +42,7 @@ button.addEventListener("click", async () => {
 ```
 
 ### 5. Shake a disabled button when it's clicked
-A disabled button that simply ignores clicks feels broken. A quick horizontal shake acknowledges the attempt and reads as "not yet" — telling the user the control exists but isn't ready. Mark it with `aria-disabled`, **not** the `disabled` attribute: a truly disabled `<button>` receives no click events, so the handler could never add `.clicked` and the shake would never fire. Guard the real action behind the same flag.
+A disabled button that simply ignores clicks feels broken. A quick horizontal shake acknowledges the attempt and reads as "not yet" — telling the user the control exists but isn't ready. Mark it with `aria-disabled`, **not** the `disabled` attribute: a truly disabled `<button>` receives no click events, so the handler could never add `.clicked` and the shake would never fire. But `aria-disabled` is cosmetic — it doesn't block a submit button's native submission — so call `e.preventDefault()` in the not-ready branch (or make it `type="button"`), then guard the real action behind the same flag.
 ```css
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
@@ -52,8 +52,9 @@ A disabled button that simply ignores clicks feels broken. A quick horizontal sh
 .btn[aria-disabled="true"].clicked { animation: shake 0.2s ease; }
 ```
 ```js
-btn.addEventListener("click", () => {
+btn.addEventListener("click", (e) => {
   if (btn.getAttribute("aria-disabled") === "true") {
+    e.preventDefault(); // aria-disabled won't stop a native form submit
     btn.classList.remove("clicked");
     void btn.offsetWidth; // reflow so the animation restarts on each click
     btn.classList.add("clicked");
