@@ -50,7 +50,9 @@ A disabled button that simply ignores clicks feels broken. A quick horizontal sh
   25% { transform: translateX(-4px); }
   75% { transform: translateX(4px); }
 }
-.btn[aria-disabled="true"].clicked { animation: shake 0.2s ease; }
+@media (prefers-reduced-motion: no-preference) {
+  .btn[aria-disabled="true"].clicked { animation: shake 0.2s ease; }
+}
 ```
 ```js
 btn.addEventListener("click", (e) => {
