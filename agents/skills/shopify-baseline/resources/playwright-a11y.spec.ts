@@ -16,7 +16,7 @@ const outDir = process.env.SHOPIFY_A11Y_OUT ?? "test-results/a11y";
 
 test.skip(!baseUrl, "Set BASE_URL or SHOPIFY_PREVIEW_URL to run Shopify accessibility smoke tests.");
 
-for (const path of paths) {
+for (const [index, path] of paths.entries()) {
   test(`axe scan ${path}`, async ({ page }) => {
     const url = new URL(path, targetBaseUrl).toString();
     await page.goto(url, { waitUntil: "domcontentloaded" });
@@ -29,7 +29,9 @@ for (const path of paths) {
 
     const slug = path.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "root";
     mkdirSync(outDir, { recursive: true });
-    const artifact = `${outDir}/${slug}.json`;
+    // Prefix the loop index so distinct paths that normalize to the same slug
+    // (e.g. /foo-bar and /foo/bar) don't overwrite each other's report.
+    const artifact = `${outDir}/${index}-${slug}.json`;
     writeFileSync(artifact, JSON.stringify(violations, null, 2));
 
     const byImpact = violations.reduce<Record<string, number>>((acc, v) => {

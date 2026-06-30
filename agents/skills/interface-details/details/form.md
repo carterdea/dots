@@ -91,11 +91,14 @@ input.addEventListener("input", (e) => {
   if (e.isComposing) return;            // don't rewrite mid-IME-composition
   const next = input.value.replace(/->/g, "→");
   if (next === input.value) return;
-  // Reassigning value jumps the caret to the end — restore it, adjusted for the
-  // length the replacement removed, so typing in the middle of the field works.
-  const caret = input.selectionStart - (input.value.length - next.length);
+  // Reassigning value jumps the caret to the end. Each "->" collapses 2 chars
+  // into 1, so shift the caret left by the count of matches *before* it —
+  // replacements later in the field don't move the caret.
+  const caret = input.selectionStart;
+  const before = (input.value.slice(0, caret).match(/->/g) || []).length;
   input.value = next;
-  input.setSelectionRange(caret, caret);
+  const pos = caret - before;
+  input.setSelectionRange(pos, pos);
 });
 ```
 
