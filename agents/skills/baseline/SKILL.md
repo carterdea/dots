@@ -223,7 +223,7 @@ Copy `scripts/run_silent.sh` into the target repo at `scripts/run_silent.sh` (cr
 
 Skip if the file already exists.
 
-Ensure the repo's `.gitignore` ignores test/QA artifacts — append `test-results/` and `qa/` if missing. Append only; never rewrite existing entries.
+Ensure the repo's `.gitignore` ignores test/QA artifacts — append `test-results/` and `/qa/` if missing (anchor `qa` to the repo root with the leading slash so it doesn't also hide source dirs named `qa`, e.g. `tests/qa`). Append only; never rewrite existing entries.
 
 **First, reconcile the agent-instructions file to a single source of truth.** The point is the user maintains *one* file, not two copies that drift. **`CLAUDE.md` is always canonical; `AGENTS.md` is only ever a symlink to it.** Decide per what's at the repo root:
 
