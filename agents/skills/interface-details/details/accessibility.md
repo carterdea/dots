@@ -20,7 +20,12 @@ The focus ring is the only landmark keyboard users have to know which element En
 Tools invoked dozens of times a day should prioritize speed over spectacle — delight fades with repetition, and motion can trigger vestibular discomfort. Honor `prefers-reduced-motion` and trim transitions on high-frequency actions.
 ```css
 @media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important; /* without this, infinite spinners
+                                                just flicker faster, not less */
+    transition-duration: 0.01ms !important;
+  }
 }
 ```
 

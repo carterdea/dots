@@ -9,10 +9,11 @@ const paths = (process.env.SHOPIFY_A11Y_PATHS ?? "/")
   .map((path) => path.trim())
   .filter(Boolean);
 
-// Full violation detail lands here as JSON; the test failure message stays a
-// compact summary so a single bad page can't flood an agent's context. Read the
-// artifact when you need to dig into specific nodes.
-const outDir = process.env.SHOPIFY_A11Y_OUT ?? "test-results/a11y";
+// Full violation detail lands in this *directory* as one JSON file per scanned
+// path; the test failure message stays a compact summary so a single bad page
+// can't flood an agent's context. Read a file when you need node-level detail.
+// SHOPIFY_A11Y_OUT_DIR must be a directory, not a file path.
+const outDir = process.env.SHOPIFY_A11Y_OUT_DIR ?? "test-results/a11y";
 
 test.skip(!baseUrl, "Set BASE_URL or SHOPIFY_PREVIEW_URL to run Shopify accessibility smoke tests.");
 
