@@ -87,9 +87,13 @@ Hit areas must be at least 44px on mobile and 24px on desktop (WCAG 2.5.5/2.5.8)
 ```
 
 ### 8. Preserve meaningful parts in truncation
-Assistive tech reads the rendered string, so truncation must keep the load-bearing segments. For file paths, clip the middle and keep the start and filename rather than cutting off the end.
-```css
-.path { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; }
+Assistive tech reads the rendered string, so truncation must keep the load-bearing segments. For file paths, clip the middle and keep the start and filename rather than cutting off the end. A CSS `text-overflow: ellipsis` (even with `direction: rtl`) only clips one end — it can't keep both anchors, so middle-truncate in JS.
+```js
+function middleTruncate(path, max = 40) {
+  if (path.length <= max) return path;
+  const keep = Math.floor((max - 1) / 2);
+  return `${path.slice(0, keep)}…${path.slice(-keep)}`; // root … filename
+}
 ```
 
 ### 9. Offer single-key shortcuts as alternatives

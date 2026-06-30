@@ -91,8 +91,12 @@ function preflight(email) {
 	const warnings = [];
 	if (!email.body.includes("unsubscribe"))
 		warnings.push("No unsubscribe link");
-	if (/href="(?!https?:)/.test(email.body))
-		warnings.push("Broken or relative URL");
+	// Allow absolute http(s), mailto/tel, in-page anchors, and ESP merge tags
+	// ({{...}}, %%...%%, *|...|*); warn only on un-rewritten relative links so a
+	// valid campaign isn't blocked.
+	const safeHref = /^(https?:|mailto:|tel:|#|\{\{|%%|\*\|)/;
+	for (const m of email.body.matchAll(/href="([^"]*)"/g))
+		if (!safeHref.test(m[1])) warnings.push(`Suspicious link: ${m[1]}`);
 	return warnings; // block send while non-empty
 }
 ```
