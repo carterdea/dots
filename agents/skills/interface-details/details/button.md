@@ -35,7 +35,8 @@ Swap to a context-specific cursor when hovering an element with a distinct inter
 ### 4. Guard against duplicate clicks
 Disable the trigger the instant it fires so a rapid double-click or impatient repeat-tap can't submit a second order, message, or API call. Re-enable only after the request resolves.
 ```js
-button.addEventListener("click", async () => {
+button.addEventListener("click", async (e) => {
+  e.preventDefault(); // own the submit in JS so a form button doesn't also submit natively
   button.disabled = true;
   try { await submit(); } finally { button.disabled = false; }
 });
