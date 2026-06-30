@@ -46,7 +46,7 @@ A displayed email address has two jobs: launch the user's mail client, and let t
 ```html
 <span class="email">
   <a href="mailto:hi@example.com">hi@example.com</a>
-  <button aria-label="Copy email address"
+  <button type="button" aria-label="Copy email address"
           onclick="navigator.clipboard.writeText('hi@example.com')">⧉</button>
 </span>
 ```

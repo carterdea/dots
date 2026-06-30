@@ -124,7 +124,9 @@ A click on a disabled control must acknowledge the input. Silent no-ops read as 
 		transform: translateX(4px);
 	}
 }
-.btn[aria-disabled="true"].clicked {
-	animation: shake 0.25s ease;
+@media (prefers-reduced-motion: no-preference) {
+	.btn[aria-disabled="true"].clicked {
+		animation: shake 0.25s ease;
+	}
 }
 ```

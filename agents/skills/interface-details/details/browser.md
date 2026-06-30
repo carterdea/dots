@@ -67,7 +67,7 @@ for (const [k, v] of Object.entries({ q: query, sort, view })) {
   if (v == null || v === "") url.searchParams.delete(k); // don't write ?sort=undefined
   else url.searchParams.set(k, v);
 }
-history.replaceState(null, "", url);
+history.replaceState(history.state, "", url); // keep existing state (scroll keys, router metadata)
 ```
 
 ### 6. Serve from the apex domain

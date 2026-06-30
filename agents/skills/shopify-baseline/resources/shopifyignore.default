@@ -1,14 +1,33 @@
 # .shopifyignore — files Shopify CLI must not push or pull.
-# Syntax: bare paths (templates/*.bak), * wildcards (assets/*.map, *.DS_Store),
-# or /regex/ (/\.(zip|tar)$/). Only theme files matter here — repo tooling like
-# node_modules/, src/, scripts/, and .github/ lives outside the theme folder
-# structure and is never pushed regardless.
+# Syntax: bare paths (templates/*.bak), * wildcards (*.jpg, config/*_secret.json),
+# or /regex/ (/\.(zip|tar)$/).
 #
 # NOTE: .shopifyignore is bidirectional — it blocks both push AND pull. Don't
 # list config/settings_data.json here: it would also block pulling the live
 # store's customizer settings (e.g. the shopify-theme-pull workflow). To keep a
 # push from clobbering merchant settings, pass `--ignore config/settings_data.json`
-# on the push command instead of ignoring it both ways.
+# on the push command instead.
+
+# Repo tooling and source that aren't theme files — keep the CLI from pushing
+# them to the live theme (or touching them on pull). Reconcile to your repo's
+# actual layout.
+node_modules/**
+src/**
+scripts/**
+tests/**
+test-results/**
+.github/**
+.git/**
+package.json
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lockb
+tsconfig.json
+biome.json
+vite.config.*
+.env*
+README*
 
 # Build leftovers that shouldn't ship to the live theme.
 assets/*.map
