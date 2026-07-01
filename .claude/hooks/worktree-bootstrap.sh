@@ -6,7 +6,11 @@
 # globally on every SessionStart. Never fails the session (always exits 0).
 set -uo pipefail
 
-WT="${CLAUDE_PROJECT_DIR:-$PWD}"
+# Normalize to the worktree's own root: launching from a subdirectory of the
+# main checkout would otherwise leave WT as the subdir while MAIN resolves to the
+# repo root, and the main repo would be misread as a linked worktree.
+WT="$(git -C "${CLAUDE_PROJECT_DIR:-$PWD}" rev-parse --show-toplevel 2>/dev/null)" || exit 0
+[ -n "$WT" ] || exit 0
 
 common_git_dir="$(git -C "$WT" rev-parse --git-common-dir 2>/dev/null)" || exit 0
 case "$common_git_dir" in
@@ -39,10 +43,13 @@ done < <(
 
 # Install deps only when missing and a JS project is present.
 if [ -f "$WT/package.json" ] && [ ! -d "$WT/node_modules" ]; then
-  if [ -f "$WT/bun.lock" ] || [ -f "$WT/bun.lockb" ]; then install="bun install"
-  elif [ -f "$WT/pnpm-lock.yaml" ]; then install="pnpm install"
-  elif [ -f "$WT/yarn.lock" ]; then install="yarn install"
-  elif [ -f "$WT/package-lock.json" ]; then install="npm install"
+  # Lockfile-respecting installs: don't rewrite the lockfile or resolve newer
+  # metadata during startup, which would leave the fresh worktree dirty. The
+  # bare fallback (no lockfile) stays a plain install — nothing to freeze.
+  if [ -f "$WT/bun.lock" ] || [ -f "$WT/bun.lockb" ]; then install="bun install --frozen-lockfile"
+  elif [ -f "$WT/pnpm-lock.yaml" ]; then install="pnpm install --frozen-lockfile"
+  elif [ -f "$WT/yarn.lock" ]; then install="yarn install --frozen-lockfile"
+  elif [ -f "$WT/package-lock.json" ]; then install="npm ci"
   else install="bun install"; fi
   echo "worktree-bootstrap: installing deps ($install)..."
   (cd "$WT" && eval "$install") || echo "worktree-bootstrap: dep install failed (continuing)"

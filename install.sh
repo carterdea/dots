@@ -221,6 +221,16 @@ install_claude() {
         chmod +x "$DOTFILES_DIR/.claude/statusline-command.sh"
     fi
 
+    # Install hooks (settings.json points SessionStart at ~/.claude/hooks/*)
+    if [[ -d "$DOTFILES_DIR/.claude/hooks" ]]; then
+        for hook in "$DOTFILES_DIR/.claude/hooks"/*.sh; do
+            if [[ -f "$hook" ]]; then
+                [[ "$DRY_RUN" == false ]] && chmod +x "$hook"
+                create_symlink "$hook" "$HOME/.claude/hooks/$(basename "$hook")"
+            fi
+        done
+    fi
+
     # Create settings.local.json if it doesn't exist
     if [[ ! -f "$HOME/.claude/settings.local.json" ]]; then
         if [[ "$DRY_RUN" == false ]]; then
