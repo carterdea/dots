@@ -10,9 +10,9 @@ Run Greenlight checks, fix findings, and repeat until the project reaches GREENL
 ## Workflow
 
 1. Run `greenlight preflight` at the project root.
-2. Triage findings by severity (`CRITICAL`, then `WARN`, then `INFO`).
+2. Triage findings by severity: blocking tiers first (`CRITICAL`, plus `BLOCK`/`HIGH` if your Greenlight build emits them), then `WARN`, then `INFO`.
 3. Apply concrete code/configuration fixes.
-4. Re-run and continue until no `CRITICAL` findings remain.
+4. Re-run and continue until no blocking findings remain.
 
 ## Step 1: Run Scan
 

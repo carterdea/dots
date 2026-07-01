@@ -25,11 +25,14 @@ Shopify CLI note:
 Automate the repo-side setup after those values are known:
 
 ```bash
+# Non-secret values are fine inline.
 gh secret set SHOP_STORE --body "<store>.myshopify.com"
 gh secret set SHOP_CLIENT_ID --body "<client-id>"
-gh secret set SHOP_CLIENT_SECRET --body "<client-secret>"
+# Secrets: omit --body so gh reads the value from stdin/prompt, never argv (which
+# leaks into shell history and process listings). Paste when prompted, or pipe:
+gh secret set SHOP_CLIENT_SECRET          # or: pbpaste | gh secret set SHOP_CLIENT_SECRET
 # Only when the benchmark store is password protected:
-gh secret set SHOP_PASSWORD --body "<storefront-password>"
+gh secret set SHOP_PASSWORD               # paste when prompted
 ```
 
 Secret-handling rule:

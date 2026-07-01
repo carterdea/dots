@@ -72,11 +72,14 @@ warn() { printf '  %s⚠ %s%s\n' "$YELLOW" "$1" "$RESET"; }
 open_url() {
   local url="$1"
   printf '  %s↗ opening%s %s\n' "$GREEN" "$RESET" "$url"
+  # The inner branch's own output is swallowed by the group redirect, so signal
+  # failure with a nonzero exit and let the outer warn (outside the redirect)
+  # surface the manual URL when no opener exists or the opener fails.
   { if   command -v wslview     >/dev/null 2>&1; then wslview "$url"
     elif command -v explorer.exe >/dev/null 2>&1; then explorer.exe "$url"
     elif command -v xdg-open    >/dev/null 2>&1; then xdg-open "$url"
     elif command -v open        >/dev/null 2>&1; then open "$url"
-    else warn "couldn't open a browser — visit it manually: $url"; fi
+    else false; fi
   } >/dev/null 2>&1 || warn "couldn't open a browser — visit it manually: $url"
 }
 
@@ -131,10 +134,26 @@ ask_secret() {
   printf -v "$key" '%s' "$input"
 }
 
+# _env_safety_check — warn once if ENV_FILE would leak captured secrets into
+# git. Adding .gitignore rules later doesn't untrack an already-committed file,
+# so a tracked .env re-commits the secret; an un-ignored .env invites it.
+_ENV_SAFETY_CHECKED=0
+_env_safety_check() {
+  [[ "$_ENV_SAFETY_CHECKED" == 1 ]] && return 0
+  _ENV_SAFETY_CHECKED=1
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  if git ls-files --error-unmatch "$ENV_FILE" >/dev/null 2>&1; then
+    warn "$ENV_FILE is tracked by git — captured values (incl. secrets) would be committed. Run 'git rm --cached $ENV_FILE' and rotate anything already pushed."
+  elif ! git check-ignore -q "$ENV_FILE" 2>/dev/null; then
+    warn "$ENV_FILE is not gitignored — add it to .gitignore before committing so captured secrets don't land in git."
+  fi
+}
+
 # write_env KEY VALUE — upsert KEY=VALUE into ENV_FILE (creates it; replaces
 # any existing line). Idempotent.
 write_env() {
   local key="$1" value="$2" tmp
+  _env_safety_check
   touch "$ENV_FILE"
   tmp=$(mktemp)
   grep -vE "^${key}=" "$ENV_FILE" > "$tmp" || true
