@@ -149,15 +149,34 @@ _env_safety_check() {
   fi
 }
 
-# write_env KEY VALUE — upsert KEY=VALUE into ENV_FILE (creates it; replaces
-# any existing line). Idempotent.
+# _shell_quote VALUE — emit a single-line shell-safe .env value.
+_shell_quote() {
+  local value="$1" escaped
+  if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then
+    return 1
+  fi
+  escaped="${value//\\/\\\\}"
+  escaped="${escaped//\"/\\\"}"
+  escaped="${escaped//\$/\\\$}"
+  escaped="${escaped//\`/\\\`}"
+  printf '"%s"' "$escaped"
+}
+
+# write_env KEY VALUE — upsert KEY="VALUE" into ENV_FILE (creates it; replaces
+# any existing line). Idempotent. Multiline values are rejected because they
+# would spill into additional .env entries.
 write_env() {
-  local key="$1" value="$2" tmp
+  local key="$1" value="$2" quoted tmp
   _env_safety_check
+  if ! quoted="$(_shell_quote "$value")"; then
+    warn "skipped $key — multiline values cannot be safely written to $ENV_FILE"
+    SKIPPED+=("$key in $ENV_FILE (multiline value)")
+    return 1
+  fi
   touch "$ENV_FILE"
   tmp=$(mktemp)
   grep -vE "^${key}=" "$ENV_FILE" > "$tmp" || true
-  printf '%s=%s\n' "$key" "$value" >> "$tmp"
+  printf '%s=%s\n' "$key" "$quoted" >> "$tmp"
   mv "$tmp" "$ENV_FILE"
   WRITTEN_ENV+=("$key")
   printf '  %s✓ wrote%s %s → %s\n' "$GREEN" "$RESET" "$key" "$ENV_FILE"

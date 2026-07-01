@@ -19,7 +19,9 @@ test.skip(!baseUrl, "Set BASE_URL or SHOPIFY_PREVIEW_URL to run Shopify accessib
 
 for (const [index, path] of paths.entries()) {
   test(`axe scan ${path}`, async ({ page }, testInfo) => {
-    const url = new URL(path, targetBaseUrl).toString();
+    const base = new URL(targetBaseUrl);
+    const url = new URL(path, base);
+    if (!url.search && base.search) url.search = base.search;
     await page.goto(url, { waitUntil: "domcontentloaded" });
 
     const { violations } = await new AxeBuilder({ page })

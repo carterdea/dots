@@ -81,17 +81,21 @@ GREENLIT only confirms flow-dependent guidelines *exist* in source. When the app
 ```bash
 greenlight verify . --dry-run            # show claimed flows + generated tests, no device
 
-# Registered Revyl build. Runs every claimed flow by default; login-gated flows
-# (account deletion, restore purchases) need test credentials, or the run
-# dead-ends unauthenticated and proves nothing.
+# Registered Revyl build. Runs every claimed flow by default. Login-gated flows
+# need disposable test credentials; passing a real reusable password here exposes
+# it in shell history, process lists, and agent transcripts.
 greenlight verify . --build-name "My App" \
-  --var email=<test account> --var password=<test password>
+  --var email=<disposable test account> --var password=<disposable test password>
 
 # Local, unregistered build: upload it with --artifact. Revyl runs cloud
 # simulators, so pass a simulator .app (iOS) or .apk (Android) — NOT a device .ipa.
 greenlight verify . --build-name "My App" --artifact ./build/MyApp.app \
-  --var email=<test account> --var password=<test password>
+  --var email=<disposable test account> --var password=<disposable test password>
 ```
+
+If only real credentials exist, have the human run the verify command locally or
+use a non-echoed credential path supported by their tooling rather than placing
+the password in an agent-visible command.
 
 `verify` runs **every** flow the app claims by default — keep it that way so no claimed flow goes unexercised; `--flows account-deletion` is only a deliberate narrowing knob for debugging a single flow. Flow names: `account-deletion` (§5.1.1), `restore-purchases` (§3.1.1), `sign-in-apple` (§4.8). Unlike the static scanner, `verify` is opt-in and **not** offline — it runs on a cloud device via the `revyl` CLI (account required). Pass `--var` credentials for any login-gated flow and `--artifact` for a build that isn't already registered. The app is submission-ready only when `preflight` is GREENLIT **and** every claimed flow actually ran and passed under `verify` — not just "no failures." A flow that was skipped or couldn't run (missing credentials, build, or device) is unverified, not a pass, so don't declare the runtime tier green until each claimed flow has a passing result. Skip `verify` only when none of those flows are present.
 
