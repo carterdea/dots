@@ -9,7 +9,7 @@ object including its `gid` and `permalink_url`.
 ## Table of contents
 
 - [Global options](#global-options)
-- [fetch](#fetch) — resolve an app.asana.com URL to its task/project/comment
+- [Asana URLs](#asana-urls) — extract gids from app.asana.com links
 - [auth](#auth) — login / logout / whoami
 - [workspace](#workspace)
 - [task](#task) — create / list / get / update / move / complete / delete
@@ -41,13 +41,16 @@ object including its `gid` and `permalink_url`.
 
 ---
 
-## fetch
+## Asana URLs
 
-- `asana fetch <url>` — resolve an `app.asana.com` URL to its underlying resource and fetch it. Pass a pasted Asana link verbatim instead of extracting the gid and choosing a subcommand.
-  - A task URL (V0 `…/0/{project}/{task}` or V1 `…/1/{ws}/task/{task}`, with or without a trailing `/f` focus suffix) → the task (same output as `task get`).
-  - A project URL → the project (same as `project get`).
-  - A comment URL (`…/task/{task}/comment/{comment}`) → that task's comment list (same as `task comment list`; there is no single-comment fetch).
-  - An unrecognized or non-Asana URL → `INVALID_ASANA_URL` error, exit 1.
+There is no `asana fetch` command in the current PleaseAI Asana CLI. For pasted
+`app.asana.com` links, extract the numeric gid from the URL and call the matching
+resource command:
+
+- V0 task URL `https://app.asana.com/0/<project-gid>/<task-gid>` → `asana task get <task-gid>`
+- V1 task URL `https://app.asana.com/1/<workspace-gid>/task/<task-gid>` → `asana task get <task-gid>`
+- Project URL → use the project gid with `asana project get <project-gid>`
+- Comment URL → fetch the parent task with `asana task get <task-gid>` or list comments with `asana task comment list <task-gid>`
 
 ---
 

@@ -97,11 +97,25 @@ confirm() {
   [[ "$reply" =~ ^[Yy] ]]
 }
 
+# _env_unquote VALUE — decode values written by write_env so reruns don't keep
+# literal quotes as part of defaults or GitHub secrets.
+_env_unquote() {
+  local value="$1"
+  if [[ "$value" == \"*\" && "${value: -1}" == "\"" ]]; then
+    value="${value:1:${#value}-2}"
+    value="${value//\\\"/\"}"
+    value="${value//\\\$/\$}"
+    value="${value//\\\`/\`}"
+    value="${value//\\\\/\\}"
+  fi
+  printf '%s' "$value"
+}
+
 # _existing KEY — current value of KEY in ENV_FILE, if any.
 _existing() {
   [[ -f "$ENV_FILE" ]] || return 1
   local line; line=$(grep -E "^${1}=" "$ENV_FILE" | tail -n1) || return 1
-  printf '%s' "${line#*=}"
+  _env_unquote "${line#*=}"
 }
 
 # ask KEY "Prompt" — read a value into $KEY. Offers the existing .env value as
