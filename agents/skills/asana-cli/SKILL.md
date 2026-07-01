@@ -32,10 +32,9 @@ just run the command the user asked for — don't spend a turn on `auth whoami`
 - **`Workspace is required …`** → run `asana workspace list`, then either pass
   `-w <gid>` on the command or set it once with `asana workspace set-default <gid>`.
 
-Workspace resolution order: `-w` flag → config default → `ASANA_WORKSPACE` env
-var. `asana auth whoami` is the right tool to _confirm who you are or which
-workspace is default_ — reach for it when that's genuinely in question, not as a
-reflex before every command.
+Workspace resolution order: `-w` flag → config default. `asana auth whoami` is
+the right tool to _confirm who you are or which workspace is default_ — reach
+for it when that's genuinely in question, not as a reflex before every command.
 
 ## Output format: keep it `toon`, switch to `json` to parse
 

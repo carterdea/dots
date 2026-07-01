@@ -83,7 +83,9 @@ OAuth requires env vars `ASANA_CLIENT_ID` and `ASANA_CLIENT_SECRET`.
   - `-a, --assignee <assignee>` — `me` for current user
   - `-w, --workspace <workspace>`
   - `-p, --project <project>`
-  - `-c, --completed` — include completed (excluded by default)
+  - `-c, --completed` — currently maps to Asana's `completed_since=now`, so it
+    is not a reliable "include completed" switch; omit it unless you have
+    verified the CLI behavior in your installed version.
 - `asana task get <gid>` — full details
 - `asana task update <gid>` — update fields
   - `-n, --name <name>`
@@ -219,10 +221,11 @@ All batch commands print a summary: total / succeeded / failed (+ failure detail
 **Environment variables (override config):**
 
 - `ASANA_ACCESS_TOKEN` — PAT; used instead of config file if set
-- `ASANA_WORKSPACE` — default workspace GID
+- `ASANA_WORKSPACE` — reserved for future/default-wrapper use; current
+  pleaseai/asana commands rely on `-w` or config for workspace selection.
 - `ASANA_CLIENT_ID` / `ASANA_CLIENT_SECRET` — OAuth app credentials (for `auth login` OAuth flow)
 
-**Workspace resolution priority:** `-w` option → config default → `ASANA_WORKSPACE`.
+**Workspace resolution priority:** `-w` option → config default.
 If none set, commands needing a workspace fail with:
 `"Workspace is required. Set default workspace or use -w option."`
 

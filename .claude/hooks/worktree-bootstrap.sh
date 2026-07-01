@@ -23,6 +23,12 @@ MAIN="$(cd "$(dirname "$common_git_dir")" 2>/dev/null && pwd)" || exit 0
 [ -z "$MAIN" ] && exit 0
 [ "$MAIN" = "$WT" ] && exit 0
 
+# A submodule also has a separate git dir under the superproject's .git/modules,
+# but it is not a linked worktree. Only bootstrap roots that git worktree lists.
+git -C "$MAIN" worktree list --porcelain 2>/dev/null \
+  | awk '/^worktree / { sub(/^worktree /, ""); print }' \
+  | grep -Fxq "$WT" || exit 0
+
 linked=0
 while IFS= read -r rel; do
   [ -n "$rel" ] || continue
@@ -30,6 +36,7 @@ while IFS= read -r rel; do
   dest="$WT/$rel"
   [ -f "$src" ] || continue
   [ -e "$dest" ] && continue
+  git -C "$WT" check-ignore -q -- "$rel" 2>/dev/null || continue
   mkdir -p "$(dirname "$dest")"
   ln -s "$src" "$dest" && linked=$((linked + 1))
 done < <(
@@ -37,12 +44,17 @@ done < <(
     | tr '\0' '\n' \
     | grep -E '(^|/)\.env([.][^/]*)?$' \
     | grep -vE '(^|/)(node_modules|\.claude|\.worktrees|\.trapper_keeper)/' \
-    | grep -vE '\.(example|production)$'
+    | grep -vE '(^|/)\.env(\.|$).*(prod|production)' \
+    | grep -vE '\.(example|prod|production)(\.|$)'
 )
 [ "$linked" -gt 0 ] && echo "worktree-bootstrap: linked $linked env file(s) from $MAIN"
 
 # Install deps only when missing and a JS project is present.
-if [ -f "$WT/package.json" ] && [ ! -d "$WT/node_modules" ]; then
+if [ -f "$WT/package.json" ] \
+  && [ ! -d "$WT/node_modules" ] \
+  && [ ! -f "$WT/.pnp.cjs" ] \
+  && [ ! -f "$WT/.pnp.loader.mjs" ] \
+  && [ ! -f "$WT/.yarn/install-state.gz" ]; then
   # Lockfile-respecting installs: don't rewrite the lockfile or resolve newer
   # metadata during startup, which would leave the fresh worktree dirty. The
   # bare fallback (no lockfile) stays a plain install — nothing to freeze.
