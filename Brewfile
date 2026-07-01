@@ -6,6 +6,7 @@ tap "heroku/brew"
 tap "homebrew/services"
 tap "ngrok/ngrok"
 tap "oven-sh/bun"
+tap "pleaseai/tap"
 tap "shopify/shopify"
 tap "snyk/tap"
 tap "withgraphite/tap"
@@ -67,6 +68,7 @@ brew "goose"
 
 # AI/API tools
 brew "gemini-cli"
+brew "pleaseai/tap/asana-cli"
 
 # Build tools
 brew "xcodegen"
