@@ -1,7 +1,8 @@
 # Asana CLI — Full Command Reference
 
-Authoritative list of every `asana` command, its arguments, and options (v0.5.0).
-When in doubt about a flag, run `asana <command> --help` — per-command help is accurate.
+Command reference for the installed `pleaseai/tap/asana-cli` line, current as of
+v0.10.0. It covers the common command surface; when in doubt about a flag, run
+`asana <command> --help` — per-command help is authoritative.
 
 Conventions: `<required>`, `[optional]`. Most write commands print the created/updated
 object including its `gid` and `permalink_url`.
@@ -21,6 +22,7 @@ object including its `gid` and `permalink_url`.
 - [task attachments](#task-attachments)
 - [task custom-field](#task-custom-field)
 - [task batch operations](#task-batch-operations)
+- [api](#api) — direct REST escape hatch
 - [project](#project)
 - [section](#section)
 - [tag](#tag)
@@ -28,6 +30,7 @@ object including its `gid` and `permalink_url`.
 - [search](#search)
 - [team](#team)
 - [user](#user)
+- [feedback](#feedback)
 - [self-update](#self-update)
 - [config, auth, env details](#configuration--authentication-details)
 
@@ -158,6 +161,17 @@ Asana caps combined dependencies + dependents at 50.
 
 All batch commands print a summary: total / succeeded / failed (+ failure details).
 
+## api
+
+- `asana api <endpoint>` — call any Asana REST API endpoint directly.
+  - `<endpoint>` may be a path like `/tasks/123`, `tasks/123`, or an Asana API URL on the configured Asana origin.
+  - `-X, --method <method>` — HTTP method; defaults to `GET`, or `POST` when a body is present.
+  - `--raw-field <key=value>` — add a string query/body field (repeatable).
+  - `-F, --field <key=value>` — add a typed query/body field; parses `true`, `false`, `null`, and numbers (repeatable).
+  - `--input <file>` — read raw request body from a file, or `-` for stdin; overrides fields.
+  - `-H, --header <key:value>` — add a request header (repeatable).
+  - `-i, --include` — include HTTP status and headers in output.
+
 ## project
 
 - `asana project create`
@@ -209,6 +223,14 @@ All batch commands print a summary: total / succeeded / failed (+ failure detail
 - `asana user search <query>` — fuzzy match by name/email `[-w|--workspace]`
 - `asana user tasks <user>` — tasks assigned to user `[-w|--workspace] [-c|--completed]`
 
+## feedback
+
+- `asana feedback -t <title>` — submit a bug, feature request, or suggestion as a GitHub issue.
+  - `--type <type>` — `bug`, `feature`, or `suggestion` (default `bug`).
+  - `-b, --body <body>` — issue body/details.
+  - `--repo <owner/repo>` — target repository.
+  - `--no-browser` — fail instead of opening a browser when no GitHub token is set.
+
 ## self-update
 
 - `asana self-update` `[--check]` — update CLI to latest (use `brew upgrade asana-cli` if installed via Homebrew)
@@ -220,9 +242,9 @@ All batch commands print a summary: total / succeeded / failed (+ failure detail
 **Config file:** `~/.asana-cli/config.json` — stores `accessToken`, `refreshToken` (OAuth),
 `authType` (`pat`/`oauth`), `workspace` (default), `expiresAt`, `scopes`.
 
-**Environment variables (override config):**
+**Environment variables:**
 
-- `ASANA_ACCESS_TOKEN` — PAT; used instead of config file if set
+- `ASANA_ACCESS_TOKEN` — PAT fallback when no saved config token exists. Current CLI precedence is saved config token first, then this env var; run `asana auth logout`, refresh login, or remove stale `~/.asana-cli/config.json` if an expired config token is shadowing the env var.
 - `ASANA_WORKSPACE` — reserved for future/default-wrapper use; current
   pleaseai/asana commands rely on `-w` or config for workspace selection.
 - `ASANA_CLIENT_ID` / `ASANA_CLIENT_SECRET` — OAuth app credentials (for `auth login` OAuth flow)
