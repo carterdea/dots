@@ -35,11 +35,13 @@ Embedded order snapshot:
     "email": "jane@example.com"
   },
   "items": [
-    { "product_id": "prod_789", "quantity": 2, "price": 29.99 }
+    { "product_id": "prod_789", "quantity": 2, "price_cents": 2999 }
   ],
-  "total": 109.97
+  "total_cents": 10997
 }
 ```
+
+Use integer minor units, Decimal128, or strings for money. Do not rely on plain JSON numbers for currency values that MongoDB may store as floating-point doubles.
 
 Referenced order:
 

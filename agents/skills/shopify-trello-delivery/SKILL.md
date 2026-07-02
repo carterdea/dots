@@ -60,6 +60,7 @@ This skill has one successful terminal state: **reviewable Shopify PR plus deplo
 - Deployed preview QA ran on desktop and mobile, with screenshots captured from the preview URL that includes `preview_theme_id=<id>`.
 - Screenshots were uploaded to the PR and attached to Trello, or the exact upload blocker is reported instead of implied away.
 - The Trello handoff comment exists with PR, Preview, Customizer, and Figma fields when applicable.
+- The authenticated Trello user was assigned to the card and the member state was verified.
 - The card moved to the review/testing handoff list and the final `idList` was verified.
 - The final response includes the PR URL, preview URL, Customizer URL, Trello card URL, commits, checks, screenshot destinations, and any blockers.
 
@@ -105,6 +106,7 @@ Research expectations:
      - Existing Customizer URL.
      - Figma links in the description and all comments, especially URLs with `node-id=`.
      - Acceptance criteria and the latest client/QA comments.
+   - Assign the authenticated Trello user to the card: resolve the current member ID from `trello auth status` using the `trello-cli` Current Trello User guidance, fall back to Shopify Projects board member lookup only when needed, run `trello members add --card <card-id> --member <member-id>`, and re-fetch the card to verify membership.
    - Follow the attachment download workflow in the `trello-cli` skill, using `/tmp/shopify-trello-delivery-<card-short-id>/` as the output directory. Inspect all accessible attachments before implementation and summarize findings in your working notes.
    - Choose the primary Figma reference in this order:
      - Card description Figma links.
@@ -226,6 +228,7 @@ Research expectations:
      - If no exact list exists, use the board's development handoff column, usually `Ready for Testing`.
      - Discover list IDs with `trello lists list --board 60ec9752cc991401c1c7c327` and move by ID.
    - Re-fetch the card after moving to verify `idList`.
+   - Verify the authenticated Trello user remains assigned before final handoff.
    - Keep the Trello card URL handy for the final response.
 
 10. Final response.
@@ -242,6 +245,7 @@ Use this ledger as the final check before handoff:
 - [ ] Hard gate passed: **Shopify Projects** board ID `60ec9752cc991401c1c7c327` resolves, the card belongs to it, and the card project label plausibly matches this repo.
 - [ ] Ticket intake complete: Trello card, comments, attachments, linked PR, preview/customizer details, acceptance criteria, latest QA/client comments, and relevant Figma links inspected.
 - [ ] Attachments downloaded to `/tmp/shopify-trello-delivery-<card-short-id>/` and inspected.
+- [ ] Authenticated Trello user assigned to the card and verified.
 - [ ] Primary Figma reference selected and captured when accessible.
 - [ ] Branch path chosen.
 - [ ] Scoped implementation complete.

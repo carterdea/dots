@@ -47,6 +47,7 @@ This skill has one successful terminal state: **reviewable PR handoff**. Do not 
 - Local preview QA ran on desktop and mobile, with screenshots captured from the verified surface.
 - Screenshots were uploaded to the PR and attached to the Trello card, or the exact upload blocker is reported instead of implied away.
 - The Trello handoff comment exists with the required PR and public preview fields when applicable.
+- The authenticated Trello user was assigned to the card and the member state was verified.
 - The card moved to the review handoff list and the final `idList` was verified.
 - The final response includes the PR URL, Trello card URL, preview status, checks, commits, screenshot destinations, and any blockers.
 
@@ -70,6 +71,7 @@ Good delegation targets: ticket intake (summarize description, comments, attachm
 - Read repo instructions when present: `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`. They override these defaults.
 - Verify Trello auth with `trello auth status`, then fetch the card, comments, and attachments. Extract: linked PR, acceptance criteria, the latest client/QA comments, and Figma links in the description and every comment (especially URLs with `node-id=`).
 - Move the card to **In Development** to signal work has started: via the `trello-cli` skill, discover the list ID (`trello lists list --board <board-id>`), move by ID, and re-fetch to verify `idList`. Prefer an exact `In Development` list; otherwise the board's closest in-progress column.
+- Assign the authenticated Trello user to the card: resolve the current member ID from `trello auth status` using the `trello-cli` Current Trello User guidance, fall back to board member lookup only when needed, run `trello members add --card <card-id> --member <member-id>`, and re-fetch the card to verify membership.
 - Detect the project shape so later steps use the right commands:
   - **Package manager**: `bun.lock`/`bun.lockb` → bun; `pnpm-lock.yaml` → pnpm; `uv.lock`/`pyproject.toml` → uv. Match the existing lockfile; never introduce a new manager.
   - **Available scripts**: read `package.json` `scripts` (and workspace packages if it's a monorepo). Note which of `lint`, `typecheck`, `check`, `test`, `format` actually exist, and any quiet/silent variants.
@@ -157,6 +159,7 @@ Use the `trello-cli` skill and the shared Trello write protocol for all card ope
 - Add a card comment using the template below. It must include the GitHub PR link prefixed with a bold `**PR:**` label and, for Vercel/Heroku hosts, the public hosted preview URL prefixed with a bold `**Preview:**` label.
 - Attach the desktop and mobile screenshot files to the card.
 - Move the card forward: prefer an exact `Ready for Review` list; otherwise the board's review/testing handoff column. Discover list IDs with `trello lists list --board <board-id>`, move by ID, and re-fetch to verify `idList`.
+- Verify the authenticated Trello user remains assigned before final handoff.
 
 ### 11. Final response
 
@@ -169,6 +172,7 @@ Use this ledger as the final check before handoff:
 - [ ] Hard gate passed: card project label plausibly matches this repo.
 - [ ] Ticket intake complete: card, comments, attachments, linked PR, acceptance criteria, latest QA/client comments, and Figma links inspected.
 - [ ] Card moved to `In Development` and the move verified.
+- [ ] Authenticated Trello user assigned to the card and verified.
 - [ ] Fresh branch/worktree path chosen from latest `origin/main`.
 - [ ] Scoped implementation complete.
 - [ ] Project-defined checks run, with introduced failures separated from existing debt.

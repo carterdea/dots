@@ -61,7 +61,9 @@ FAIL is complete only when every item is true:
 - The PR has a request-changes review referencing the repro evidence, with hygiene comments bundled only as non-blocking notes when present.
 - The QA FAIL comment exists, all repro evidence is attached to Trello, the original developer is reassigned, the card moved back to Development In Progress, and the final `idList` was verified.
 
-Blocked is complete only when the card cannot be verified before a verdict, such as wrong project, wrong column, missing/broken preview, auth failure, or inaccessible required source material. The blocked handoff must leave a Trello comment with the specific blocker, reassign the developer when the card needs their action, keep or return the card to the appropriate review/development state, verify any Trello write, and report the card URL in the final response.
+Hard-gate failures are terminal reports, not blocked handoffs: wrong project or wrong column must stop without Trello mutation.
+
+Blocked is complete only when the confirmed card cannot be verified before a verdict, such as missing/broken preview, auth failure, or inaccessible required source material. The blocked handoff must leave a Trello comment with the specific blocker, reassign the developer when the card needs their action, keep or return the card to the appropriate review/development state, verify any Trello write, and report the card URL in the final response.
 
 ## Optional Subagent Delegation
 

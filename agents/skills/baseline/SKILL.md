@@ -95,21 +95,33 @@ Completion criterion: CI is created from the matching template or explicitly ski
 
 ### 7. Verify
 
-Run the hook commands for each detected stack:
+Run the hook commands for each detected stack using the package manager or runner that installed `lefthook`:
 
 ```bash
-# TS/JS
+# TS/JS examples
 bunx lefthook run pre-commit
 bunx lefthook run pre-push
+pnpm exec lefthook run pre-commit
+pnpm exec lefthook run pre-push
+npx lefthook run pre-commit
+npx lefthook run pre-push
+yarn lefthook run pre-commit
+yarn lefthook run pre-push
 
-# Python
+# Python examples
 uv run lefthook run pre-commit
 uv run lefthook run pre-push
+poetry run lefthook run pre-commit
+poetry run lefthook run pre-push
+python -m lefthook run pre-commit
+python -m lefthook run pre-push
 
 # Ruby
 bundle exec lefthook run pre-commit
 bundle exec lefthook run pre-push
 ```
+
+Do not verify with `bunx` or `uv run` when the repo was installed through another manager and that manager provides the matching `exec`/`run` path.
 
 If checks fail, separate setup failures from inherited project debt. Do not fix the debt during baseline.
 
