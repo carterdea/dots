@@ -55,14 +55,16 @@ if [ -f "$WT/package.json" ] \
   && [ ! -f "$WT/.pnp.cjs" ] \
   && [ ! -f "$WT/.pnp.loader.mjs" ] \
   && [ ! -f "$WT/.yarn/install-state.gz" ]; then
-  # Lockfile-respecting installs: don't rewrite the lockfile or resolve newer
-  # metadata during startup, which would leave the fresh worktree dirty. The
-  # bare fallback (no lockfile) stays a plain install — nothing to freeze.
+  # Lockfile-respecting installs only: without a lockfile, any automatic install
+  # can resolve new versions or write a fresh lockfile before the task begins.
   if [ -f "$WT/bun.lock" ] || [ -f "$WT/bun.lockb" ]; then install="bun install --frozen-lockfile --ignore-scripts"
   elif [ -f "$WT/pnpm-lock.yaml" ]; then install="pnpm install --frozen-lockfile --ignore-scripts"
+  elif [ -f "$WT/yarn.lock" ] \
+    && { grep -Eq '"?packageManager"?[[:space:]]*:[[:space:]]*"?yarn@([2-9]|[1-9][0-9])' "$WT/package.json" 2>/dev/null || [ -f "$WT/.yarnrc.yml" ]; }; then
+    install="YARN_ENABLE_SCRIPTS=false yarn install --immutable"
   elif [ -f "$WT/yarn.lock" ]; then install="yarn install --frozen-lockfile --ignore-scripts"
   elif [ -f "$WT/package-lock.json" ]; then install="npm ci --ignore-scripts"
-  else install="bun install --ignore-scripts"; fi
+  else echo "worktree-bootstrap: skipping dep install (no lockfile)"; exit 0; fi
   log_file="$(mktemp "${TMPDIR:-/tmp}/worktree-bootstrap.log.XXXXXX")"
   echo "worktree-bootstrap: installing deps ($install)..."
   if (cd "$WT" && eval "$install") >"$log_file" 2>&1; then
