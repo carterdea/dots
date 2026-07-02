@@ -1,6 +1,6 @@
 ---
 name: audit-ai-frontend
-description: Audit AI-generated or AI-looking frontend implementations, UI screenshots, and design diffs for generic AI aesthetics, card/gradient/font tells, weak UX copy, accessibility gaps, brittle responsive behavior, and one-off design-system drift. Use when reviewing or restyling React, Tailwind, shadcn/ui, HTML/CSS, landing pages, dashboards, or app screens to make the UI feel more intentional without a full redesign unless explicitly requested.
+description: Audit AI-looking frontend UI. Use when reviewing or restyling app screens, screenshots, or diffs for generic AI aesthetics, weak UX copy, accessibility/responsive gaps, and design-system drift without a full redesign.
 ---
 
 # AI Frontend Audit
