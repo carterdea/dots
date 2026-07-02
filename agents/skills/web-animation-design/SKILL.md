@@ -1,6 +1,6 @@
 ---
 name: web-animation-design
-description: "Design and implement web animations that feel natural and purposeful. Use whenever the user asks about motion, easing, timing, springs, transitions, or animation performance — how to animate a UI element, which easing to pick, best practices, or reduced-motion accessibility. Triggers on easing/cubic-bezier, keyframes, transform/opacity, spring physics, Framer Motion, React Spring, GSAP, CSS transitions, page/entrance/exit transitions, stagger, modal/dropdown/tooltip animations, gesture and drag interactions, 'feels janky', or 'make it smooth'."
+description: "Motion design for web UI. Use when building or reviewing animations, easing, timing, springs, transitions, gesture motion, animation performance, reduced-motion behavior, or UI that feels janky."
 ---
 
 # Web Animation Design

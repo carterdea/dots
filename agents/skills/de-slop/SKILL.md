@@ -1,6 +1,6 @@
 ---
 name: de-slop
-description: Remove AI artifacts and cleanup noise before a PR or after an agent pass. Use to audit, de-slop, parameterize, modularize, or safely clean up AI-shaped backend/general code that may contain duplicate helpers, fixture hacks, hard-coded test data, over-defensive control flow, broad exception wrappers, config-bag or boolean-mode soup, speculative scaffolding, hallucinated APIs/dependencies, local-idiom drift, brittle tests, or maintainability/safety/performance gaps.
+description: "De-slop AI-shaped backend/general code before a PR. Use after an agent or prototype pass to remove branch-introduced artifacts: duplicate helpers, fixture hacks, hard-coded data, defensive wrappers, config/boolean soup, brittle tests, hallucinated APIs, or local-idiom drift."
 ---
 
 # De-Slop

@@ -1,6 +1,6 @@
 ---
 name: humanize-ai-text
-description: Humanize AI-shaped writing by auditing and rewriting pasted chatbot output, AI-cleanup diffs, wiki drafts, Markdown/MDX/docs, and source-backed articles for generic AI fluff, weak audience model, LLM writing tells, vague attribution, leaked tokens, placeholders, broken markup, fabricated or mismatched citations, and detector false positives. Use for requests like "humanize this", "make this sound less AI", "AI writing audit", "check for AI slop", "does this sound like ChatGPT", "cleanup LLM tells", "verify these citations", "detector flagged this", or text containing turn0search0, oaicite, oai_citation, contentReference, utm_source=chatgpt.com, malformed references, or wrong target-format markup.
+description: Humanize AI-shaped writing. Use for "make this less AI/ChatGPT", AI writing or slop audits, citation/source checks in AI-drafted text, detector concerns, leaked citation tokens, placeholders, broken markup, or wrong target-format cleanup.
 allowed-tools:
   - Read
   - Write
