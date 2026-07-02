@@ -38,6 +38,17 @@ Auth can come from three sources:
 - **OS keyring** (stored credentials via `trello auth set` or `trello auth login`)
 - **Environment variables** `TRELLO_API_KEY` and `TRELLO_TOKEN`
 
+## Current Trello User
+
+For shareable workflows that need to assign "me" or the current agent operator, never hardcode a member name. Treat the authenticated Trello account as runtime state:
+
+1. Run `trello auth status`.
+2. Read the member ID from the returned `data` payload when present, such as `data.member.id` or `data.idMember`.
+3. If auth status does not expose a member ID, list board members with `trello members list --board <board-id>` and match the authenticated username/full name from auth status.
+4. Use that discovered member ID for `trello members add --card <card-id> --member <member-id>`, then re-fetch the card to verify the member is assigned.
+
+If the current user cannot be resolved unambiguously, report the blocker instead of assigning a guessed teammate.
+
 ### Device Flow Authentication (Preferred)
 
 When authenticating a new user, prefer the device flow over manual API key setup:
