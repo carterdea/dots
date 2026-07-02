@@ -1,13 +1,13 @@
 ---
 name: shopify-trello-delivery
-description: "Ship Shopify theme work from a Trello ticket end to end: inspect the card including Figma links, implement the theme change, deploy or update the correct preview/dev theme, browser-QA desktop and mobile against Figma when available, create or update the GitHub PR, attach screenshots, comment on Trello, and move the card forward. Use this whenever the user mentions a Shopify theme task with a Trello card, Figma design/artboard, preview theme, Customizer, dev theme, PR handoff, Ready for Review/Testing, or asks to update an existing Shopify PR from a ticket."
+description: "Shopify Trello delivery: use when the user wants Shopify theme work from a Trello card shipped as a reviewable PR and preview theme. Handles Shopify Projects hard gate, Figma intake, implementation, deployed preview QA, screenshots, PR/Trello links, and review handoff."
 ---
 
 # Shopify Trello Delivery
 
 ## Purpose
 
-Use this skill to keep Shopify/Trello delivery work complete rather than stopping at code. The goal is that the ticket, PR, preview theme, screenshots, and final status all agree about what changed and how it was verified.
+Use this skill to keep Shopify/Trello delivery work complete rather than stopping at code. The handoff is a **reviewable PR** plus a deployed preview theme; the ticket, PR, preview, screenshots, and final status must agree about what changed and how it was verified.
 
 ## Dependencies
 
@@ -214,50 +214,39 @@ Research expectations:
    - Mention any checks that failed due to unrelated existing issues and name the touched-file result.
    - Keep it concise.
 
-## Existing PR Path Checklist
+## Completion Ledger
 
-- [ ] Verify **Shopify Projects** board ID `60ec9752cc991401c1c7c327` and confirm the card belongs to it; stop if it doesn't.
-- [ ] Confirm card's project label matches this repo; stop if it doesn't.
-- [ ] Read Trello card and comments.
-- [ ] List, download to `/tmp/shopify-trello-delivery-<card-short-id>/`, and inspect attachments.
-- [ ] Extract and inspect relevant Figma links.
-- [ ] Find PR URL and branch.
-- [ ] Switch to PR branch.
-- [ ] Implement scoped fix.
-- [ ] Validate locally.
-- [ ] de-slop + code-simplifier (sequential; subagents only if worktree-shared, else in-process); re-run checks.
-- [ ] Push to existing preview theme.
-- [ ] Browser QA preview.
-- [ ] Capture desktop and mobile preview screenshots.
-- [ ] Commit and push.
-- [ ] Ensure PR description links to Trello.
-- [ ] Upload screenshots to GitHub PR.
-- [ ] Attach screenshots to Trello.
-- [ ] Comment on Trello.
-- [ ] Move card to review/testing handoff.
+Use this ledger as the final check before handoff:
 
-## Net-New Feature Checklist
+- [ ] Hard gate passed: **Shopify Projects** board ID `60ec9752cc991401c1c7c327` resolves, the card belongs to it, and the card project label plausibly matches this repo.
+- [ ] Ticket intake complete: Trello card, comments, attachments, linked PR, preview/customizer details, acceptance criteria, latest QA/client comments, and relevant Figma links inspected.
+- [ ] Attachments downloaded to `/tmp/shopify-trello-delivery-<card-short-id>/` and inspected.
+- [ ] Primary Figma reference selected and captured when accessible.
+- [ ] Branch path chosen.
+- [ ] Scoped implementation complete.
+- [ ] Local checks run, with touched-file results separated from existing theme debt.
+- [ ] Cleanup pass completed with de-slop and code-simplifier; checks re-run.
+- [ ] Correct preview/dev theme deployed or updated.
+- [ ] Deployed preview QA completed on desktop and mobile.
+- [ ] Desktop and mobile preview screenshots captured from the deployed preview URL.
+- [ ] Branch committed and pushed.
+- [ ] PR exists and links to the Trello card.
+- [ ] Screenshots uploaded to the GitHub PR.
+- [ ] Screenshots attached to Trello.
+- [ ] Trello comment posted with PR, Preview, Customizer, and Figma when used.
+- [ ] Card moved to review/testing handoff and the move verified.
 
-- [ ] Verify **Shopify Projects** board ID `60ec9752cc991401c1c7c327` and confirm the card belongs to it; stop if it doesn't.
-- [ ] Confirm card's project label matches this repo; stop if it doesn't.
-- [ ] Read Trello card and comments.
-- [ ] List, download to `/tmp/shopify-trello-delivery-<card-short-id>/`, and inspect attachments.
-- [ ] Extract and inspect relevant Figma links.
-- [ ] Create branch off correct base.
-- [ ] Implement scoped feature.
-- [ ] Validate locally.
-- [ ] de-slop + code-simplifier (sequential; subagents only if worktree-shared, else in-process); re-run checks.
-- [ ] Create unpublished `[DEV]` theme.
-- [ ] Use `shopify-dev-theme` for unpublished dev theme creation.
-- [ ] Browser QA preview.
-- [ ] Capture desktop and mobile preview screenshots.
-- [ ] Commit and push.
-- [ ] Create PR.
-- [ ] Ensure PR description links to Trello.
-- [ ] Upload screenshots to GitHub PR.
-- [ ] Attach screenshots to Trello.
-- [ ] Comment on Trello with PR, Preview, and Customizer.
-- [ ] Move card to review/testing handoff.
+Existing PR delta:
+
+- Reuse the linked PR branch and PR.
+- Push to the existing preview theme from the card or PR.
+- Update the PR body if it does not link to Trello.
+
+Net-new PR delta:
+
+- Create a ticket branch from the correct base.
+- Use `shopify-dev-theme` to create an unpublished `[DEV]` theme when no preview exists.
+- Create a PR after pushing.
 
 ## Trello Comment Template
 

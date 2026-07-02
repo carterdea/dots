@@ -1,13 +1,13 @@
 ---
 name: trello-delivery
-description: "Ship a Trello ticket end to end on any web app (Vercel, Fly.io, or other host — no Shopify): pull the latest main, read the card including Figma links, implement the change in a worktree, run the project's own tests/lint/typecheck, run de-slop and code-simplifier and fold the worthwhile cleanups in, QA desktop and mobile on a local Portless preview URL, capture screenshots, open or update the GitHub PR, link the PR and Trello to each other, attach screenshots to both, comment on the card, and move it to review. Use this whenever the user points you at a Trello card or ticket for a code task and wants it delivered as a reviewable PR — phrases like 'do this Trello ticket', 'ship this card', 'pick up this ticket and open a PR', 'update the PR for this card', or names a card/list/board with a feature or bug to implement. This is the default Trello-to-PR workflow for non-Shopify projects; for Shopify theme work use shopify-trello-delivery instead."
+description: "Trello delivery: use when the user wants a non-Shopify Trello card shipped as a reviewable PR. Handles ticket intake, implementation, local preview QA, screenshots, PR/Trello links, and review handoff. For Shopify theme cards, use shopify-trello-delivery instead."
 ---
 
 # Trello Delivery
 
 ## Purpose
 
-Take a Trello ticket from "assigned" to "reviewable PR" without stopping at code. Done means the ticket, the PR, the local preview, the screenshots, and the card's status all agree about what changed and how it was verified. The PR is the deliverable; an unreviewed local change is not done.
+Take a Trello ticket from "assigned" to a **reviewable PR** without stopping at code. Done means the ticket, PR, local preview, screenshots, and card status agree about what changed and how it was verified. The handoff is the deliverable; an unreviewed local change is not done.
 
 This skill is host-agnostic. It works for Vercel, Fly.io, or anything else, because verification happens on a local Portless preview rather than a host-specific deploy. It is for non-Shopify projects; Shopify theme tickets belong to `shopify-trello-delivery`.
 
@@ -143,38 +143,36 @@ Use the `trello-cli` skill for all card operations, following discover → mutat
 
 Include the PR URL, the hosted preview URL when one exists (Vercel Preview or Heroku Review App — otherwise state QA was done locally), the commits, and the Trello movement. State that desktop and mobile screenshots were uploaded to both GitHub and Trello. Name any checks that failed due to pre-existing issues versus your change. Keep it concise, and always include the Trello card URL.
 
-## Existing PR Path Checklist
+## Completion Ledger
 
-- [ ] Confirm card's project label matches this repo; stop if it doesn't.
-- [ ] Read card, comments, attachments; extract Figma links.
-- [ ] Move card to `In Development`.
-- [ ] Fetch origin; find PR URL and branch (leave the main tree on `main`).
-- [ ] Add a worktree (slash-free slug) for the branch; rebase on latest `main` inside it.
-- [ ] Implement scoped fix.
-- [ ] Run the project's relevant checks.
-- [ ] de-slop + code-simplifier (sequential; subagents only if worktree-shared, else in-process); re-run checks.
-- [ ] Local Portless preview; browser QA desktop and mobile.
-- [ ] Capture desktop and mobile screenshots.
-- [ ] Commit and push.
-- [ ] Ensure PR description links to Trello.
-- [ ] Upload screenshots to the PR.
-- [ ] Attach screenshots to the card; comment; move to review.
+Use this ledger as the final check before handoff:
 
-## Net-New Feature Checklist
+- [ ] Hard gate passed: card project label plausibly matches this repo.
+- [ ] Ticket intake complete: card, comments, attachments, linked PR, acceptance criteria, latest QA/client comments, and Figma links inspected.
+- [ ] Card moved to `In Development` and the move verified.
+- [ ] Fresh branch/worktree path chosen from latest `origin/main`.
+- [ ] Scoped implementation complete.
+- [ ] Project-defined checks run, with introduced failures separated from existing debt.
+- [ ] Cleanup pass completed with de-slop and code-simplifier; checks re-run.
+- [ ] Local Portless preview QA completed on desktop and mobile.
+- [ ] Desktop and mobile screenshots captured.
+- [ ] Branch committed and pushed.
+- [ ] PR exists and links to the Trello card.
+- [ ] Screenshots uploaded to the PR.
+- [ ] Screenshots attached to the Trello card.
+- [ ] Trello comment posted and card moved to review handoff.
 
-- [ ] Confirm card's project label matches this repo; stop if it doesn't.
-- [ ] Read card, comments, attachments; extract Figma links.
-- [ ] Move card to `In Development`.
-- [ ] Fetch origin; create branch off latest `origin/main`.
-- [ ] Work in a worktree.
-- [ ] Implement scoped feature.
-- [ ] Run the project's relevant checks.
-- [ ] de-slop + code-simplifier (sequential; subagents only if worktree-shared, else in-process); re-run checks.
-- [ ] Local Portless preview; browser QA desktop and mobile.
-- [ ] Capture desktop and mobile screenshots.
-- [ ] Commit and push; create PR linking the Trello card.
-- [ ] Upload screenshots to the PR.
-- [ ] Attach screenshots to the card; comment; move to review.
+Existing PR delta:
+
+- Reuse the linked PR branch.
+- Leave the main working tree on `main`; rebase or merge latest `main` inside the worktree.
+- Update the existing PR body if it does not link to Trello.
+
+Net-new PR delta:
+
+- Create a ticket branch off latest `origin/main`.
+- Create a PR after pushing.
+- Use the card title as the PR title unless repo conventions say otherwise.
 
 ## Trello Comment Template
 
