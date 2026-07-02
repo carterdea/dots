@@ -14,11 +14,7 @@ run_silent "theme check"    "${run[@]}" check:theme     || status=1
 run_silent "biome"          "${run[@]}" check:biome     || status=1
 run_silent "typecheck"      "${run[@]}" check:type      || status=1
 run_silent "dead code"      "${run[@]}" check:dead-code || status=1
-if ls vitest.config.* >/dev/null 2>&1; then
-  run_silent "vitest" "${run[@]}" check:test || status=1
-else
-  printf "  \033[33m⊘\033[0m vitest (skipped: no vitest config)\n"
-fi
+run_silent "vitest"         "${run[@]}" check:test      || status=1
 if [ -n "${BASE_URL:-}${SHOPIFY_PREVIEW_URL:-}" ]; then
   run_silent "playwright axe" "${run[@]}" check:a11y || status=1
 else

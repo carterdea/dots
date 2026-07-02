@@ -122,7 +122,7 @@ Append `resources/agent-instructions.snippet.md` to existing root `AGENTS.md`, `
 
 Add to `.gitignore` if not already ignored: `test-results/` (Playwright/axe artifacts), the QA artifact subdirectories `/qa/screenshots/` and `/qa/reports/`, and `.env` plus `.env.*` with a `!.env.example` exception — the secrets file must never be committed, but the example scaffold must stay tracked. **Git applies the last matching pattern, so `!.env.example` must come after every `.env`/`.env.*` line.** If the file already has a `!.env.example` exception, re-append it after any new env ignore patterns (or keep the env rules as one ordered block ending in the negation), otherwise the appended `.env.*` re-ignores the example. Ignore the concrete QA subdirectories rather than the whole `qa/` tree, so a repo that source-controls QA automation under `qa/` keeps those files tracked. Append only; never rewrite unrelated existing entries.
 
-Resource templates default to Bun. In pnpm repos, rewrite `bun install`, `bun run`, and `bunx` to the pnpm equivalents before writing the file.
+Resource templates default to Bun. In pnpm repos, rewrite `bun install`, `bun run`, and `bunx` to the pnpm equivalents before writing the file. For GitHub Actions workflows, also replace the Bun setup step with pnpm setup before the install step, for example `pnpm/action-setup` followed by `actions/setup-node` with `cache: pnpm`, so rewritten `pnpm install --frozen-lockfile` commands exist on a clean runner.
 
 ## Theme Access & Ignore Files
 
