@@ -185,7 +185,7 @@ write_env() {
   if ! quoted="$(_shell_quote "$value")"; then
     warn "skipped $key — multiline values cannot be safely written to $ENV_FILE"
     SKIPPED+=("$key in $ENV_FILE (multiline value)")
-    return 1
+    return 0
   fi
   touch "$ENV_FILE"
   tmp=$(mktemp)

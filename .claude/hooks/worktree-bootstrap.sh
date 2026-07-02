@@ -63,7 +63,7 @@ if [ -f "$WT/package.json" ] \
   elif [ -f "$WT/yarn.lock" ]; then install="yarn install --frozen-lockfile"
   elif [ -f "$WT/package-lock.json" ]; then install="npm ci"
   else install="bun install"; fi
-  log_file="$(mktemp "${TMPDIR:-/tmp}/worktree-bootstrap.XXXXXX.log")"
+  log_file="$(mktemp "${TMPDIR:-/tmp}/worktree-bootstrap.log.XXXXXX")"
   echo "worktree-bootstrap: installing deps ($install)..."
   if (cd "$WT" && eval "$install") >"$log_file" 2>&1; then
     rm -f "$log_file"

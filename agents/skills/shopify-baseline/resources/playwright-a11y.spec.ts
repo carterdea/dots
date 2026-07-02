@@ -21,7 +21,9 @@ for (const [index, path] of paths.entries()) {
   test(`axe scan ${path}`, async ({ page }, testInfo) => {
     const base = new URL(targetBaseUrl);
     const url = new URL(path, base);
-    if (!url.search && base.search) url.search = base.search;
+    for (const [key, value] of base.searchParams) {
+      if (!url.searchParams.has(key)) url.searchParams.set(key, value);
+    }
     await page.goto(url, { waitUntil: "domcontentloaded" });
 
     const { violations } = await new AxeBuilder({ page })

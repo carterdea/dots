@@ -25,10 +25,12 @@ In a working setup the CLI is already logged in with a default workspace, so
 just run the command the user asked for — don't spend a turn on `auth whoami`
 "to be safe". Only fall back to diagnosis when a command actually fails:
 
-- **`✗ Not authenticated` / token error** → tell the user to run
-  `asana auth login --token <PAT>` (token from https://app.asana.com/0/my-apps).
-  Don't log in for them — it needs their secret. (OAuth via `asana auth login`
-  needs `ASANA_CLIENT_ID`/`ASANA_CLIENT_SECRET` env vars and a browser.)
+- **`✗ Not authenticated` / token error** → tell the user to create a Personal
+  Access Token at https://app.asana.com/0/my-apps and authenticate outside the
+  shared transcript, or set `ASANA_ACCESS_TOKEN` in their local shell. Don't put
+  the token in an agent-visible command or log in for them — it needs their
+  secret. (OAuth via `asana auth login` needs `ASANA_CLIENT_ID` /
+  `ASANA_CLIENT_SECRET` env vars and a browser.)
 - **`Workspace is required …`** → run `asana workspace list`, then either pass
   `-w <gid>` on the command or set it once with `asana workspace set-default <gid>`.
 
