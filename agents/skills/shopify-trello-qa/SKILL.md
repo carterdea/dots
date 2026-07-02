@@ -22,6 +22,10 @@ This skill is for Shopify theme tickets; non-Shopify web apps belong to `trello-
 - The Shopify dev / AI Toolkit skills (`shopify-dev`, `shopify-liquid`, `shopify-admin`, `shopify-storefront-graphql`) only to confirm how a theme feature or app is *expected* to behave — never to change or deploy the theme. (Do **not** use `shopify-dev-theme`; QA does not create or deploy themes.)
 - Figma Desktop MCP when the card or comments contain Figma links, to compare the build against the design.
 
+## Shared Trello Write Protocol
+
+Before the first Trello mutation in this workflow, read `../trello-cli/references/discover-mutate-verify.md`. Use that reference for every card move, comment, attachment, checklist, and member update. Do not treat a Trello write as done until the verify step proves the remote card state changed.
+
 ## Core Defaults
 
 - **Read-only on the theme.** No edits, no commits, no `shopify theme push`, no theme creation, no dev server. If you want to fix the bug, stop — QA reports it; the developer fixes it.
@@ -30,12 +34,37 @@ This skill is for Shopify theme tickets; non-Shopify web apps belong to `trello-
 - **Desktop and mobile, every time**, plus a console-error and failed-request check. If the deploy URL omits `www` but customers see `www`, test the canonical storefront URL.
 - **Be regression-aware.** Exercise adjacent sections/templates the change could break (shared snippet, shared section settings, global CSS), not just the changed surface.
 - **Evidence or it didn't happen.** PASS produces desktop + mobile screenshots from the preview theme URL showing the criteria met. FAIL produces a full `dogfood`-style reproduction per failing criterion: numbered steps, before/after screenshots, repro video for interaction bugs.
-- **Two terminal states only: PASS or FAIL.** "Couldn't verify" is a blocked card handed back, not a pass.
+- **PASS and FAIL are the only verdicts.** "Couldn't verify" is not a PASS or FAIL — it is a blocked handoff with a verified Trello comment explaining the reason.
 - **Code-hygiene notes are non-blocking.** When you have GitHub repo access, note diff evidence that the developer skipped `code-simplifier` / `de-slop` (duplicated Liquid/JS, nested ternaries, slop comments, stray scratch files, etc.) as inline PR comments — but never let them change the PASS/FAIL verdict. Without GitHub access, fold them into the Trello comment. You observe these; you never run those skills or edit the theme. (Shopify-generated JSON headers are not slop — don't flag them.)
 - **Always use the Shopify Projects board.** Its board ID is `60ec9752cc991401c1c7c327`; verify that ID still resolves to the open board named `Shopify Projects`, confirm the card belongs to it, and use that board ID for list discovery and moves.
 - **Always inspect Trello card attachments before QA.** Download every accessible attachment to a per-card directory under `/tmp`, inspect the downloaded files or linked resources, and use relevant briefs, screenshots, PDFs, zips, and image references as source material for the verdict.
 - **Discover the board's real column names; never assume them.** Shopify boards use different list names than Node boards (see Board Column Reference). Fetch list IDs from the Shopify Projects board and move by ID.
 - Always include the Trello card URL in the final response.
+
+## Completion Criteria
+
+This skill has three terminal states: **PASS**, **FAIL**, or **blocked**. Choose exactly one.
+
+PASS is complete only when every item is true:
+
+- Shopify Projects board, project-label, and QA-handoff gates passed.
+- Card, comments, attachments, checklists, labels, members, PR link, preview theme URL, Customizer URL, `preview_theme_id`, Figma links, acceptance criteria, and original developer were inspected.
+- Attachments were downloaded to `/tmp/shopify-trello-qa-<card-short-id>/` and inspected.
+- The developer's preview theme and Customizer opened; no branch checkout, theme creation, theme push, or dev server was used.
+- Every acceptance criterion was verified on desktop and mobile and marked PASS with evidence.
+- Console/network checks, regression sweep, Customizer checks, and Figma comparison when applicable found no release-blocking issue.
+- Desktop and mobile proof screenshots were captured from the preview theme URL and attached to the Trello card.
+- The PR was approved, including bundled non-blocking hygiene comments when present.
+- The QA PASS comment exists, checklist items are checked when applicable, the card moved to Ready for Release, and the final `idList` was verified.
+
+FAIL is complete only when every item is true:
+
+- At least one acceptance criterion, console/network check, regression check, Customizer check, or applicable Figma comparison failed.
+- Each failing criterion has a self-contained repro bundle: steps, expected/actual result, viewport, preview URL, screenshots, and video/gif for interaction bugs.
+- The PR has a request-changes review referencing the repro evidence, with hygiene comments bundled only as non-blocking notes when present.
+- The QA FAIL comment exists, all repro evidence is attached to Trello, the original developer is reassigned, the card moved back to Development in Progress, and the final `idList` was verified.
+
+Blocked is complete only when the card cannot be verified before a verdict, such as wrong board, wrong project, wrong column, missing/broken preview theme, missing Customizer URL needed for the criteria, auth failure, or inaccessible required source material. The blocked handoff must leave a Trello comment with the specific blocker, reassign the developer when the card needs their action, keep or return the card to the appropriate review/development state, verify any Trello write, and report the card URL in the final response.
 
 ## Optional Subagent Delegation
 
@@ -116,6 +145,7 @@ Invoke the `dogfood` skill to drive the preview theme systematically, on a deskt
 
 - **GitHub:** approve the PR — note what was verified, the viewports, the preview theme URL. If step 3b found hygiene tells, post the approval and the inline `code hygiene (non-blocking):` comments as one review via the `reviews` API; otherwise a plain `gh pr review <number> --approve --body "<short sign-off>"`.
 - **Trello (discover → mutate → verify):**
+  - Use the shared Trello write protocol for every comment, checklist update, attachment, member change, and move.
   - Post the **QA PASS** report comment (template below).
   - Check off verified items if the card uses a Trello acceptance-criteria checklist.
   - Attach `<card-short>-desktop.png` and `<card-short>-mobile.png` to the card.
@@ -125,6 +155,7 @@ Invoke the `dogfood` skill to drive the preview theme systematically, on a deskt
 
 - **GitHub:** request changes on the PR referencing the repro evidence. If step 3b found hygiene tells, bundle the request-changes verdict and the inline `code hygiene (non-blocking):` comments into one review via the `reviews` API; otherwise a plain `gh pr review <number> --request-changes --body "<failing criteria summary>"`. (Hygiene notes ride along but are not the reason for the changes request — the failing criteria are.)
 - **Trello (discover → mutate → verify):**
+  - Use the shared Trello write protocol for every comment, attachment, member change, and move.
   - Post the **QA FAIL** report comment (template below): each failing criterion with its numbered repro steps.
   - Attach every repro screenshot and video to the card.
   - Reassign the original developer (`trello members add --card <card-id> --member <member-id>`).
@@ -132,7 +163,7 @@ Invoke the `dogfood` skill to drive the preview theme systematically, on a deskt
 
 ### 8. Final response
 
-State the verdict (PASS or FAIL), which criteria passed and which failed, the viewports tested, the preview theme URL used, where the card moved, and that screenshots/repro were posted to both the PR review and the Trello card. Name anything that blocked verification. Keep it concise and always include the Trello card URL.
+State the terminal state (PASS, FAIL, or blocked), which criteria passed and which failed when a verdict was possible, the viewports tested, the preview theme URL used, where the card moved, and that screenshots/repro or blocker evidence were posted to both the PR review and the Trello card as applicable. Keep it concise and always include the Trello card URL.
 
 ## PASS Checklist
 
