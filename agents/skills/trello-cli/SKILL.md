@@ -60,6 +60,8 @@ Every Trello task follows this shape:
 
 This matters because the CLI uses IDs, not names. Never guess an ID — always discover it first.
 
+For any workflow that writes to Trello, read `references/discover-mutate-verify.md` before the first mutation and use its completion criteria. A Trello write is not complete until a follow-up read proves the remote state changed.
+
 **Example:** "Create a card in the Doing list on the Marketing board"
 1. `trello boards list` → find Marketing board ID
 2. `trello lists list --board <board-id>` → find Doing list ID

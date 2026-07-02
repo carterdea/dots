@@ -20,6 +20,10 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
 - Figma Desktop MCP when the Trello ticket or comments contain Figma design links.
 - The `agent-browser` skill for preview-theme QA and screenshots — strongly preferred. Invoke that skill first and drive the `agent-browser` CLI. Fall back to `mcp__claude-in-chrome__*` only if `agent-browser` can't run (see step 7).
 
+## Shared Trello Write Protocol
+
+Before the first Trello mutation in this workflow, read `../trello-cli/references/discover-mutate-verify.md`. Use that reference for every card move, comment, attachment, checklist, and member update. Do not treat a Trello write as done until the verify step proves the remote card state changed.
+
 ## Core Defaults
 
 - Default to action. Do not ask unless a decision is truly blocking.
@@ -42,6 +46,24 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
   - If the preview must be client-visible on the merchant store, use the production store as an unpublished dev theme.
   - If the command fails for access or theme not found, try the other configured environment before asking.
 - If the store is at the theme limit, update an existing task-related theme if one exists. Only ask before deleting themes. Never suggest deleting the live theme.
+
+## Completion Criteria
+
+This skill has one successful terminal state: **reviewable Shopify PR plus deployed preview theme**. Do not call the work complete until all of these are true:
+
+- The Shopify Projects board gate passed, the card belongs to board `60ec9752cc991401c1c7c327`, and the card project label plausibly matches this repo.
+- Ticket intake inspected the card, comments, attachments, linked PR, preview/customizer details, acceptance criteria, latest QA/client comments, and relevant Figma links.
+- Relevant attachments were downloaded to `/tmp/shopify-trello-delivery-<card-short-id>/` and inspected.
+- The implementation is committed on a non-main branch, pushed, and represented by a PR that links to the Trello card.
+- Local checks ran after implementation and cleanup; touched-file failures are fixed or clearly separated from existing theme debt.
+- The correct preview/dev theme was deployed or updated, and the preview URL, Customizer URL, theme ID, and theme name were captured.
+- Deployed preview QA ran on desktop and mobile, with screenshots captured from the preview URL that includes `preview_theme_id=<id>`.
+- Screenshots were uploaded to the PR and attached to Trello, or the exact upload blocker is reported instead of implied away.
+- The Trello handoff comment exists with PR, Preview, Customizer, and Figma fields when applicable.
+- The card moved to the review/testing handoff list and the final `idList` was verified.
+- The final response includes the PR URL, preview URL, Customizer URL, Trello card URL, commits, checks, screenshot destinations, and any blockers.
+
+If any item cannot be satisfied, end in a **blocked** state: report the specific missing criterion, preserve the current branch/theme/card state, and do not present the ticket as handed off.
 
 ## Optional Subagent Delegation
 
@@ -190,8 +212,7 @@ Research expectations:
    - Do not use emojis in PR text.
 
 9. Update Trello.
-   - Use the `trello-cli` skill for all Trello card, comment, attachment, list, and move operations.
-   - Follow the Trello discover/mutate/verify pattern: fetch IDs first, mutate by ID, then re-fetch to confirm.
+   - Use the `trello-cli` skill and the shared Trello write protocol for all card operations.
    - Add a card comment with exactly these prefixes:
      - `**PR:** <pr-url>`
      - `**Preview:** <page-preview-url>`

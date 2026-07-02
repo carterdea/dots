@@ -21,6 +21,10 @@ This skill is host-agnostic. It works for Vercel, Fly.io, or anything else, beca
 - Figma Desktop MCP when the card or comments contain Figma links.
 - Context7 for current library/framework/API docs and Exa for broader vendor/service details when implementation depends on platform behavior.
 
+## Shared Trello Write Protocol
+
+Before the first Trello mutation in this workflow, read `../trello-cli/references/discover-mutate-verify.md`. Use that reference for every card move, comment, attachment, checklist, and member update. Do not treat a Trello write as done until the verify step proves the remote card state changed.
+
 ## Core Defaults
 
 - Default to action. Ask only when a decision is truly blocking.
@@ -32,6 +36,21 @@ This skill is host-agnostic. It works for Vercel, Fly.io, or anything else, beca
 - **Never post a local URL to Trello or GitHub.** Local Portless/`localhost` URLs are for your own QA only — no one else can open them. The only preview links that go in a PR body, PR comment, or Trello comment are public hosted preview links (Vercel Preview, Heroku Review App). If the host has no per-PR preview, omit the preview link entirely and say QA was done locally — do not paste the local URL as a substitute.
 - Treat Figma links in the card description and comments as source material. Inspect the linked node before implementing design-sensitive work. Description links win unless a later comment explicitly supersedes them.
 - The PR description must link to the Trello card, and the Trello card must link to the PR. Always include the Trello card URL in your final response whenever you touched the card.
+
+## Completion Criteria
+
+This skill has one successful terminal state: **reviewable PR handoff**. Do not call the work complete until all of these are true:
+
+- The project-label hard gate passed, and ticket intake recorded the card, comments, attachments, linked PR, acceptance criteria, latest QA/client comments, and relevant Figma links.
+- The implementation is committed on a non-main branch, pushed, and represented by a PR that links to the Trello card.
+- Project-defined checks ran after implementation and cleanup; introduced failures are fixed or clearly separated from pre-existing failures.
+- Local preview QA ran on desktop and mobile, with screenshots captured from the verified surface.
+- Screenshots were uploaded to the PR and attached to the Trello card, or the exact upload blocker is reported instead of implied away.
+- The Trello handoff comment exists with the required PR and public preview fields when applicable.
+- The card moved to the review handoff list and the final `idList` was verified.
+- The final response includes the PR URL, Trello card URL, preview status, checks, commits, screenshot destinations, and any blockers.
+
+If any item cannot be satisfied, end in a **blocked** state: report the specific missing criterion, preserve the current branch/card state, and do not present the ticket as handed off.
 
 ## Optional Subagent Delegation
 
@@ -133,7 +152,7 @@ Before opening the PR — and before the preview, screenshots, and everything af
 
 ### 10. Update Trello
 
-Use the `trello-cli` skill for all card operations, following discover → mutate → verify (fetch IDs, mutate by ID, re-fetch to confirm).
+Use the `trello-cli` skill and the shared Trello write protocol for all card operations.
 
 - Add a card comment using the template below. It must include the GitHub PR link prefixed with a bold `**PR:**` label and, for Vercel/Heroku hosts, the public hosted preview URL prefixed with a bold `**Preview:**` label.
 - Attach the desktop and mobile screenshot files to the card.
