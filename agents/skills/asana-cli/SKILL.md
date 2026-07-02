@@ -29,7 +29,10 @@ just run the command the user asked for — don't spend a turn on `auth whoami`
   Access Token at https://app.asana.com/0/my-apps and authenticate outside the
   shared transcript, or set `ASANA_ACCESS_TOKEN` in their local shell. Don't put
   the token in an agent-visible command or log in for them — it needs their
-  secret. (OAuth via `asana auth login` needs `ASANA_CLIENT_ID` /
+  secret. The CLI reads the saved config token before `ASANA_ACCESS_TOKEN`, so if
+  an old `~/.asana-cli/config.json` token is wrong or expired, the user must log
+  out, refresh login, or remove the stale config before the env var helps.
+  (OAuth via `asana auth login` needs `ASANA_CLIENT_ID` /
   `ASANA_CLIENT_SECRET` env vars and a browser.)
 - **`Workspace is required …`** → run `asana workspace list`, then either pass
   `-w <gid>` on the command or set it once with `asana workspace set-default <gid>`.

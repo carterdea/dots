@@ -24,7 +24,7 @@ for (const [index, path] of paths.entries()) {
     for (const [key, value] of base.searchParams) {
       if (!url.searchParams.has(key)) url.searchParams.set(key, value);
     }
-    await page.goto(url, { waitUntil: "domcontentloaded" });
+    await page.goto(url.toString(), { waitUntil: "domcontentloaded" });
 
     const { violations } = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
