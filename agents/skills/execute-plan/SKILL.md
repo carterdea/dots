@@ -70,7 +70,7 @@ For each task:
 4. Implement the change
 5. Validate (run tests, lint)
 6. Update the plan file: `- [ ]` becomes `- [x]`
-7. Add a QA note as a nested item under the completed task (see QA Notes below)
+7. Add a QA note as a nested item under the completed task (see QA Notes below). If the QA note describes browser or API verification, it must be an unchecked Markdown task item starting with `- [ ] QA:`.
 8. If all tasks in a phase are checked, check off the phase heading too: `### - [x]`
 9. Commit if cadence requires it (never `git add .` -- stage files individually)
 10. Move to the next unchecked task
@@ -79,7 +79,13 @@ State assumptions instead of asking. User can interrupt if they disagree.
 
 #### QA Notes
 
-After checking off each task, add a nested `QA:` line describing how to verify the change in a browser or via API. This gives `/qa` concrete instructions to follow later.
+After checking off each task, add a nested QA line. Browser and API verification must be actionable unchecked Markdown task items so `/qa` can discover them later.
+
+Required format:
+
+- Use `- [ ] QA:` for every browser, UI, API, integration, or behavior verification that `/qa` should run later.
+- Use plain `- QA: N/A` only for internal/non-user-facing changes where there is nothing useful for `/qa` to verify.
+- Never write actionable QA as `QA: ...`, `- QA: ...`, or prose without the `- [ ]` checkbox.
 
 - **User-facing changes** -- add an unchecked QA item:
   - [x] Add upsell modal component
@@ -94,6 +100,8 @@ After checking off each task, add a nested `QA:` line describing how to verify t
     - QA: N/A
 
 Keep QA notes brief -- one line, focused on what to do and what to expect. The `/qa` command will use these as its test instructions.
+
+Before moving to the next task, scan the QA note you just added. If it describes an action to verify and does not start with `- [ ] QA:`, fix it immediately.
 
 ### 6. Failure Triage
 
@@ -143,4 +151,3 @@ Keep it copy-pastable with no extra commentary inside the block.
 - Keep changes scoped to what the task describes -- don't gold-plate
 - If the plan file doesn't exist at the given path, stop and ask
 - State assumptions, don't ask -- the user will interrupt if something is wrong
-
