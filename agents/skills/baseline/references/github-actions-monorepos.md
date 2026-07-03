@@ -65,24 +65,30 @@ Example hook shape:
 pre-commit:
   commands:
     biome-web:
-      glob: "apps/web/**/*.{ts,tsx,js,jsx,json}"
-      run: cd apps/web && bunx biome check --write {staged_files}
+      root: "apps/web/"
+      glob: "**/*.{ts,tsx,js,jsx,json}"
+      run: bunx biome check --write {staged_files}
       stage_fixed: true
     ruff-chat:
-      glob: "chat-services/**/*.py"
-      run: cd chat-services && uv run ruff check --fix {staged_files}
+      root: "chat-services/"
+      glob: "**/*.py"
+      run: uv run ruff check --fix {staged_files}
       stage_fixed: true
 
 pre-push:
   commands:
     typecheck-web:
-      run: cd apps/web && bunx tsc --noEmit
+      root: "apps/web/"
+      run: bunx tsc --noEmit
     fallow-web:
-      run: cd apps/web && bunx fallow
+      root: "apps/web/"
+      run: bunx fallow
     test-web:
-      run: cd apps/web && bun run test
+      root: "apps/web/"
+      run: bun run test
     pytest-chat:
-      run: cd chat-services && uv run pytest
+      root: "chat-services/"
+      run: uv run pytest
 ```
 
 For GitHub Actions monorepos, use `resources/github-actions.monorepo.yml` as a base and add one job per workspace with `defaults.run.working-directory`.
