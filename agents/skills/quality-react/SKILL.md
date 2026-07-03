@@ -61,7 +61,12 @@ Always clean up listeners, timers, and subscriptions. For async effects, guard a
 useEffect(() => {
   const controller = new AbortController()
 
-  fetchUser(userId, { signal: controller.signal }).then(setUser)
+  fetchUser(userId, { signal: controller.signal })
+    .then(setUser)
+    .catch((error: unknown) => {
+      if (error instanceof Error && error.name === "AbortError") return
+      throw error
+    })
 
   return () => {
     controller.abort()
