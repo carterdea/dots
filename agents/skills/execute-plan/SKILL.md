@@ -67,7 +67,7 @@ Before executing, normalize the implementation task list:
 - If you add a newly discovered task to a phase, add it as `- [ ] <task>`, never as a plain bullet.
 - Do not start executing a phase task until the task itself has a checkbox.
 
-Find the next unchecked `- [ ]` task under `## Implementation Plan` and execute it. This includes failed QA items (`- [ ] QA:` with a `> FAIL:` annotation) -- treat the failure annotation as the task description, fix the underlying code, then remove the `> FAIL:` line but leave the QA item unchecked for `/qa` to re-verify.
+Find the next unchecked executable `- [ ]` task under `## Implementation Plan` and execute it. Skip fresh QA notes (`- [ ] QA:` with no `> FAIL:` annotation); they are instructions for `/qa`, not implementation tasks. Failed QA items are executable only when they have a `> FAIL:` annotation -- treat the failure annotation as the task description, fix the underlying code, then remove the `> FAIL:` line but leave the QA item unchecked for `/qa` to re-verify.
 
 For each task:
 
@@ -81,6 +81,8 @@ For each task:
 8. If all tasks in a phase are checked, check off the phase heading too: `### - [x]`
 9. Commit if cadence requires it (never `git add .` -- stage files individually)
 10. Move to the next unchecked task
+
+When scanning for the next task, do not select a newly added `- [ ] QA:` item unless it has a `> FAIL:` annotation.
 
 State assumptions instead of asking. User can interrupt if they disagree.
 

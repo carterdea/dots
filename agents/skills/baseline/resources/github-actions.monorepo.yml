@@ -42,6 +42,9 @@ jobs:
         working-directory: chat-services
     steps:
       - uses: actions/checkout@v4
+      # Swap setup/install/run commands for the workspace's Python manager:
+      #   Poetry -> actions/setup-python@v5 + `poetry install --with dev` + `poetry run <tool>`
+      #   pip    -> actions/setup-python@v5 + `python -m pip install -r requirements.txt` + direct tool commands
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true

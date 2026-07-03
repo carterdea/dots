@@ -133,7 +133,14 @@ Only when Rails is detected, install Rails cops before generating the baseline:
 bundle add rubocop-rails --group=development,test
 ```
 
-Then generate the baseline:
+Before generating the baseline, load the Rails extension in `.rubocop.yml`:
+
+```yaml
+plugins:
+  - rubocop-rails
+```
+
+If the target RuboCop version still uses `require`, use `require: rubocop-rails` instead. Then generate the baseline:
 
 ```bash
 bundle exec rubocop --auto-gen-config

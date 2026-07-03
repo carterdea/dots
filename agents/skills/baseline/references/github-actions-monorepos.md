@@ -37,7 +37,13 @@ For TS package manager substitution, mirror lefthook:
 - pnpm: `pnpm install --frozen-lockfile` with `pnpm/action-setup@v4` plus `actions/setup-node@v4`.
 - yarn: use the repo's lockfile-compatible install command.
 
-For Python, use `astral-sh/setup-uv@v5`. Swap basedpyright/pyright based on the repo.
+For Python package-manager substitution, mirror the detected project manager:
+
+- uv: `astral-sh/setup-uv@v5`, `uv sync --all-extras --dev`, and `uv run <tool>`.
+- Poetry: `actions/setup-python@v5`, install the Poetry version expected by the repo, `poetry install --with dev`, and `poetry run <tool>`.
+- pip / requirements: `actions/setup-python@v5`, `python -m pip install -r requirements.txt` plus any missing dev-tool requirements the repo expects, and direct tool commands such as `ruff check .` or `pytest`.
+
+Swap basedpyright/pyright based on the repo.
 
 For Ruby, choose RSpec or Minitest based on `Gemfile`.
 
