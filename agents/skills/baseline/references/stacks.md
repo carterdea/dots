@@ -125,13 +125,18 @@ Skip if `.rubocop.yml` exists.
 
 ```bash
 bundle add rubocop --group=development,test
-bundle exec rubocop --auto-gen-config
 ```
 
-Only when Rails is detected:
+Only when Rails is detected, install Rails cops before generating the baseline:
 
 ```bash
 bundle add rubocop-rails --group=development,test
+```
+
+Then generate the baseline:
+
+```bash
+bundle exec rubocop --auto-gen-config
 ```
 
 `--auto-gen-config` writes `.rubocop_todo.yml`; include it from `.rubocop.yml` so legacy code does not block commits immediately.
