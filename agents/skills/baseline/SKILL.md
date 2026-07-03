@@ -113,8 +113,8 @@ uv run lefthook run pre-commit
 uv run lefthook run pre-push
 poetry run lefthook run pre-commit
 poetry run lefthook run pre-push
-python -m lefthook run pre-commit
-python -m lefthook run pre-push
+lefthook run pre-commit
+lefthook run pre-push
 
 # Ruby
 bundle exec lefthook run pre-commit
