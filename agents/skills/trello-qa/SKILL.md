@@ -63,7 +63,9 @@ FAIL is complete only when every item is true:
 
 Hard-gate failures are terminal reports, not blocked handoffs: wrong project or wrong column must stop without Trello mutation.
 
-Blocked is complete only when the confirmed card cannot be verified before a verdict, such as missing/broken preview, auth failure, or inaccessible required source material. The blocked handoff must leave a Trello comment with the specific blocker, reassign the developer when the card needs their action, keep or return the card to the appropriate review/development state, verify any Trello write, and report the card URL in the final response.
+Trello-auth failures are terminal local reports, not blocked handoffs: stop, report the auth blocker, and do not retry Trello writes.
+
+Blocked is complete only when the confirmed card cannot be verified before a verdict, such as missing/broken preview or inaccessible required source material. The blocked handoff must leave a Trello comment with the specific blocker, reassign the developer when the card needs their action, keep or return the card to the appropriate review/development state, verify any Trello write, and report the card URL in the final response.
 
 ## Optional Subagent Delegation
 

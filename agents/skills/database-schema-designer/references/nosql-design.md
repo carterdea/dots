@@ -50,7 +50,7 @@ Referenced order:
   "_id": "order_123",
   "customer_id": "cust_456",
   "item_ids": ["item_1", "item_2"],
-  "total": 109.97
+  "total_cents": 10997
 }
 ```
 
