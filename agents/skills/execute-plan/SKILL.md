@@ -60,6 +60,13 @@ Default commit cadence: **per-phase**. Override with `--commit-per-task` or `--c
 
 State the plan upfront: "Committing per-phase. Starting at Phase 1, Task 1. 12 tasks across 3 phases."
 
+Before executing, normalize the implementation task list:
+
+- Every executable task under `## Implementation Plan` must be a Markdown task item starting with `- [ ]`.
+- If a phase contains plain bullets, numbered steps, or prose task lines that are not checkboxes, update the plan file first so each executable task becomes `- [ ] <task>`.
+- If you add a newly discovered task to a phase, add it as `- [ ] <task>`, never as a plain bullet.
+- Do not start executing a phase task until the task itself has a checkbox.
+
 Find the next unchecked `- [ ]` task under `## Implementation Plan` and execute it. This includes failed QA items (`- [ ] QA:` with a `> FAIL:` annotation) -- treat the failure annotation as the task description, fix the underlying code, then remove the `> FAIL:` line but leave the QA item unchecked for `/qa` to re-verify.
 
 For each task:
@@ -147,6 +154,7 @@ Keep it copy-pastable with no extra commentary inside the block.
 - Never skip a task silently -- either complete it or stop and explain
 - Always update the plan file after each task, not in batches
 - Dependencies listed in the plan are pre-approved for installation
+- Implementation Plan phase tasks must be Markdown task items (`- [ ]` or `- [x]`); normalize plain task bullets before executing or adding tasks
 - Stage files individually, never `git add .`
 - Keep changes scoped to what the task describes -- don't gold-plate
 - If the plan file doesn't exist at the given path, stop and ask
