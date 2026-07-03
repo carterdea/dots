@@ -259,7 +259,7 @@ Use this ledger as the final check before handoff:
 - [ ] Screenshots uploaded to the GitHub PR.
 - [ ] Screenshots attached to Trello.
 - [ ] Trello comment posted with PR, Preview, Customizer, and Figma when used.
-- [ ] Card moved to review/testing handoff and the move verified.
+- [ ] Card moved to review/testing handoff, final `idList` verified, and authenticated Trello user still assigned.
 
 Existing PR delta:
 

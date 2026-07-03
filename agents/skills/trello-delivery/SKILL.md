@@ -183,7 +183,7 @@ Use this ledger as the final check before handoff:
 - [ ] PR exists and links to the Trello card.
 - [ ] Screenshots uploaded to the PR.
 - [ ] Screenshots attached to the Trello card.
-- [ ] Trello comment posted and card moved to review handoff.
+- [ ] Trello comment posted, card moved to review handoff, final `idList` verified, and authenticated Trello user still assigned.
 
 Existing PR delta:
 

@@ -62,8 +62,8 @@ State the plan upfront: "Committing per-phase. Starting at Phase 1, Task 1. 12 t
 
 Before executing, normalize the implementation task list:
 
-- Every executable task under `## Implementation Plan` must be a Markdown task item starting with `- [ ]`.
-- If a phase contains plain bullets, numbered steps, or prose task lines that are not checkboxes, update the plan file first so each executable task becomes `- [ ] <task>`.
+- Every executable task under `## Implementation Plan` must be a Markdown task item starting with `- [ ]` or `- [x]`.
+- If a phase contains plain bullets, numbered steps, or prose task lines that are not checkboxes, update the plan file first so each incomplete executable task becomes `- [ ] <task>`; preserve already-completed tasks as `- [x] <task>`.
 - If you add a newly discovered task to a phase, add it as `- [ ] <task>`, never as a plain bullet.
 - Do not start executing a phase task until the task itself has a checkbox.
 
@@ -78,7 +78,7 @@ For each task:
 5. Validate (run tests, lint)
 6. Update the plan file: `- [ ]` becomes `- [x]`
 7. Add a QA note as a nested item under the completed task (see QA Notes below). If the QA note describes browser or API verification, it must be an unchecked Markdown task item starting with `- [ ] QA:`.
-8. If all tasks in a phase are checked, check off the phase heading too: `### - [x]`
+8. If all implementation tasks in a phase are checked, check off the phase heading too: `### - [x]`. Ignore fresh unchecked QA notes when deciding whether implementation is complete; only failed QA items with a `> FAIL:` annotation keep the phase open.
 9. Commit if cadence requires it (never `git add .` -- stage files individually)
 10. Move to the next unchecked task
 
