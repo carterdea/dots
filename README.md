@@ -194,7 +194,7 @@ dots/
     ├── AGENTS.md           # Global instructions
     ├── pi-packages.txt     # pi extension package sources
     ├── subagents/          # Subagent definitions (14 agents)
-    └── skills/             # Skills (62 skills)
+    └── skills/             # Skills (78 skills)
 ```
 
 ## AI Assistant Configuration
@@ -208,6 +208,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 ### Available Skills
 
 **Development Workflow:**
+- `/app-store-preflight-compliance` - Pre-submission App Store compliance scanner workflow
 - `/design-doc` - Technical design documents
 - `/execute-plan` - Work through a plan file task-by-task
 - `/qa` - Browser-based QA against a plan file
@@ -217,6 +218,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/iterate-forever` - Visual-reference-to-app loop with screenshot comparison
 - `/dogfood` - Exploratory test web app, structured bug report
 - `/merge-conflicts` - Rebase onto main, resolve conflicts, force-push
+- `/simple-html-artifact` - Build or refine single-file HTML artifacts
 
 **GitHub Workflow:**
 - `/gh-ship` - Commit, push, PR in one step
@@ -235,10 +237,20 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/code-simplifier` - Simplify recently modified code
 - `/database-schema-designer` - Design robust SQL and NoSQL schemas
 - `/baseline` - Install quality baseline (linter, hooks, dead-code scan)
+- `/quality-python` - Python structure, typing, error handling, IO, and tests
+- `/quality-react` - React structure, state ownership, effects, accessibility, and tests
+- `/quality-ruby` - Ruby/Rails structure, ActiveRecord, errors, and RSpec quality
+- `/quality-typescript` - Stronger TypeScript domain types, strictness, and test boundaries
 - `/react-doctor` - Catch React issues after changes
+- `/react-router` - React Router patterns and mode-specific guidance
 - `/vercel-react-best-practices` - React/Next.js performance patterns
+- `/nestjs-best-practices` - NestJS architecture and API patterns
+- `/security-audit` - Security review for vulnerabilities and secret exposure
 - `/audit-ai-frontend` - Triage AI-looking UI (generic aesthetics, weak copy, a11y gaps)
+- `/improve` - Senior codebase survey and improvement plan
 - `/improve-codebase-architecture` - Find deepening opportunities toward deep modules
+- `/coobeyon-refactor` - Refactor orchestration-heavy code toward smaller modules
+- `/thermo-nuclear-code-quality-review` - Extremely strict maintainability review
 
 **Planning and Thinking:**
 - `/grill-me` - Stress-test plan via relentless interview
@@ -248,14 +260,19 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/zoom-out` - Higher-level perspective on a section of code
 - `/subagent-orchestrator` - Coordinate sub-agents on long-horizon tasks
 - `/prove-it-bug-fix` - Failing reproduction test before fix
+- `/ultragoal` - Design, critique, set, or update explicit long-horizon goals
 
 **Frontend and Design:**
 - `/emil-design-engineering` - Polished, accessible web interface principles
+- `/interface-details` - Crafted UI micro-interactions and details
+- `/no-ui-flash` - Prevent wrong-state flashes in SPA/SSR auth and state gates
 - `/web-animation-design` - Animation patterns and performance
 - `/shopify-liquid-patterns` - Liquid code patterns
+- `/vertical-feature-architect` - Add net-new product workflows across a stack
 
 **Shopify:**
 - `/shopify-app-store-review` - Shopify App Store review requirements
+- `/shopify-baseline` - Shopify theme/app quality baseline
 - `/shopify-dev-theme` - Dev theme from current branch
 - `/shopify-payments-apps` - Shopify payments app APIs and validation
 - `/shopify-polaris-admin-extensions` - Polaris Admin UI extension code and validation
@@ -263,22 +280,28 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/shopify-storefront-graphql` - Storefront GraphQL queries, mutations, and validation
 - `/shopify-theme-pull` - Pull merchant content from live theme
 - `/shopify-trello-delivery` - Ship Shopify Trello tickets through PR, preview theme, screenshots, and Trello handoff. Requires the `trello-cli` binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
+- `/shopify-trello-qa` - Verify finished Shopify Trello ticket work
 - `/shopify-use-shopify-cli` - Shopify CLI operational workflows
 
 **Writing:**
 - `/humanize-ai-text` - Humanize AI-shaped writing, audit LLM residue, and triage citations
 - `/smart-brevity` - Smart Brevity rewriting
+- `/write-better-error-messages` - Product error message review and rewrite
+- `/writing-great-skills` - Reference for writing and editing skills
 
 **Browser Automation:**
 - `/agent-browser` - Standalone browser CLI for navigation, forms, scraping, screenshots
 
 **External Tools:**
+- `/asana-cli` - Manage Asana tasks and projects through the `asana` CLI
 - `/trello-cli` - Drive Trello (boards, lists, cards, comments, checklists, labels) through the `trello-cli`. Requires the binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 **Meta:**
 - `/skill-creator` - Create, edit, evaluate, benchmark skills
 - `/self-improve` - Codex session-driven self-improvement
 - `/clean-coder` - Invoked when user swears or is upset
+- `/teach` - Teach a skill or concept with workspace-local lessons
+- `/wizard` - Generate interactive bash wizards
 
 ### Installation Options
 

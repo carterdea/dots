@@ -15,6 +15,8 @@ agents/
 │   └── python-code-simplifier.md
 └── skills/                  # Skills
     ├── agent-browser/                    # Browser automation CLI for AI agents
+    ├── app-store-preflight-compliance/    # App Store submission readiness
+    ├── asana-cli/                         # Drive Asana through the `asana` CLI
     ├── audit-ai-frontend/                # Audit AI-looking frontend implementations
     ├── baseline/                         # Install quality baseline (linter, hooks, dead-code)
     ├── claude-review/                    # Second opinion via Claude Code CLI
@@ -22,6 +24,7 @@ agents/
     ├── clean-worktrees/                  # Audit/clean agent worktrees and gone branches safely
     ├── code-simplifier/                  # Simplify recently modified code
     ├── codex-review/                     # Second opinion via OpenAI Codex CLI
+    ├── coobeyon-refactor/                # Collapse orchestration-heavy code
     ├── database-schema-designer/         # SQL/NoSQL schema design patterns
     ├── de-slop/                          # Clean AI-shaped code before PR
     ├── design-doc/                       # Create technical design documents
@@ -38,19 +41,30 @@ agents/
     ├── grill-me/                         # Stress-test plan via relentless interview
     ├── handoff/                          # Generate continuation prompt
     ├── humanize-ai-text/                 # Humanize AI-shaped writing and citation cleanup
+    ├── improve/                          # Senior codebase survey and improvement plan
     ├── improve-codebase-architecture/    # Find deepening opportunities
+    ├── interface-details/                # Crafted UI micro-interactions and details
     ├── iterate-forever/                  # Visual-reference-to-app loop
     ├── make-tests/                       # Add tests for current change
     ├── merge-conflicts/                  # Rebase, resolve conflicts, force-push
     ├── loop-me/                          # Specify recurring workflows through grilling
+    ├── nestjs-best-practices/            # NestJS architecture and API patterns
+    ├── no-ui-flash/                      # Prevent wrong-state UI flashes
     ├── pre-pr/                           # Project-appropriate PR validation and summary
     ├── prove-it-bug-fix/                 # Failing test before fix
     ├── qa/                               # Browser QA against plan file
+    ├── quality-python/                   # Python structure, typing, IO, and tests
+    ├── quality-react/                    # React structure, state, effects, and a11y
+    ├── quality-ruby/                     # Ruby/Rails structure, AR, errors, and specs
+    ├── quality-typescript/               # Strong TypeScript domain modeling
     ├── rams/                             # Accessibility / visual design review
     ├── react-doctor/                     # Catch React issues early
     ├── react-native-skills/              # React Native and Expo performance patterns
+    ├── react-router/                     # React Router patterns and modes
+    ├── security-audit/                   # Security review and secret scanning
     ├── self-improve/                     # Codex session-driven self-improvement
     ├── shopify-app-store-review/         # Shopify App Store review requirements
+    ├── shopify-baseline/                 # Shopify quality baseline
     ├── shopify-dev-theme/                # Dev theme from current branch
     ├── shopify-liquid-patterns/          # Liquid code patterns
     ├── shopify-payments-apps/            # Shopify payments app APIs and validation
@@ -59,14 +73,24 @@ agents/
     ├── shopify-storefront-graphql/       # Storefront GraphQL queries and validation
     ├── shopify-theme-pull/               # Pull merchant content from live theme
     ├── shopify-trello-delivery/          # Shopify Trello ticket delivery workflow
+    ├── shopify-trello-qa/                # Verify finished Shopify Trello work
     ├── shopify-use-shopify-cli/          # Shopify CLI operational workflows
+    ├── simple-html-artifact/             # Single-file HTML artifacts
     ├── skill-creator/                    # Create/edit/measure skills
     ├── smart-brevity/                    # Smart Brevity rewriting
     ├── subagent-orchestrator/            # Orchestrate sub-agents for long tasks
+    ├── teach/                            # Teach skills or concepts with lessons
+    ├── thermo-nuclear-code-quality-review/ # Harsh maintainability review
     ├── trello-cli/                       # Drive Trello through the `trello-cli`
     ├── trello-delivery/                  # Trello ticket → reviewable PR (non-Shopify)
+    ├── trello-qa/                        # Verify finished Trello ticket work
+    ├── ultragoal/                        # Design and manage explicit goals
     ├── vercel-react-best-practices/      # React/Next.js performance patterns
+    ├── vertical-feature-architect/       # Net-new workflow architecture
     ├── web-animation-design/             # Web animation patterns
+    ├── wizard/                           # Interactive bash wizards
+    ├── write-better-error-messages/      # Product error message quality
+    ├── writing-great-skills/             # Skill-writing reference
     └── zoom-out/                         # Higher-level perspective on code
 ```
 
@@ -97,6 +121,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 
 ### Development Workflow
 
+- `/app-store-preflight-compliance` — Pre-submission App Store compliance scanner workflow
 - `/design-doc` — Technical design document with implementation tasks and open questions
 - `/execute-plan` — Work through a plan file task-by-task (`--commit-per-task`, `--commit-end-only`)
 - `/qa` — Browser-based QA against `- [ ] QA:` items in a plan file
@@ -106,6 +131,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/iterate-forever` — Visual-reference-to-app loop with screenshot comparison
 - `/dogfood` — Systematic bug hunt with structured repro evidence
 - `/merge-conflicts` — Rebase onto main, resolve conflicts, force-push
+- `/simple-html-artifact` — Build or refine single-file HTML artifacts
 
 ### GitHub Workflow
 
@@ -126,11 +152,21 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/code-simplifier` — Simplify recently modified code
 - `/database-schema-designer` — Design robust SQL and NoSQL schemas
 - `/baseline` — Install quality baseline (linter, formatter, hooks, dead-code scan)
+- `/quality-python` — Python structure, typing, error handling, IO, and tests
+- `/quality-react` — React structure, state ownership, effects, accessibility, and tests
+- `/quality-ruby` — Ruby/Rails structure, ActiveRecord, errors, and RSpec quality
+- `/quality-typescript` — Stronger TypeScript domain types, strictness, and test boundaries
 - `/react-doctor` — Catch React issues after changes
 - `/react-native-skills` — React Native and Expo performance patterns
+- `/react-router` — React Router patterns and mode-specific guidance
 - `/vercel-react-best-practices` — React/Next.js performance patterns
+- `/nestjs-best-practices` — NestJS architecture and API patterns
+- `/security-audit` — Security review for vulnerabilities and secret exposure
 - `/audit-ai-frontend` — Triage AI-looking UI: generic aesthetics, weak copy, a11y gaps
+- `/improve` — Senior codebase survey and improvement plan
 - `/improve-codebase-architecture` — Find deepening opportunities toward deep modules
+- `/coobeyon-refactor` — Refactor orchestration-heavy code toward smaller modules
+- `/thermo-nuclear-code-quality-review` — Extremely strict maintainability review
 
 ### Planning and Thinking
 
@@ -141,16 +177,21 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/zoom-out` — Higher-level perspective on a section of code
 - `/subagent-orchestrator` — Coordinate sub-agents on complex long-horizon tasks
 - `/prove-it-bug-fix` — Failing reproduction test before fixing
+- `/ultragoal` — Design, critique, set, or update explicit long-horizon goals
 
 ### Frontend and Design
 
 - `/emil-design-engineering` — Polished, accessible web interface principles
+- `/interface-details` — Crafted UI micro-interactions and details
+- `/no-ui-flash` — Prevent wrong-state flashes in SPA/SSR auth and state gates
 - `/web-animation-design` — Animation patterns and performance
 - `/shopify-liquid-patterns` — Liquid code patterns
+- `/vertical-feature-architect` — Add net-new product workflows across a stack
 
 ### Shopify
 
 - `/shopify-app-store-review` — Shopify App Store review requirements
+- `/shopify-baseline` — Shopify theme/app quality baseline
 - `/shopify-dev-theme` — Dev theme from current git branch
 - `/shopify-payments-apps` — Shopify payments app APIs and validation
 - `/shopify-polaris-admin-extensions` — Polaris Admin UI extension code and validation
@@ -158,12 +199,15 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/shopify-storefront-graphql` — Storefront GraphQL queries, mutations, and validation
 - `/shopify-theme-pull` — Pull merchant content from live theme
 - `/shopify-trello-delivery` — Ship Shopify Trello tickets through PR, preview theme, screenshots, and Trello handoff. Requires the `trello-cli` binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
+- `/shopify-trello-qa` — Verify finished Shopify Trello ticket work
 - `/shopify-use-shopify-cli` — Shopify CLI operational workflows
 
 ### Writing
 
 - `/humanize-ai-text` — Humanize AI-shaped writing, audit LLM residue, and triage citations
 - `/smart-brevity` — Smart Brevity rewriting
+- `/write-better-error-messages` — Product error message review and rewrite
+- `/writing-great-skills` — Reference for writing and editing skills
 
 ### Browser Automation
 
@@ -171,6 +215,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 
 ### External Tools
 
+- `/asana-cli` — Manage Asana tasks and projects through the `asana` CLI
 - `/trello-cli` — Drive Trello (boards, lists, cards, comments, checklists, labels) through the `trello-cli`. Requires the binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 ### Meta
@@ -178,6 +223,8 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/skill-creator` — Create, edit, evaluate, and benchmark skills
 - `/self-improve` — Codex session-driven self-improvement
 - `/clean-coder` — Invoked when user swears or is upset
+- `/teach` — Teach a skill or concept with workspace-local lessons
+- `/wizard` — Generate interactive bash wizards
 
 ## Available Subagents
 
