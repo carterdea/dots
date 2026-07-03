@@ -1,6 +1,6 @@
 ---
 name: quality-typescript
-description: Use when a TypeScript codebase needs stronger domain types, branded types, discriminated unions with exhaustiveness checks, strict compiler flags, `satisfies`/`unknown`/`as const` over `enum`, end-to-end type flow, derived types instead of duplicated interfaces, real integration tests over mocks, or OpenTelemetry instrumentation.
+description: Use when a TypeScript codebase needs stronger domain types, branded types, discriminated unions with exhaustiveness checks, strict compiler flags, `satisfies`/`unknown`/`as const` over `enum`, end-to-end type flow, derived types instead of duplicated interfaces, typed error handling with Result types, or real integration tests over mocks.
 ---
 
 # Writing quality full-stack TypeScript
@@ -10,6 +10,8 @@ Apply these principles when writing or reviewing TypeScript code.
 ## Turn on the flags that make this bite
 
 None of the discipline below holds without a strict compiler. Enable `strict`, plus `noUncheckedIndexedAccess` (array/record access yields `T | undefined`) and `exactOptionalPropertyTypes` (a missing key and an explicit `undefined` stop being the same thing). Without `noUncheckedIndexedAccess` especially, "impossible states" leaks at every index access.
+
+These flags govern first-party code and are cheapest on greenfield. Retrofitting `exactOptionalPropertyTypes` onto an existing codebase means fighting third-party type definitions that will never comply — scope it to your own code and don't block on library types you can't fix.
 
 ## Make impossible states unrepresentable
 
@@ -75,7 +77,7 @@ function render(state: State) {
 
 DB schema -> server -> client should share types without manual duplication. Use whatever end-to-end type tool the project already has (tRPC, oRPC, Elysia, TanStack Start). A `users.email` branded as `Email` should arrive on the client still branded.
 
-Don't restate types you can derive. Reach for `Pick`, `Omit`, `Parameters`, `ReturnType`, `Awaited`, `typeof` etc. before writing a new interface. For function arguments, infer from the source instead of typing them by hand:
+Don't restate types you can derive. Reach for `Pick`, `Omit`, `Parameters`, `ReturnType`, `Awaited`, `typeof` etc. before writing a new interface. Derive from the schema — the source of truth — and give the derived type a name in one place. Deep `ReturnType`/`Awaited` chains re-derived at every call site couple your domain to arbitrary queries and make hovers and errors unreadable.
 
 ```ts
 // Don't - duplicate shape, drifts when the row changes
@@ -84,8 +86,8 @@ function renderUser(u: UserSummary) {
   /* ... */
 }
 
-// Do - derive from the source of truth
-type User = NonNullable<Awaited<ReturnType<typeof db.query.users.findFirst>>>;
+// Do - derive once from the schema, the source of truth
+type User = typeof users.$inferSelect; // drizzle; prisma/zod have equivalents
 function renderUser(u: Pick<User, "id" | "email">) {
   /* ... */
 }
@@ -128,6 +130,29 @@ const Role = { admin: "admin", member: "member" } as const;
 type Role = (typeof Role)[keyof typeof Role]; // "admin" | "member"
 ```
 
+## Handle errors with types, not vibes
+
+`catch` variables are `unknown` under strict — keep them that way and narrow before use. Throw `Error` subclasses (never strings), name domain errors, and chain causes so the original failure survives translation:
+
+```ts
+try {
+  await chargeCustomer(order);
+} catch (err) {
+  if (err instanceof GatewayTimeoutError) {
+    throw new RetryablePaymentError(order.id, { cause: err });
+  }
+  throw err;
+}
+```
+
+For failures the caller is expected to handle, prefer a discriminated Result union over throwing — the failure shows up in the signature and exhaustiveness checking applies:
+
+```ts
+type ParseResult<T> = { ok: true; value: T } | { ok: false; error: string };
+```
+
+Handle every promise. An unawaited, un-`.catch`ed promise is a silently swallowed failure; enable `@typescript-eslint/no-floating-promises` where the project lints.
+
 ## Standard Schema for shared validation
 
 For libraries or shared utilities that should not force callers onto one validator, accept `StandardSchemaV1<unknown, T>` instead of a concrete Zod/Valibot/ArkType schema type. Application code can keep using the project's chosen validator directly; library-like code should depend on the common interface.
@@ -165,6 +190,6 @@ Mock only third-party services that have no test environment.
 
 Real services are slower, so don't make every test pay for them: real services at the integration boundary, fast isolated tests for pure logic underneath.
 
-## Reach for tracing when you cross service boundaries
+## The common TypeScript red flags
 
-Traces, metrics, and logs are complementary, not substitutes. When you need to follow a request across services, instrument with OpenTelemetry spans rather than scattering `console.log` - the setup cost pays back the first time a user sends a request ID and you can answer instead of guess. Structured logging stays legitimate, and full OTel is overkill for a CLI or a single small service.
+Prioritize fixing non-strict tsconfig, `any` at boundaries, `as` casts instead of narrowing, flag-bag state types, `enum`, hand-duplicated types that drift from the source of truth, same-typed positional args, thrown strings, `catch` blocks that assume `Error`, floating promises, missing exhaustiveness checks, and mock-heavy tests for things you could run for real.
