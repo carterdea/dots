@@ -35,10 +35,15 @@ git branch --show-current
 Example: `fix/search-featured-product-styling` -> `[DEV] Search Featured Product Styling`
 
 5. Push full theme
+- First run (theme does not exist yet): create it as unpublished. `--unpublished` is required to create a new theme; `--theme` names it.
+```
+shopify theme push --environment <env> --unpublished --theme "[DEV] Theme Name"
+```
+- Subsequent runs (theme already exists): push to it by name. Do NOT pass `--unpublished` again — it would create a duplicate theme.
 ```
 shopify theme push --environment <env> --theme "[DEV] Theme Name"
 ```
-- Creates the theme if it doesn't exist, updates if it does
+- To tell which case you are in, check `shopify theme list --environment <env>` for a theme matching the name
 
 6. Handle theme limit reached
 - If the push fails because the store has hit its theme limit:

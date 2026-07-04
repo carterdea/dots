@@ -30,7 +30,7 @@ git push -u origin $(git branch --show-current)
 
 5. Create PR if needed
 gh pr view --json number 2>/dev/null
-- If no PR: `gh pr create --title "type(scope): desc" --body "## Summary\n- changes"`
+- If no PR: `gh pr create --title "type(scope): desc" --body $'## Summary\n- changes'` (use `$'...'` so `\n` becomes a real newline)
 - If PR exists: report URL
 
 Read if present: `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`.
