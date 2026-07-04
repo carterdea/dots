@@ -316,16 +316,18 @@ Quick reference for common scenarios. See [PRACTICAL-TIPS.md](PRACTICAL-TIPS.md)
 
 ## Easing Decision Flowchart
 
+```
 Is the element entering or exiting the viewport?
 ├── Yes → ease-out
 └── No
-├── Is it moving/morphing on screen?
-│ └── Yes → ease-in-out
-└── Is it a hover change?
-├── Yes → ease
-└── Is it constant motion?
-├── Yes → linear
-└── Default → ease-out
+    ├── Is it moving/morphing on screen?
+    │   └── Yes → ease-in-out
+    ├── Is it a hover change?
+    │   └── Yes → ease
+    ├── Is it constant motion?
+    │   └── Yes → linear
+    └── Default → ease-out
+```
 
 ## Reference Files
 
