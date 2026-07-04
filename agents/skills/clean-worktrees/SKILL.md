@@ -86,7 +86,7 @@ The default script mode scans **every registered worktree** for the target repo 
 For named branch worktrees, map branches to PRs before deletion:
 
 ```bash
-gh -C <repo> pr list --head <branch> --json number,title,url,state,headRefName,baseRefName
+(cd <repo> && gh pr list --head <branch> --json number,title,url,state,headRefName,baseRefName)
 ```
 
 Detached worktrees do not map cleanly to PRs by branch. Treat them as not PR-backed unless the worktree has a named branch or a remote branch can be inferred from local metadata.

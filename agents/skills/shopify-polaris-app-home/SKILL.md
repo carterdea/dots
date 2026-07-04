@@ -244,7 +244,7 @@ Polaris web components are custom HTML elements with an `s-` prefix. These are g
 
 ```tsx
 // No import needed — s-page, s-badge, s-button, s-box, etc. are globally available
-<s-page title="Dashboard">
+<s-page heading="Dashboard">
   <s-badge tone="success">Active</s-badge>
 </s-page>
 ```

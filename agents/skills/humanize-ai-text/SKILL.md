@@ -4,7 +4,7 @@ description: Humanize AI-shaped writing. Use for "make this less AI/ChatGPT", AI
 allowed-tools:
   - Read
   - Write
-  - StrReplace
+  - Edit
   - Bash
   - Glob
   - WebFetch

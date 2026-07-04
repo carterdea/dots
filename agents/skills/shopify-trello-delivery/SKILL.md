@@ -114,9 +114,9 @@ Research expectations:
      - Most recent relevant comment Figma link, only when the description has no Figma link.
    - For each relevant Figma link:
      - Decode the `node-id` from the URL (`701-56` becomes `701:56`) when passing it to Figma MCP.
-     - Prefer `mcp__figma_desktop__get_design_context` with the task type and artifact type when available.
-     - Use `mcp__figma_desktop__get_screenshot` to capture a reference image for QA.
-     - Use `mcp__figma_desktop__get_metadata` only when you need to choose between nearby frames or understand hierarchy.
+     - Prefer the Figma MCP `get_design_context` tool with the task type and artifact type when available.
+     - Use `get_screenshot` to capture a reference image for QA.
+     - Use `get_metadata` only when you need to choose between nearby frames or understand hierarchy.
      - If Figma MCP is unavailable or cannot access the file, report that clearly and fall back to the ticket screenshots/comments instead of guessing.
    - Keep the selected Figma URL/node ID available for the PR body, PR screenshot comment, and Trello handoff when design matching is part of the task.
 
@@ -135,7 +135,7 @@ Research expectations:
    - Prefer existing theme classes, section settings, fonts, colors, spacing tokens, and responsive breakpoints over one-off CSS.
    - Keep generated Shopify JSON comments when they already exist.
    - For theme JSON files with Shopify generated headers, preserve the header unless the file is genuinely new.
-   - Use `apply_patch` for manual edits.
+   - Use your file-editing tool (e.g. `apply_patch`, `Edit`) for manual edits.
    - Keep changes scoped to the ticket and avoid unrelated formatting churn.
    - If unsure about a Shopify best practice, a Liquid/Admin/Storefront API, or how the app you're integrating behaves, check the Shopify dev / AI Toolkit skills (or Context7) before writing code — don't guess.
 
