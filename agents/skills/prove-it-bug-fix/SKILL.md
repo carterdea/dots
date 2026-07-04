@@ -1,6 +1,6 @@
 ---
 name: prove-it-bug-fix
-description: Reproduce bugs with a failing test before fixing
+description: Use when a bug, error, crash, stack trace, regression, or "X doesn't work / broke" report needs fixing. Reproduces the bug with a failing test (via a subagent) before any fix is written, then confirms the test passes after. Triggers on bug reports, error messages, and "prove the fix works" requests.
 allowed-tools: Task, Bash, Read, Write, Edit, Grep, Glob
 user-invocable: false
 ---
