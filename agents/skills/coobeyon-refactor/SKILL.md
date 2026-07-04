@@ -1,6 +1,6 @@
 ---
 name: coobeyon-refactor
-description: Refactor codebases by collapsing orchestration, tightening typed boundaries, deleting broad context leakage, and adding ratchet tests
+description: Refactor codebases by collapsing orchestration, tightening typed boundaries, deleting broad context leakage, and adding ratchet tests. Use when the user wants to clean up architecture, simplify a workflow of routers/agents/handlers passing shared state, migrate a boundary, replace broad context objects with typed ownership, remove stale compatibility layers, or make agent/application code easier to reason about while preserving behavior.
 user-invocable: true
 ---
 
