@@ -162,6 +162,8 @@ Install fallow even when a `knip` config exists because hooks and CI call `bunx 
 
 Use `bunx fallow` for the full audit. Use `bunx fallow dead-code` when a legacy repo would flood the report.
 
+In hooks, CI, and `run_silent` wrappers, always pass `--quiet --fail-on-issues`. Without `--fail-on-issues`, warn-level findings exit 0 — the hook never blocks and `run_silent` prints ✓ while hiding the report. `--quiet` suppresses the stderr progress output that otherwise dwarfs every other check.
+
 ## Lefthook
 
 Skip if `lefthook.yml`, `lefthook.yaml`, or `.lefthook.yml` exists at repo root.

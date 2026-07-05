@@ -42,7 +42,7 @@ Default shape:
     "check:theme": "shopify theme check",
     "check:biome": "biome check .",
     "check:type": "if [ -f tsconfig.json ]; then tsc --noEmit; else echo \"skipped: no tsconfig.json\"; fi",
-    "check:dead-code": "if [ -d src ] && { ls .fallowrc.* fallow.* >/dev/null 2>&1 || node -e \"process.exit(require('./package.json').fallow ? 0 : 1)\" 2>/dev/null; }; then fallow dead-code; else echo \"skipped: fallow runs only when src/ + a fallow config exist\"; fi",
+    "check:dead-code": "if [ -d src ] && { ls .fallowrc.* fallow.* >/dev/null 2>&1 || node -e \"process.exit(require('./package.json').fallow ? 0 : 1)\" 2>/dev/null; }; then fallow dead-code --quiet --fail-on-issues; else echo \"skipped: fallow runs only when src/ + a fallow config exist\"; fi",
     "check:test": "if ls vitest.config.* >/dev/null 2>&1; then vitest run; else echo \"skipped: no vitest config\"; fi",
     "check:a11y": "if [ -n \"${BASE_URL:-}${SHOPIFY_PREVIEW_URL:-}\" ]; then playwright test tests/accessibility; else echo \"skipped: set BASE_URL or SHOPIFY_PREVIEW_URL for accessibility smoke tests\"; fi",
     "build": "vite build"

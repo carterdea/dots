@@ -18,6 +18,8 @@ pre-push:
       # Skipped automatically on JS-only repos (no tsconfig.json).
       run: if [ -f tsconfig.json ]; then bunx tsc --noEmit; fi
     fallow:
-      run: bunx fallow
+      # --fail-on-issues: warn-level findings exit 0 without it, so the gate
+      # would silently pass. --quiet drops the stderr progress noise.
+      run: bunx fallow --quiet --fail-on-issues
     test:
       run: bun run test
