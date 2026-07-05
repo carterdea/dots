@@ -1,6 +1,7 @@
 ---
 name: gh-address-pr-comments
 description: Resolve actionable GitHub pull request review feedback and watch for new comments until approval or a sustained quiet period. Use when the user wants to inspect or continuously poll unresolved review threads, requested changes, inline comments, or PR conversation comments, then automatically implement valid fixes while filtering bots, outdated comments, duplicates, and non-actionable noise.
+disable-model-invocation: true
 ---
 
 # Address PR Comments
