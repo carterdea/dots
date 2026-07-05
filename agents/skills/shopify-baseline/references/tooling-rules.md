@@ -26,6 +26,7 @@ Fallow helps only when the theme has a bundled source tree.
 - Scope to public `src/` roots; never `assets/` or `dist/`.
 - Reconcile entry points to the repo's actual build entries.
 - Run pre-push and CI, not pre-commit.
+- Invoke as `fallow dead-code --quiet --fail-on-issues`: without `--fail-on-issues`, warn-level findings exit 0 and the gate silently passes; `--quiet` drops stderr progress noise from captured output.
 - Do not clobber existing fallow config.
 
 Fallow does not answer "which `assets/*.js` is no longer referenced by Liquid"; that needs Liquid-aware grep and is out of scope.

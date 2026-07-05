@@ -34,7 +34,8 @@ jobs:
         run: bunx tsc --noEmit
 
       - name: Fallow
-        run: bunx fallow
+        # --fail-on-issues makes warn-level findings fail the job; --quiet drops progress noise.
+        run: bunx fallow --quiet --fail-on-issues
 
       - name: Test
         run: bun run test
