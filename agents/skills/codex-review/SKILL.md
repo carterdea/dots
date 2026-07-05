@@ -125,7 +125,7 @@ EOF
   else
     git diff "${BASE_BRANCH}...HEAD"
   fi
-} | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto -
+} | codex exec --skip-git-repo-check --model gpt-5.5 --full-auto -
 ```
 
 ### 3. For large diffs
@@ -140,7 +140,7 @@ if [ "$REVIEW_WORKTREE" = true ]; then
       printf 'Review this diff of %s for bugs, security issues, and code quality problems. Be specific and concise.\n\nDiff to review:\n' "$file"
       git diff -- "$file"
       git diff --cached -- "$file"
-    } | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto -
+    } | codex exec --skip-git-repo-check --model gpt-5.5 --full-auto -
   done
 else
   git diff "${BASE_BRANCH}...HEAD" --name-only | while IFS= read -r file; do
@@ -148,7 +148,7 @@ else
     {
       printf 'Review this diff of %s for bugs, security issues, and code quality problems. Be specific and concise.\n\nDiff to review:\n' "$file"
       git diff "${BASE_BRANCH}...HEAD" -- "$file"
-    } | codex exec --skip-git-repo-check --model gpt-5.4 --full-auto -
+    } | codex exec --skip-git-repo-check --model gpt-5.5 --full-auto -
   done
 fi
 ```
