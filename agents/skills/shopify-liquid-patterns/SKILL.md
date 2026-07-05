@@ -48,17 +48,19 @@ description: Common Liquid code patterns for Shopify theme development. Use when
 
 ### Variant Selector (Dropdown)
 
+Option selectors drive JS variant selection only — the cart submission is carried by the hidden `name="id"` variant input inside `{% form 'product' %}`, not by these fields.
+
 ```liquid
 {% for option in product.options_with_values %}
   <div class="option-selector">
     <label for="option-{{ forloop.index }}">{{ option.name }}</label>
-    <select id="option-{{ forloop.index }}" name="options[{{ option.name }}]">
-      {% for value in option.values %}
+    <select id="option-{{ forloop.index }}" name="{{ option.name }}">
+      {% for option_value in option.values %}
         <option
-          value="{{ value }}"
-          {% if option.selected_value == value %}selected{% endif %}
+          value="{{ option_value | escape }}"
+          {% if option_value.selected %}selected{% endif %}
         >
-          {{ value }}
+          {{ option_value }}
         </option>
       {% endfor %}
     </select>
