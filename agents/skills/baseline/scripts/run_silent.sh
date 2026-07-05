@@ -2,31 +2,59 @@
 # Context-efficient backpressure wrapper.
 # Source: https://www.humanlayer.dev/blog/context-efficient-backpressure
 #
-# Prints a single checkmark on success, full captured output on failure.
-# Keeps agent context lean: success = "✓", failure = everything it needs to debug.
+# Success prints one line (✓ + description) and discards the output. Failure
+# prints ✗, the command, and the full captured output, so the agent gets
+# everything it needs to diagnose — and nothing it doesn't on success.
+# A check that opts out (exits 0 after echoing "skipped: …") prints a distinct
+# ⊘ status so a skipped check never reads as a pass.
+# Set VERBOSE=1 to stream raw output live (human escape hatch).
 #
 # Usage:
 #   source scripts/run_silent.sh
-#   run_silent "biome lint"      "bun run lint"
-#   run_silent "typecheck"       "bun run typecheck"
-#   run_silent "vitest changed"  "bun run test --changed"
+#   run_silent "typecheck" bunx tsc --noEmit
 
-set -o pipefail
+VERBOSE="${VERBOSE:-0}"
+
+# Redact secret-looking args (e.g. --password "$SHOPIFY_CLI_THEME_TOKEN")
+# so neither the verbose echo nor a failure line leaks a token into logs/chat.
+_redact_cmd() {
+    printf '%s' "$*" | sed -E 's/(--(password|token|secret)[ =])[^ ]+/\1***/g; s/shptka_[A-Za-z0-9]+/shptka_***/g'
+}
 
 run_silent() {
     local description="$1"
-    local command="$2"
+    shift
+
+    if [ "$VERBOSE" = "1" ]; then
+        printf "  → %s\n" "$(_redact_cmd "$@")"
+        "$@"
+        return $?
+    fi
+
     local tmp_file
     tmp_file=$(mktemp)
-    if eval "$command" > "$tmp_file" 2>&1; then
+    local exit_code=0
+    "$@" > "$tmp_file" 2>&1 || exit_code=$?
+
+    if [ "$exit_code" -eq 0 ]; then
+        # A check that opts out echoes "skipped: <reason>" and exits 0. Surface
+        # that as its own status so an unrun scan never masquerades as a pass.
+        # bun/pnpm print a run banner before the script's own output, so the
+        # "skipped:" line isn't necessarily first — scan the whole capture.
+        local skip_line
+        if skip_line=$(grep -im1 '^skipped:' "$tmp_file"); then
+            printf "  \033[33m⊘\033[0m %s (%s)\n" "$description" "$skip_line"
+            rm -f "$tmp_file"
+            return 0
+        fi
         printf "  \033[32m✓\033[0m %s\n" "$description"
         rm -f "$tmp_file"
         return 0
-    else
-        local exit_code=$?
-        printf "  \033[31m✗\033[0m %s\n" "$description"
-        cat "$tmp_file"
-        rm -f "$tmp_file"
-        return $exit_code
     fi
+
+    printf "  \033[31m✗\033[0m %s\n" "$description"
+    printf "  \033[31mCommand failed:\033[0m %s\n" "$(_redact_cmd "$@")"
+    cat "$tmp_file"
+    rm -f "$tmp_file"
+    return "$exit_code"
 }

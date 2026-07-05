@@ -5,17 +5,17 @@
 # Success prints one line (✓ + description) and discards the output. Failure
 # prints ✗, the command, and the full captured output, so the agent gets
 # everything it needs to diagnose — and nothing it doesn't on success.
-# A check that opts out (exits 0 after echoing "skipped: …", e.g. no preview URL
-# or no src/) prints a distinct ⊘ status so a skipped scan never reads as a pass.
+# A check that opts out (exits 0 after echoing "skipped: …") prints a distinct
+# ⊘ status so a skipped check never reads as a pass.
 # Set VERBOSE=1 to stream raw output live (human escape hatch).
 #
 # Usage:
 #   source scripts/run_silent.sh
-#   run_silent "theme check" bun run check:theme
+#   run_silent "typecheck" bunx tsc --noEmit
 
 VERBOSE="${VERBOSE:-0}"
 
-# Redact secret-looking args (e.g. shopify --password "$SHOPIFY_CLI_THEME_TOKEN")
+# Redact secret-looking args (e.g. --password "$SHOPIFY_CLI_THEME_TOKEN")
 # so neither the verbose echo nor a failure line leaks a token into logs/chat.
 _redact_cmd() {
     printf '%s' "$*" | sed -E 's/(--(password|token|secret)[ =])[^ ]+/\1***/g; s/shptka_[A-Za-z0-9]+/shptka_***/g'
