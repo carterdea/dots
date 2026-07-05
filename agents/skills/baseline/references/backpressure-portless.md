@@ -4,15 +4,18 @@ Use this when wiring quiet checks, agent instructions, and stable local URLs.
 
 ## `run_silent.sh`
 
-Copy `scripts/run_silent.sh` into the target repo at `scripts/run_silent.sh` and `chmod +x` it. Skip if the file already exists.
+Copy this skill's `scripts/run_silent.sh` into the target repo at `scripts/run_silent.sh` and `chmod +x` it. Skip if the file already exists.
 
-The rule is:
+`run_silent` takes a description plus the command as separate arguments — an argument vector, never one quoted string:
 
 ```bash
-run_silent "typecheck" "bunx tsc --noEmit"
-# success: one compact success line
-# failure: failure line plus full command output
+run_silent "typecheck" bunx tsc --noEmit
+# ✓ typecheck                      success: one compact line, output discarded
+# ✗ typecheck + command + output   failure: command echoed (secrets redacted)
+# ⊘ typecheck (skipped: <reason>)  command printed "skipped: …" and exited 0
 ```
+
+Set `VERBOSE=1` to stream raw output live.
 
 Use it in CI scripts, composite package scripts, `verify:silent` targets, and agent-driven workflows where verbose green output wastes context. Wrap each distinct check in its own call so failures isolate cleanly.
 

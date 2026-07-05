@@ -54,6 +54,8 @@ Baseline `biome.json` after init:
 }
 ```
 
+Keep whatever `$schema` URL `bunx biome init` wrote — it matches the installed Biome version; do not copy the version above verbatim.
+
 For Next.js, React, Remix, or React Router, add globals as needed and enable the matching domains per current Biome docs.
 
 ## Python

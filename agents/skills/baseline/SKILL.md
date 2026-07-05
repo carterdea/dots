@@ -66,7 +66,7 @@ Completion criterion: `lefthook.yml` exists or was skipped because an existing h
 
 ### 4. Add quiet-check support
 
-Copy `scripts/run_silent.sh` into `scripts/run_silent.sh` if missing and make it executable. Append the stack-specific run-silent and Portless snippets to the canonical agent instructions using [`references/backpressure-portless.md`](references/backpressure-portless.md).
+Copy this skill's `scripts/run_silent.sh` into the repo at `scripts/run_silent.sh` if missing and make it executable. Append the stack-specific run-silent and Portless snippets to the canonical agent instructions using [`references/backpressure-portless.md`](references/backpressure-portless.md).
 
 Reconcile agent instructions first:
 
