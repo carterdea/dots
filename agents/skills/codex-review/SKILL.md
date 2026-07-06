@@ -21,27 +21,31 @@ ARTIFACT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-review.XXXXXX")"
 REPORT="$ARTIFACT_DIR/report.md"
 PROMPT="$ARTIFACT_DIR/prompt.md"
 
+# -c model="gpt-5.5" forces the model; the installed Codex config may default
+# to a different one. `review` has no --model flag, so override it via -c.
+
 # Standard review of a target (built-in prompt, no custom instructions):
 # staged, unstaged, and untracked changes.
-codex -C "$PWD" review --uncommitted > "$REPORT"
+codex -C "$PWD" review -c model="gpt-5.5" --uncommitted > "$REPORT"
 # current branch against a base branch.
-codex -C "$PWD" review --base main > "$REPORT"
+codex -C "$PWD" review -c model="gpt-5.5" --base main > "$REPORT"
 # a single commit.
-codex -C "$PWD" review --commit <sha> > "$REPORT"
+codex -C "$PWD" review -c model="gpt-5.5" --commit <sha> > "$REPORT"
 
 # Focused review: write instructions to "$PROMPT", then review the current
-# uncommitted changes with them (no target selector allowed here).
-codex -C "$PWD" review - < "$PROMPT" > "$REPORT"
+# uncommitted changes with them (no target selector allowed here). Name the
+# change set inside $PROMPT so Codex reviews the intended diff, not the repo.
+codex -C "$PWD" review -c model="gpt-5.5" - < "$PROMPT" > "$REPORT"
 ```
 
 If the diff is empty, tell the user there are no changes to review and stop.
 
 ## Review Prompt
 
-For the focused (stdin) shape, ask Codex to use a code-review stance:
+For the focused (stdin) shape, ask Codex to use a code-review stance. Name the change set on the first line (this shape has no selector, so an unqualified prompt can drift into a whole-repo review):
 
 ```text
-Review these changes for bugs, regressions, missing tests, security issues, and requirement mismatches.
+Review the uncommitted changes (or: the diff of <files>, commit <sha>, branch vs main) for bugs, regressions, missing tests, security issues, and requirement mismatches.
 
 Prioritize findings over summary. For each finding include:
 - severity

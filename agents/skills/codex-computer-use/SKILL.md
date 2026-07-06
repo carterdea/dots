@@ -27,10 +27,13 @@ RUN_LOG="$ARTIFACT_DIR/run.log"    # captures the codex exec stream, kept separa
 # Write a self-contained prompt to $PROMPT, then run:
 codex exec \
   -C "$PWD" \
+  -m gpt-5.5 \
   --add-dir "$ARTIFACT_DIR" \
   -s danger-full-access \
   - < "$PROMPT" > "$RUN_LOG"
 ```
+
+Pass `-m gpt-5.5` explicitly — the installed Codex config may default to a different model, and this skill's whole point is having gpt-5.5 do the verification.
 
 Keep the report path Codex writes distinct from where you capture stdout — redirecting the `codex exec` stream to `$REPORT` while also telling Codex to save its report there can interleave or clobber the file. Read `$REPORT` for Codex's report and `$RUN_LOG` for the run trace.
 
