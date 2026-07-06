@@ -57,7 +57,7 @@ Prioritize findings over summary. For each finding include:
 Do not edit files. If there are no substantive findings, say so and name any residual test gaps.
 ```
 
-If the user asked for a specific focus (security, tests, architecture, performance), use that as the prompt instead.
+If the user asked for a specific focus (security, tests, architecture, performance), fold it into the first line — keep the target, then narrow the lens (e.g. "Review the uncommitted changes for security issues …"). Never send the bare focus word; without the target the review drifts across the whole repo.
 
 Add task-specific context when useful: requirements, risky areas, expected behavior, relevant tests, or files Claude is unsure about.
 
