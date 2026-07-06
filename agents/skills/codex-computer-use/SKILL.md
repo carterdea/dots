@@ -20,16 +20,19 @@ Use this command shape:
 
 ```bash
 ARTIFACT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-computer-use.XXXXXX")"
-REPORT="$ARTIFACT_DIR/report.md"
+REPORT="$ARTIFACT_DIR/report.md"   # Codex writes its report here; tell it so in $PROMPT
 PROMPT="$ARTIFACT_DIR/prompt.md"
+RUN_LOG="$ARTIFACT_DIR/run.log"    # captures the codex exec stream, kept separate from $REPORT
 
 # Write a self-contained prompt to $PROMPT, then run:
 codex exec \
   -C "$PWD" \
   --add-dir "$ARTIFACT_DIR" \
   -s danger-full-access \
-  - < "$PROMPT" > "$REPORT"
+  - < "$PROMPT" > "$RUN_LOG"
 ```
+
+Keep the report path Codex writes distinct from where you capture stdout — redirecting the `codex exec` stream to `$REPORT` while also telling Codex to save its report there can interleave or clobber the file. Read `$REPORT` for Codex's report and `$RUN_LOG` for the run trace.
 
 Use `-s danger-full-access` for GUI automation, iOS simulators, desktop app launching, screenshots, or access outside the repo. For non-GUI checks that only need the repo and artifact directory, prefer `-s workspace-write`. Add `--skip-git-repo-check` when the working directory is not a git repository.
 
