@@ -281,7 +281,7 @@ install_codex() {
     fi
 
     # Install skills (skip skills meant for other agents)
-    local CODEX_SKIP_SKILLS=()
+    local CODEX_SKIP_SKILLS=("codex-computer-use")
     remove_deprecated_skill_symlinks "$HOME/.agents/skills"
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
@@ -381,7 +381,7 @@ install_opencode() {
     fi
 
     # Install skills (skip skills meant for other agents)
-    local OPENCODE_SKIP_SKILLS=("self-improve")
+    local OPENCODE_SKIP_SKILLS=("self-improve" "codex-computer-use")
     remove_deprecated_skill_symlinks "$HOME/.config/opencode/skills"
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
@@ -398,7 +398,7 @@ install_cursor() {
     info "Installing Cursor (global) configuration..."
 
     # Install skills (skip skills meant for other agents)
-    local CURSOR_SKIP_SKILLS=("self-improve")
+    local CURSOR_SKIP_SKILLS=("self-improve" "codex-computer-use")
     remove_deprecated_skill_symlinks "$HOME/.cursor/skills"
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
@@ -418,7 +418,7 @@ install_pi() {
     create_symlink "$DOTFILES_DIR/agents/AGENTS.md" "$HOME/.pi/agent/AGENTS.md"
 
     # Install skills (skip skills meant for other agents)
-    local PI_SKIP_SKILLS=()
+    local PI_SKIP_SKILLS=("codex-computer-use")
     remove_deprecated_skill_symlinks "$HOME/.pi/agent/skills"
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
@@ -513,7 +513,7 @@ install_cursor_project() {
     info "Installing Cursor (project) configuration..."
 
     # Install skills (skip skills meant for other agents)
-    local CURSOR_PROJECT_SKIP_SKILLS=("self-improve")
+    local CURSOR_PROJECT_SKIP_SKILLS=("self-improve" "codex-computer-use")
     remove_deprecated_skill_symlinks ".cursor/skills"
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
