@@ -20,6 +20,9 @@ Do not mention this skill name, its origin, or any person in code comments, comm
 - Extract neutral domain primitives when behavior appears in multiple surfaces.
 - Serialize API contracts, computed fields, null behavior, and ordering at service boundaries.
 - Make lifecycle behavior explicit: bounded polling, terminal states, fallbacks, and deletion paths.
+- Split stable data from volatile data so refresh, pagination, and polling only touch what changed.
+- Cache stable prefixes, not request-specific enrichment or authorization-sensitive context.
+- Preserve absent, empty, null, and invalid as separate states at form and API boundaries.
 - Make invariants executable through tests, inventory checks, eval metadata, and short invariant notes.
 - Refactor in small ratcheted migrations after any large simplification.
 - Keep examples as examples. Extract the principle, then adapt to the current codebase.
@@ -130,7 +133,91 @@ Move toward:
 - visibility and idle-state checks before revalidation
 - stable runtime/UI keys plus separate persisted ids for dedupe, lookup, and reconciliation
 
-### 5. Add Ratchet Tests
+### 5. Split Stable And Volatile Data
+
+When a route, loader, service, prompt, or agent context mixes long-lived metadata with frequently changing records, separate those fetch and computation boundaries.
+
+Look for:
+
+- pagination or load-more actions that refetch the whole parent page
+- polling that reloads static metadata, tool definitions, permissions, or prompts
+- prompt/context builders that recompute base templates and request-specific facts together
+- cache keys that include user or request data only because stable and volatile inputs are bundled
+
+Move toward:
+
+- narrow child loaders or endpoints for volatile collections
+- stable metadata loaded once at the parent boundary
+- base prompt/model lookup separated from request-specific enrichment
+- cache keys made from stable identity only, with explicit TTL, max entries, stats, and invalidation
+
+Example:
+
+```ts
+// Before: pagination refetches metadata and the first page.
+loadMoreFetcher.load(`/agents/${agent.id}?cursor=${cursor}`);
+
+// After: pagination only fetches the volatile collection.
+loadMoreFetcher.load(`/agents/${agent.id}/runs?cursor=${cursor}`);
+```
+
+### 6. Isolate Integration Dialects
+
+When a provider, framework, or external API needs special wire shape, hide that dialect behind a small typed adapter. Keep provider checks out of orchestration code and business logic.
+
+Look for:
+
+- `if provider === ...` checks spread through callers
+- provider-specific message blocks, cache hints, headers, retry flags, or response fields inline with domain logic
+- tests that assert provider details through a large workflow
+
+Move toward:
+
+- one tiny adapter that accepts domain-shaped input and returns provider-shaped output
+- direct unit tests for provider-specific serialization
+- callers that only choose the adapter or pass a model/provider id
+
+Example:
+
+```ts
+// Before: provider wire shape leaks into the caller.
+messages.unshift({ role: 'system', content: systemPrompt });
+
+// After: the adapter owns provider-specific message shape.
+messages.unshift(buildStableSystemMessage(modelId, systemPrompt));
+```
+
+### 7. Preserve Boundary Intent
+
+At form, API, and patch/update boundaries, do not collapse absent, empty, null, and invalid into the same value. Those states often mean different things.
+
+Look for:
+
+- optional field collectors that drop empty strings on update
+- blank optional inputs that should clear persisted values but are ignored
+- required fields where blank values slip into generic optional handling
+- caller-provided organization, tenant, or ownership ids included in update payloads
+
+Move toward:
+
+- `undefined` for not submitted or unchanged
+- `null` for explicit clear when the boundary supports clearing
+- validation errors for blank required values
+- trusted scope derived outside the submitted payload
+
+Example:
+
+```ts
+// Before: empty optional fields disappear, so users cannot clear them.
+const payload = collectOptionalFields(formData, fields);
+
+// After: included empty optional fields become explicit clears.
+const payload = {
+  domain: formData.has('domain') ? getTrimmedValue(formData, 'domain') || null : undefined,
+};
+```
+
+### 8. Add Ratchet Tests
 
 Every cleanup should make regression difficult.
 
@@ -143,10 +230,16 @@ Useful ratchets:
 - integration tests that exercise the real data path instead of mocked trust facts
 - tests that prove async acknowledgements do not remount, duplicate, or lose user-visible state
 - tests for when polling starts, continues, and stops
+- focused adapter tests for provider-specific wire shape
+- schema tests for absent, empty, null, and invalid boundary values
+- repository tests that prove scoping predicates are part of writes and deletes
+- service tests proving side effects happen only after successful persistence
 
 When an inventory allowlist exists, shrink it as migration work completes.
 
-### 6. Leave Invariant Notes
+For workflow fixes, prefer a boundary coverage ladder: the thinnest useful test at each crossed boundary instead of one giant top-level test. A typical ladder is schema or DTO, repository scope, service side effect, action or controller response, UI behavior, and one end-to-end happy path when the real path matters.
+
+### 9. Leave Invariant Notes
 
 When a fix depends on a non-obvious invariant, write a short note in the repo's existing documentation system.
 
@@ -170,10 +263,12 @@ The note should make the next maintainer find the rule before they rediscover th
 4. Add or update tests that define the desired boundary behavior.
 5. Introduce exact typed inputs and outputs.
 6. Move decision logic to the owning module.
-7. Update callers to use the new boundary.
-8. Remove bypasses for that slice.
-9. Shrink inventory allowlists or add a new guard.
-10. Run focused checks, then the quiet broad checks available in the repo.
+7. Split stable and volatile data paths when refresh, polling, pagination, or caching is involved.
+8. Preserve absent, empty, null, and invalid as distinct states at update boundaries.
+9. Update callers to use the new boundary.
+10. Remove bypasses for that slice.
+11. Shrink inventory allowlists or add a new guard.
+12. Run focused checks, then the quiet broad checks available in the repo.
 
 ## Skill Output
 
@@ -195,6 +290,9 @@ Do not describe the work as copying a person. Describe the architectural princip
 - [ ] Are trusted facts derived by the owner, not accepted from callers?
 - [ ] Did broad context shrink into exact boundary data?
 - [ ] Are old fallbacks removed or tracked?
+- [ ] Are stable and volatile data paths split where refresh or caching would otherwise overfetch?
+- [ ] Are provider-specific wire shapes isolated behind typed adapters?
+- [ ] Do update boundaries preserve absent, empty, null, and invalid distinctly?
 - [ ] Are forbidden fields guarded by tests?
-- [ ] Did tests cover the boundary instead of only implementation details?
+- [ ] Did tests cover the boundary ladder instead of only implementation details?
 - [ ] Did the final explanation avoid naming this skill or any person in project artifacts?
