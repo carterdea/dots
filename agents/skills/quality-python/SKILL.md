@@ -62,6 +62,8 @@ Add type hints to public APIs, domain code, and functions whose contracts matter
 
 Avoid `Any` unless the value is truly unknowable at the boundary. Use `object`, `Protocol`, `TypedDict`, generics, unions, or validators to narrow the shape. Treat `Any` like `# type: ignore`: rare, local, and justified.
 
+Treat checker escape hatches as defects to fix, not tools to reach for. A bare `# type: ignore` suppresses every error on the line forever; if suppression is unavoidable, scope it to the error code (`# type: ignore[arg-type]`) with a reason. `cast()` is an unchecked assertion — prefer narrowing or validating. Defensive `hasattr()`/`getattr(obj, "x", None)` access and `isinstance` ladders on internal paths mean the shape was never parsed; validate once at the boundary and let downstream code trust the type.
+
 Return one predictable shape. Avoid functions that sometimes return `None`, sometimes `False`, sometimes a string, and sometimes an object. Use `Optional[T]`, domain exceptions, result objects, or a clear default intentionally.
 
 ## Keep error handling intentional
@@ -142,4 +144,4 @@ Prefer `uv` for Python commands and Ruff for linting/formatting when the project
 
 ## The common Python red flags
 
-Prioritize fixing broad exception handling, big functions that mix IO and business logic, dict blobs, global config/state, vague names, unclear error models, missing timeouts, naive datetimes, fake service classes, `Any` sprawl, over-mocked tests, silent fallbacks, mutable default args, code running on import, clever comprehensions, and inconsistent returns.
+Prioritize fixing broad exception handling, big functions that mix IO and business logic, dict blobs, global config/state, vague names, unclear error models, missing timeouts, naive datetimes, fake service classes, `Any` sprawl, bare `# type: ignore` without error codes, `cast()` abuse, defensive `hasattr`/`getattr` access, over-mocked tests, silent fallbacks, mutable default args, code running on import, clever comprehensions, and inconsistent returns.
