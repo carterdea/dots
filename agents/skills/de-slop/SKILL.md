@@ -1,6 +1,6 @@
 ---
 name: de-slop
-description: "De-slop AI-shaped backend/general code before a PR. Use after an agent or prototype pass to remove branch-introduced artifacts: duplicate helpers, fixture hacks, hard-coded data, defensive wrappers, config/boolean soup, brittle tests, hallucinated APIs, or local-idiom drift."
+description: "De-slop AI-shaped backend/general code before a PR. Use after an agent or prototype pass to remove branch-introduced artifacts: duplicate helpers, fixture hacks, hard-coded data, defensive wrappers, type-suppression escape hatches, config/boolean soup, brittle tests, hallucinated APIs, or local-idiom drift."
 ---
 
 # De-Slop
@@ -12,10 +12,15 @@ Check the diff against main and remove slop introduced in the branch. Preserve b
 ## Checklist
 
 - Delete pointless scratch markdown (NOTES/PLAN/IDEAS/TODO) unless it's real docs
+- Delete debug leftovers added in the branch: `console.log`, `print`, `debugger`, `dbg!`, verbose temp logging (keep intentional structured logging)
+- Delete commented-out code blocks; git history already keeps them
+- Remove emoji and decorative Unicode from log messages, comments, error strings, and CLI output unless local style genuinely uses them
 - Read adjacent handwritten code before judging style; match local module boundaries, errors, logging, tests, naming, and helpers
 - Remove redundant comments, filler docstrings, pass-through wrappers, and comments inconsistent with local style
 - Drop defensive checks, state flags, dead branches, broad exception wrappers, and try/catch blocks abnormal for trusted code paths
-- Remove casts to `any` used only to bypass type issues
+- Remove null/undefined guards and optional-chaining sprawl on values the types or call sites already guarantee — fix the type instead of guarding everywhere
+- Remove hand-rolled runtime type guards (`isRecord`, `isObject`, `isDefined`, `x is T` predicates, `isinstance` ladders) that sniff shapes on internal paths; parse/validate once at the boundary so downstream code trusts the type
+- Remove type-checker and linter escape hatches added in the branch: `as any`, `as unknown as T`, `@ts-ignore`, `@ts-nocheck`, undocumented `@ts-expect-error`, non-null `!` assertions, `# type: ignore`, `eslint-disable`, `noqa` — fix the underlying type issue
 - Collapse duplicate helpers, shadow APIs, fixture-shaped branches, and one-off variants
 - Parameterize repeated literals and environment assumptions only when they represent a real variation point
 - Replace boolean mode arguments, option-map soup, and config bags with explicit/cohesive APIs
