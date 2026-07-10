@@ -1,6 +1,6 @@
 ---
 name: quality-typescript
-description: Use when a TypeScript codebase needs stronger domain types, branded types, discriminated unions with exhaustiveness checks, strict compiler flags, `satisfies`/`unknown`/`as const` over `enum`, end-to-end type flow, derived types instead of duplicated interfaces, typed error handling with Result types, or real integration tests over mocks.
+description: Use when a TypeScript codebase needs stronger domain types, branded types, discriminated unions with exhaustiveness checks, strict compiler flags, `satisfies`/`unknown`/`as const` over `enum`, removal of escape hatches like `@ts-ignore`/`as any`/non-null assertions/hand-rolled type guards, end-to-end type flow, derived types instead of duplicated interfaces, typed error handling with Result types, or real integration tests over mocks.
 ---
 
 # Writing quality full-stack TypeScript
@@ -51,6 +51,8 @@ type State =
   | { status: "success"; user: User }
   | { status: "error"; error: string };
 ```
+
+The same smell hides in optional-everything interfaces — `{ id?: string; items?: Item[]; error?: string }` where every field is `?` because one type is trying to describe every lifecycle stage at once. Model each stage as its own union variant; a field should be optional only when it's genuinely optional in every state, not as a hedge against "sometimes it isn't there yet".
 
 Pair every union with an exhaustiveness check so adding a variant becomes a compile error, not a silent fallthrough:
 
@@ -120,15 +122,29 @@ const routes = {
 // routes.home is "/", typos in values are still caught
 ```
 
-Two more defaults in the same spirit:
+More defaults in the same spirit:
 
 - **`unknown` over `any`** at every untyped boundary (JSON, `catch`, third-party). `unknown` forces you to narrow before use; `any` disables the checker silently.
+- **Never `Function`, `{}`, or bare `object` as types.** `Function` accepts any callable and erases parameters and return type — write the signature: `(order: Order) => void`. `{}` means "anything non-nullish", not "empty object"; use a precise shape, `Record<string, never>` for truly empty, or `unknown`.
 - **`as const` unions or const objects over `enum`.** Enums emit runtime code, don't behave like plain unions, and have surprising assignability. A `const` object plus a derived union covers the same ground with none of the footguns:
 
 ```ts
 const Role = { admin: "admin", member: "member" } as const;
 type Role = (typeof Role)[keyof typeof Role]; // "admin" | "member"
 ```
+
+## Don't silence the checker
+
+Suppressions are the checker turned off with extra steps. Treat every one as a defect to fix, not a tool to reach for:
+
+- **`@ts-nocheck` — never.** It unchecks the whole file.
+- **`@ts-ignore` — never.** It suppresses the next line forever, even after the underlying error is fixed. If suppression is truly unavoidable (usually a third-party types bug), use `@ts-expect-error` with a reason comment — it becomes an error itself once stale.
+- **`as any` and `as unknown as T` double casts** launder a value past the checker with zero verification. Narrow, validate, or fix the source type instead.
+- **Non-null assertions (`!`)** are unchecked promises about runtime state. Prefer narrowing, a thrown error with context, or fixing the type so the value can't be null there.
+
+Hand-rolled type predicates deserve the same suspicion. A `function isFoo(x): x is Foo` is an `as` cast wearing a function costume — the compiler trusts the body blindly, so a wrong or stale guard is a silent unsafe cast. `isRecord`/`isObject`/`isDefined` helpers sprinkled through internal code mean the boundary type was never fixed; parse and validate once at the boundary (with the project's schema validator) and let downstream code trust the type. Reserve `is` predicates for the rare case narrowing genuinely can't be expressed inline via discriminants, `in`, `typeof`, or `instanceof` — and keep the body trivially verifiable.
+
+Enforce mechanically where the project lints: `@typescript-eslint/ban-ts-comment` (with `ts-expect-error: allow-with-description`), `no-explicit-any`, and `no-non-null-assertion`.
 
 ## Handle errors with types, not vibes
 
@@ -192,4 +208,4 @@ Real services are slower, so don't make every test pay for them: real services a
 
 ## The common TypeScript red flags
 
-Prioritize fixing non-strict tsconfig, `any` at boundaries, `as` casts instead of narrowing, flag-bag state types, `enum`, hand-duplicated types that drift from the source of truth, same-typed positional args, thrown strings, `catch` blocks that assume `Error`, floating promises, missing exhaustiveness checks, and mock-heavy tests for things you could run for real.
+Prioritize fixing non-strict tsconfig, `any` at boundaries, `as` casts instead of narrowing, `as unknown as` double casts, `@ts-ignore`/`@ts-nocheck`/undocumented `@ts-expect-error`, non-null assertions, hand-rolled `isRecord`-style type guards over unparsed boundaries, `Function`/`{}` as types, optional-everything interfaces, flag-bag state types, `enum`, hand-duplicated types that drift from the source of truth, same-typed positional args, thrown strings, `catch` blocks that assume `Error`, floating promises, missing exhaustiveness checks, and mock-heavy tests for things you could run for real.

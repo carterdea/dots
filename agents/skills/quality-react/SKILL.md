@@ -1,6 +1,6 @@
 ---
 name: quality-react
-description: Use when writing, reviewing, or refactoring React code that needs smaller components, clearer state ownership, fewer unnecessary effects, typed props, semantic HTML, accessible form controls, explicit loading/error/empty states, safer async effects, Next.js server/client boundaries, cleaner hooks, better tests, or removal of junior React smells like derived state in `useEffect`, prop drilling, index keys, `any` props, clickable divs, Tailwind class chaos, and premature abstraction.
+description: Use when writing, reviewing, or refactoring React code that needs smaller components, clearer state ownership, fewer unnecessary effects, typed props, semantic HTML, accessible form controls, explicit loading/error/empty states, safer async effects, Next.js server/client boundaries, cleaner hooks, better tests, or removal of junior React smells like derived state in `useEffect`, prop drilling, index keys, `any` props, `@ts-ignore`/`as any`/`null!` escape hatches, clickable divs, Tailwind class chaos, and premature abstraction.
 ---
 
 # Writing quality React
@@ -106,6 +106,8 @@ function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
 }
 ```
 
+Do not silence the checker to make JSX compile. `@ts-ignore` above a JSX attribute, `as any` on an event handler or API response, and `useRef<T>(null!)` all hide real contract mismatches. Fix the prop type, use the matching `React.*Event` type, and type refs honestly as `useRef<T | null>(null)`, narrowing at use.
+
 Use domain-specific component and prop names. `CustomerCard` with `customer` is clearer than `DataCard` with `data`.
 
 Prefer named exports unless the framework requires default exports. Avoid huge barrel files that hide import boundaries and create circular dependencies.
@@ -165,4 +167,4 @@ Mock external boundaries, not implementation details. Test loading, error, empty
 
 ## The common React red flags
 
-Prioritize fixing `useEffect` as a catch-all, huge components, duplicate state, boolean state explosions, prop drilling, giant context objects, vague component names, too many props, conditional JSX soup, nested ternaries, index/random keys, direct state mutation, bad effect dependencies, casual hook lint suppression, missing loading/error/empty states, missing error boundaries, optional chaining everywhere, `any` props, side effects during render, cargo-cult memoization, inaccessible clickable elements, uncleaned effects, race-prone async effects, global store abuse, raw API coupling, too much `"use client"`, and over-abstracted components/hooks.
+Prioritize fixing `useEffect` as a catch-all, huge components, duplicate state, boolean state explosions, prop drilling, giant context objects, vague component names, too many props, conditional JSX soup, nested ternaries, index/random keys, direct state mutation, bad effect dependencies, casual hook lint suppression, missing loading/error/empty states, missing error boundaries, optional chaining everywhere, `any` props, `@ts-ignore`d JSX, `as any` event handlers, `null!` refs, side effects during render, cargo-cult memoization, inaccessible clickable elements, uncleaned effects, race-prone async effects, global store abuse, raw API coupling, too much `"use client"`, and over-abstracted components/hooks.
