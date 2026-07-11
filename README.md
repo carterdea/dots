@@ -249,7 +249,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/audit-ai-frontend` - Triage AI-looking UI (generic aesthetics, weak copy, a11y gaps)
 - `/improve` - Senior codebase survey and improvement plan
 - `/improve-codebase-architecture` - Find deepening opportunities toward deep modules
-- `/coobeyon-refactor` - Refactor orchestration-heavy code toward smaller modules
+- `/refactor-campaigns` - Refactor orchestration-heavy code toward smaller modules
 - `/thermo-nuclear-code-quality-review` - Extremely strict maintainability review
 
 **Planning and Thinking:**
