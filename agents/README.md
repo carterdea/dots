@@ -24,7 +24,7 @@ agents/
     ├── clean-worktrees/                  # Audit/clean agent worktrees and gone branches safely
     ├── code-simplifier/                  # Simplify recently modified code
     ├── codex-review/                     # Second opinion via OpenAI Codex CLI
-    ├── coobeyon-refactor/                # Collapse orchestration-heavy code
+    ├── refactor-campaigns/               # Collapse orchestration-heavy code
     ├── database-schema-designer/         # SQL/NoSQL schema design patterns
     ├── de-slop/                          # Clean AI-shaped code before PR
     ├── design-doc/                       # Create technical design documents
@@ -165,7 +165,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/audit-ai-frontend` — Triage AI-looking UI: generic aesthetics, weak copy, a11y gaps
 - `/improve` — Senior codebase survey and improvement plan
 - `/improve-codebase-architecture` — Find deepening opportunities toward deep modules
-- `/coobeyon-refactor` — Refactor orchestration-heavy code toward smaller modules
+- `/refactor-campaigns` — Refactor orchestration-heavy code toward smaller modules
 - `/thermo-nuclear-code-quality-review` — Extremely strict maintainability review
 
 ### Planning and Thinking
