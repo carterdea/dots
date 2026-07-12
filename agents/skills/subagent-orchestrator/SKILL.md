@@ -1,6 +1,6 @@
 ---
 name: subagent-orchestrator
-description: Orchestrate sub-agents to accomplish complex long-horizon tasks without losing coherency. Use when the user asks to "use subagents", "orchestrate", "delegate to agents", or requests a complex multi-step task that benefits from sub-agent coordination.
+description: Orchestrate sub-agents to accomplish complex long-horizon tasks without losing coherency. Use when the user explicitly asks to "use subagents", "orchestrate", or "delegate to agents" — not as a default for multi-step work, which needs no orchestration skill.
 user-invocable: true
 disable-model-invocation: false
 ---

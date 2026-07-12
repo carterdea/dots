@@ -2,14 +2,9 @@
 name: smart-brevity
 description: >
   Rewrite text using Smart Brevity principles — shorter, sharper, audience-first communication.
-  Use this skill whenever the user wants to: rewrite or edit text to be more concise, apply Smart Brevity
-  formatting, improve emails/newsletters/presentations/speeches/social posts/meeting agendas,
-  audit a codebase or website for copy improvements, make writing punchier or clearer,
-  reduce word count while preserving meaning, or mentions "Smart Brevity" in any context.
-  Also trigger when the user pastes a block of text and asks to "tighten," "shorten," "clean up,"
-  "make it punchy," "cut the fluff," or similar brevity-related requests. Even if the user doesn't
-  say "Smart Brevity" explicitly, use this skill for any request to improve the clarity, brevity,
-  or impact of written communication.
+  Use when tightening or restructuring prose for concision and impact: emails, newsletters,
+  presentations, social posts, meeting agendas, or product and marketing copy across a
+  codebase or site.
 user-invocable: true
 ---
 
