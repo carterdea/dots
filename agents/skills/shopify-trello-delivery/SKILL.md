@@ -66,24 +66,18 @@ This skill has one successful terminal state: **reviewable Shopify PR plus deplo
 
 If any item cannot be satisfied, end in a **blocked** state: report the specific missing criterion, preserve the current branch/theme/card state, and do not present the ticket as handed off.
 
-## Optional Subagent Delegation
+## Side effects have one owner
 
-Use subagents for read-only research, design analysis, QA, and review tasks that can run in parallel. Keep git mutations, Shopify deploys, GitHub PR updates, Trello comments, Trello moves, and final screenshot uploads in the lead agent.
+Read-only work — ticket intake (Trello description, comments, attachments, PR, preview, Customizer, Figma links, acceptance criteria), research, Figma analysis, preview QA, diff review — gathers, and nothing more.
 
-Good delegation targets:
+Git mutations, Shopify deploys, GitHub PR updates, Trello comments and moves, and screenshot uploads leave marks outside this session, and two of them at once corrupt each other. They stay serialized under a single owner — the one that will report the outcome and make the delivery call. The step 5 cleanup pass is the sole exception that writes files, and it holds the same lock: nothing else may touch the working tree while it runs.
 
-- Ticket intake: summarize Trello description, comments, attachments, PR, preview, Customizer, Figma links, and acceptance criteria.
-- Research: for Shopify best practices, Liquid/theme APIs, Admin/Storefront schemas, app embeds, or how a specific Shopify app behaves, reach for the Shopify dev / AI Toolkit skills (`shopify-dev`, `shopify-liquid`, `shopify-admin`, etc.) first — they return validated Shopify docs and schemas. Use Context7 for current library, framework, SDK, API, and CLI docs; use Exa for broader vendor documentation, implementation examples, and current third-party service details.
-- Figma analysis: identify the correct node/frame, capture references, and summarize visual requirements.
-- Preview QA: test deployed preview URLs on desktop and mobile and report concrete mismatches.
-- Diff review: inspect touched files for scope creep, missing assets, Liquid issues, and validation gaps.
+## Research expectations
 
-Research expectations:
-
+- For Shopify best practices, Liquid/theme APIs, Admin/Storefront schemas, app embeds, or how a specific Shopify app behaves, reach for the Shopify dev / AI Toolkit skills (`shopify-dev`, `shopify-liquid`, `shopify-admin`, etc.) first — they return validated Shopify docs and schemas. Use Context7 for current library, framework, SDK, API, and CLI docs; use Exa for broader vendor documentation, implementation examples, and current third-party service details.
 - Prefer primary sources: Shopify docs, app/vendor docs, official package docs, and source repositories.
-- When implementation depends on platform behavior, app embeds, checkout/cart integration, customer accounts, or current Shopify APIs, do live research before coding — don't guess. Consult the Shopify dev / AI Toolkit skills (or Context7) to confirm the Shopify best practice, API shape, or app details before writing code.
-- Return concise findings with links, the exact API or behavior that matters, and any uncertainty or version/date sensitivity.
-- Do not let a research subagent mutate files, run deploys, update Trello/GitHub, or make final delivery decisions. The lone exception is the step 5 cleanup pass: when the harness shares the lead worktree, the `de-slop` and `code-simplifier` subagents may edit the changed files (sequentially, with nothing else mutating files meanwhile); otherwise run those passes in-process so the edits reach the branch you push.
+- When implementation depends on platform behavior, app embeds, checkout/cart integration, customer accounts, or current Shopify APIs, do live research before coding — don't guess. Confirm the Shopify best practice, API shape, or app details before writing code.
+- Findings carry links, the exact API or behavior that matters, and any uncertainty or version/date sensitivity.
 
 ## Workflow
 
@@ -147,8 +141,8 @@ Research expectations:
 
 5. Cleanup pass (folded into this PR).
    - Run this before deploying the preview theme — and before the PR, screenshots, and everything after it — so the cleaned-up code is what gets QA'd and shipped.
-   - Delegate the cleanup to subagents **only when the harness shares the lead worktree**, so their edits land in the files you commit and push. If spawned subagents get an isolated or forked workspace (e.g. Codex coding subagents), their cleanup edits never reach the branch you push — **run both passes in-process in the lead agent instead**. When unsure, run in-process: delegating saves context, not correctness, and the cleanup must not be traded away to save tokens.
-   - When delegating, spawn one subagent to invoke the `de-slop` skill, then (after it returns) a second to invoke the `code-simplifier` skill. Run them **sequentially, never in parallel** — both edit the same changed files and would collide. Whether delegated or in-process, this is the one sanctioned exception to "research subagents must not mutate files"; no other file mutation may run while the cleanup does.
+   - Run `de-slop`, then `code-simplifier` — **one after the other, never at the same time**. Both edit the same changed files and would collide.
+   - **The edits must land on the branch you push.** Cleanup performed anywhere but the working tree you commit from is cleanup that never ships. If you can't guarantee the edits reach that tree, do the passes yourself in it. The cleanup is not negotiable to save context.
    - `de-slop` defaults to a dry-run list that waits for a manual selection. Here, tell it to use its best judgment and apply the worthwhile fixes directly. Keep it scoped to AI artifacts and cleanup noise in the branch diff; preserve Shopify generated JSON headers (they are not slop).
    - `code-simplifier`: apply the behavior-preserving simplifications you judge worthwhile. Keep changes scoped to the files you touched; don't refactor the whole theme.
    - Re-run the relevant step 4 checks after cleanup — `git diff --check`, `shopify theme check`, and any package checks the touched files require — so the folded-in changes are still green.

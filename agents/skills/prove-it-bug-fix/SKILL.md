@@ -1,7 +1,7 @@
 ---
 name: prove-it-bug-fix
-description: Use when a bug, error, crash, stack trace, regression, or "X doesn't work / broke" report needs fixing. Reproduces the bug with a failing test (via a subagent) before any fix is written, then confirms the test passes after. Triggers on bug reports, error messages, and "prove the fix works" requests.
-allowed-tools: Task, Bash, Read, Write, Edit, Grep, Glob
+description: Use when a bug, error, crash, stack trace, regression, or "X doesn't work / broke" report needs fixing. Reproduces the bug with a failing test before any fix is written, then confirms the test passes after. Triggers on bug reports, error messages, and "prove the fix works" requests.
+allowed-tools: Bash, Read, Write, Edit, Grep, Glob
 user-invocable: false
 ---
 
@@ -25,20 +25,20 @@ Reproduce at the lowest level that can capture the bug:
 
 ## Steps
 
-1. **Reproduce with subagent**
-   - Spawn a subagent (Task tool) to write a test that demonstrates the bug
-   - The test MUST fail before any fix is attempted
-   - If the test passes, the bug isn't properly reproduced—refine the test
+1. **Reproduce**
+   - Write a test that demonstrates the bug, to the brief below
+   - Run it. It **must fail** before any fix is attempted
+   - If it passes, the bug isn't reproduced — refine the test. Never move on from a green test here
 
 2. **Fix**
-   - Only after reproduction is confirmed, implement the fix
+   - Only after the test is red, implement the fix
    - Keep the fix minimal and focused
 
 3. **Confirm**
-   - Run the test again—it must now pass
-   - This proves the fix works
+   - Run the test again — it must now pass
+   - Red before, green after: that's the proof
 
-## Subagent Prompt Template
+## Reproduction brief
 
 ```
 Write a test that reproduces this bug:

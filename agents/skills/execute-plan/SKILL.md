@@ -34,9 +34,7 @@ If the plan has a `### File Map` section, use it to front-load context:
 - If a referenced file no longer exists (renamed or deleted), search for it. Update the plan if found; flag to the user if truly gone
 - For new files listed in the map, just note the intended path and naming convention -- nothing to read yet
 
-**On Sonnet or smaller models:** use Explore subagents to read and validate the file map in parallel. Give each subagent a batch of files (e.g., "Read these 3 files and confirm the line ranges match the descriptions"). Collect results before proceeding.
-
-This step gives you most of the context you need before executing a single task.
+Validate the whole map before executing a single task — this step is where most of your context comes from.
 
 ### 3. Check for Blockers
 
@@ -74,7 +72,7 @@ For each task:
 
 1. Read the task description -- it should reference specific files and line ranges from the file map
 2. Read the referenced files (they may already be in context from step 2, but re-read if needed)
-3. If the task requires files **not** in the file map, find them. On Sonnet, use Explore subagents. Add any newly discovered files to the File Map in the plan so future tasks benefit
+3. If the task requires files **not** in the file map, find them. Add any newly discovered files to the File Map in the plan so future tasks benefit
 4. Implement the change
 5. Validate (run tests, lint)
 6. Update the plan file: `- [ ]` becomes `- [x]`

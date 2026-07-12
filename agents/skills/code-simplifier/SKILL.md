@@ -1,6 +1,6 @@
 ---
 name: code-simplifier
-description: Review recently changed files for reuse, clarity, and efficiency issues, then apply behavior-preserving simplifications. Uses parallel subagents when the harness supports them; otherwise reviews in-process.
+description: Review recently changed files for reuse, clarity, and efficiency issues, then apply behavior-preserving simplifications.
 user-invocable: true
 ---
 
@@ -53,12 +53,9 @@ Your refinement process:
 
    Findings format: file, line, issue, severity, suggested fix.
 
-   Execution — run the three lenses in parallel when the harness supports it:
+   Every lens runs against every file. Review is read-only — no edits land until step 4, so nothing may mutate the files while the lenses are still looking.
 
-   - **If your harness can dispatch subagents in parallel** (e.g. Claude Code's Task/Agent tool, pi's `subagent` tool), run the three reviews concurrently using these exact agent names: `reuse-reviewer`, `quality-clarity-reviewer`, and `efficiency-reviewer`. Pass each the shared file list and diff context; each returns findings only — no edits. Don't use the human-readable lens labels as agent names.
-   - **Otherwise** (no subagent support, or those agents aren't installed): perform the three review passes yourself in the main thread. Don't fabricate or hardcode a harness-specific subagent call.
-
-3. Aggregate the reports or review passes. Deduplicate overlaps, group by file, rank by severity, drop low-value nits.
+3. Aggregate the passes. Deduplicate overlaps, group by file, rank by severity, drop low-value nits.
 
 4. Apply fixes using project-specific best practices and coding standards above.
 
