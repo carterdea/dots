@@ -12,7 +12,7 @@ A skill exists to wrangle determinism out of a stochastic system. **Predictabili
 
 Two choices, trading different costs:
 
-- A **model-invoked** skill keeps a **description**, so the agent can fire it autonomously _and_ other skills can reach it (you can still type its name too). It contributes to **context load** — the description sits in the window every turn. Mechanics: omit `disable-model-invocation`, and write a model-facing description with rich trigger phrasing ("Use when the user wants…, mentions…").
+- A **model-invoked** skill keeps a **description**, so the agent can fire it autonomously _and_ other skills can reach it (you can still type its name too). It contributes to **context load** — the description sits in the window every turn. Mechanics: omit `disable-model-invocation`, and write a model-facing description that says what the skill is and when it applies ("Use when…").
 - A **user-invoked** skill strips the description from the agent's reach: only you, typing its name, can invoke it — and no other skill can. Zero context load, but it spends **cognitive load**: _you_ are the index that must remember it exists. Mechanics: set `disable-model-invocation: true`; the `description` becomes human-facing — a one-line summary, trigger lists stripped.
 
 Pick model-invocation only when the agent must reach the skill on its own, or another skill must. If it only ever fires by hand, make it user-invoked and pay no context load.
@@ -26,6 +26,7 @@ A model-invoked **description** does two jobs — state what the skill is, and l
 - **Front-load the skill's leading word** — the description is where it does its invocation work.
 - **One trigger per branch.** Synonyms that rename a single branch are **duplication** — "build features using TDD … asks for test-first development" is one branch written twice. Collapse them; keep only genuinely distinct branches.
 - **Cut identity that's already in the body.** Keep the description to triggers, plus any "when another skill needs…" reach clause.
+- **Don't sell.** A description states what the skill is for; it does not campaign to be picked. `MUST`, `ALWAYS`, `MANDATORY`, "use this skill whenever", "even if the user doesn't say…" — the agent already routes on fit, so shouting only inflates this skill against its neighbours and costs tokens to do it. State the boundary instead: what the skill is *not* for, and which sibling owns that case. A boundary routes better than a demand.
 
 ## Information hierarchy
 
@@ -80,3 +81,4 @@ Use these to diagnose issues the user may be having with the skill.
 - **Sediment** — stale layers that settle because adding feels safe and removing feels risky. The default fate of any skill without a pruning discipline.
 - **Sprawl** — a skill simply too long, even when every line is live and unique. Hurts readability and maintainability and wastes tokens. The cure is the ladder: disclose **reference** behind pointers, and split by **branch** or sequence so each path carries only what it needs.
 - **No-op** — a line the model already obeys by default, so you pay load to say nothing. The test: does it change behaviour versus the default? A weak leading word (_be thorough_ when the agent is already thorough-ish) is a no-op; the fix is a stronger word (_relentless_), not a different technique.
+- **Choreography** — staging the harness on the agent's behalf: _fan out with parallel subagents_, _if your harness supports delegation… otherwise…_, _on smaller models, use Explore agents_. A capable agent already decides when to delegate and how wide to fan out, so this is a **no-op** that also rots — it hard-codes today's tool names and model tiers into a skill that outlives both. Say what work must happen and what would make it wrong (_this pass edits files, so nothing else may touch them meanwhile_); let the agent pick the machinery. Name a subagent only where the isolation itself is the point — a cold-context reader who must not see your reasoning, an executor sandboxed in its own worktree.
