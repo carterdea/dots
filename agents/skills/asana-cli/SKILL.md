@@ -1,16 +1,11 @@
 ---
 name: asana-cli
 description: >-
-  Manage Asana (아사나) from the terminal with the `asana` CLI — tasks, projects,
+  Operate Asana (아사나) from the terminal with the `asana` CLI — tasks, projects,
   sections, subtasks, comments, dependencies, followers, tags, attachments,
   custom fields, CSV/JSON batch import, and workspace/team/user lookups. Use
-  this whenever the user wants to create, list, find, count, update, complete,
-  assign, or delete Asana tasks or projects; add a comment, subtask, due date,
-  or follower; pull their Asana to-do list; or import tasks from a file into
-  Asana — even when they only say "Asana"/"아사나", paste an app.asana.com task
-  or project link, or describe work they want tracked there without naming the
-  CLI. (Does not apply to writing Asana API/SDK code or editing the asana CLI's
-  own source — only to operating Asana through the CLI.)
+  when reading or changing Asana content, including from a bare app.asana.com
+  link. Not for writing Asana API/SDK code or editing the CLI's own source.
 ---
 
 # Asana CLI

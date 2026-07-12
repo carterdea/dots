@@ -1,6 +1,6 @@
 ---
 name: vertical-feature-architect
-description: Add net-new product, workflow, platform, or developer-experience features as small vertical slices. Use this skill whenever the user asks to build a new feature, add a new page/route/API/workflow/job/eval/operator path, enrich an existing feature with a new user-visible capability, or plan feature architecture before coding. This skill maps the files to change or create, defines the authoritative contract, specifies tests, and gives a QA plan before treating the feature as done.
+description: Add net-new product, workflow, platform, or developer-experience features as small vertical slices. Use when building a new feature, adding a new page/route/API/workflow/job/eval/operator path, extending an existing feature with a new user-visible capability, or planning feature architecture before coding. Maps the files to change, defines the authoritative contract, specifies tests, and gives a QA plan before the feature counts as done.
 user-invocable: true
 ---
 

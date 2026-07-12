@@ -1,6 +1,6 @@
 ---
 name: trello-cli
-description: Operate Trello through the local CLI tool. Use this skill whenever the user asks to create, update, move, archive, search, or inspect Trello boards, lists, cards, comments, checklists, attachments, labels, members, or custom fields — or when they mention the Trello CLI, `trello` command, or want to manage Trello from the terminal. Also use this when working in the Trello_CLI repository and needing to exercise the binary.
+description: Operate Trello through the local `trello` CLI. Use when reading or changing Trello boards, lists, cards, comments, checklists, attachments, labels, members, or custom fields, and when exercising the binary from the Trello_CLI repository.
 ---
 
 This skill teaches you how to translate natural-language Trello requests into safe, multi-step `trello` CLI workflows. The CLI outputs deterministic JSON — every response is machine-parseable and follows a stable contract.
