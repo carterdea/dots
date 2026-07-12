@@ -84,7 +84,7 @@ Add subsections for each major component as needed:
 
 ### File Map
 
-**Every design doc must include a file map.** This is the most actionable section -- it tells the executing agent exactly where to look. Built in step 3 using subagent research.
+**Every design doc must include a file map.** This is the most actionable section -- it tells the executing agent exactly where to look. Built in step 3.
 
 Existing files needing changes:
 - `path/to/file.ts` (lines 12-45) -- what changes and why
@@ -135,14 +135,12 @@ External links, research data, or large diagrams that would break flow in the De
 
 ### 3. Build the File Map
 
-After drafting the Implementation Plan, systematically find every file that needs to be touched or created. Use subagents to search in parallel -- one per phase or logical grouping.
-
-**Launch Explore subagents** (Agent tool with `subagent_type: "Explore"`), each with a focused query derived from the tasks:
+After drafting the Implementation Plan, systematically find every file that needs to be touched or created. Search per phase or logical grouping, driving each search from the tasks:
 - "Find the files that handle [feature area]. Return file paths and the specific line ranges where [change] would land."
 - "What test files exist for [module]? Where would new tests be added?"
 - "Does `path/to/suggested/dir/` exist? What naming conventions do sibling files use?"
 
-Give each subagent enough context about *what* you're planning to change so it can identify the right lines, not just the right files.
+Search knowing *what* you plan to change, so you land on the right lines and not merely the right files.
 
 **What to include in the file map:**
 - **Existing files needing changes:** path, line range, and a brief note on what changes and why
@@ -152,7 +150,7 @@ Give each subagent enough context about *what* you're planning to change so it c
 
 **Validate directory existence** for every new file path. Run `ls` or use Glob to confirm parent directories exist before listing them in the map.
 
-**After collecting subagent results:**
+**Once the searches are in:**
 1. Assemble the `### File Map` section in the design doc
 2. Cross-reference every task in the Implementation Plan -- each task must reference its file map entries
 3. If a task has no file reference, either find the file or flag it as an open question

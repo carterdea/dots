@@ -70,9 +70,11 @@ Trello-auth failures are terminal local reports, not blocked handoffs: stop, rep
 
 Blocked is complete only when the confirmed card cannot be verified before a verdict, such as missing/broken preview theme, missing Customizer URL needed for the criteria, or inaccessible required source material. The blocked handoff must leave a Trello comment with the specific blocker, reassign the developer when the card needs their action, keep or return the card to the appropriate review/development state, verify any Trello write, and report the card URL in the final response.
 
-## Optional Subagent Delegation
+## Side effects have one owner
 
-Use subagents for read-only parallel work: ticket intake (criteria, PR link, preview theme URL, Customizer URL, `preview_theme_id`, Figma links, original developer), Figma reference capture, and PR-diff review for scope/missing-criteria signals. Keep the browser QA session, the verdict, the GitHub PR review, and all Trello comments/attachments/moves in the lead agent.
+Ticket intake (criteria, PR link, preview theme URL, Customizer URL, `preview_theme_id`, Figma links, original developer), Figma reference capture, and PR-diff review for scope and missing-criteria signals are read-only: they gather, and nothing more.
+
+The browser QA session, the verdict, the GitHub PR review, and every Trello comment, attachment, and move are not. They stay serialized under a single owner, so nothing races and **the verdict has exactly one author** — the one that watched the QA session firsthand.
 
 ## Workflow
 

@@ -53,11 +53,11 @@ This skill has one successful terminal state: **reviewable PR handoff**. Do not 
 
 If any item cannot be satisfied, end in a **blocked** state: report the specific missing criterion, preserve the current branch/card state, and do not present the ticket as handed off.
 
-## Optional Subagent Delegation
+## Side effects have one owner
 
-Use subagents for read-only research, design analysis, QA, and diff review that can run in parallel. Keep git mutations, the dev server, PR creation/updates, Trello comments and moves, and final screenshot uploads in the lead agent so nothing races.
+Ticket intake, library research via Context7/Exa, Figma analysis, and diff review are read-only: they gather, and nothing more.
 
-Good delegation targets: ticket intake (summarize description, comments, attachments, PR, Figma links, acceptance criteria); library/platform research via Context7/Exa; Figma analysis (correct node, reference capture, visual requirements); diff review (scope creep, missing tests, validation gaps). Do not let a research subagent mutate files, open PRs, or update Trello. The lone exception is the step 6 cleanup pass: when the harness shares the lead worktree, the `de-slop` and `code-simplifier` subagents may edit the changed files (sequentially, with nothing else mutating files meanwhile); otherwise run those passes in-process so the edits reach the branch you push.
+The side effects are not. Git mutations, the dev server, PR creation and updates, Trello comments and moves, and screenshot uploads all leave marks outside this session, and two of them running at once corrupt each other. Whatever else is in flight, these stay serialized under a single owner — the one that will report the outcome. The step 6 cleanup pass is the sole exception that writes files, and it holds the same lock: nothing else may touch the working tree while it runs.
 
 ## Workflow
 
@@ -116,8 +116,8 @@ Run only what the project actually has, preferring quiet/silent variants (often 
 
 Before opening the PR — and before the preview, screenshots, and everything after it — tighten the diff so reviewers see finished work, not first-draft scaffolding.
 
-- Delegate the cleanup to subagents **only when the harness shares the lead worktree**, so their edits land in the files you commit and push. If spawned subagents get an isolated or forked workspace (e.g. Codex coding subagents), their cleanup edits never reach the branch you push — **run both passes in-process in the lead agent instead**. When unsure, run in-process: delegating saves context, not correctness, and the cleanup must not be traded away to save tokens.
-- When delegating, spawn one subagent to invoke the `de-slop` skill, then (after it returns) a second to invoke the `code-simplifier` skill. Run them **sequentially, never in parallel** — both edit the same changed files and would collide. Whether delegated or in-process, this is the one sanctioned exception to "research subagents must not mutate files"; no other file mutation may run while the cleanup does.
+- Run `de-slop`, then `code-simplifier` — **one after the other, never at the same time**. Both edit the same changed files and would collide.
+- **The edits must land on the branch you push.** Cleanup performed anywhere but the working tree you commit from is cleanup that never ships. If you can't guarantee the edits reach that tree, do the passes yourself in it. The cleanup is not negotiable to save context.
 - `de-slop` defaults to a dry-run list that waits for a manual selection. Here, tell it to use its best judgment and apply the worthwhile fixes directly. Keep it scoped to AI artifacts and cleanup noise in the branch diff.
 - `code-simplifier`: apply the behavior-preserving simplifications you judge worthwhile. Keep changes scoped to what you touched; don't refactor the whole repo.
 - Re-run the relevant checks from step 5 after cleanup so the folded-in changes are still green.
