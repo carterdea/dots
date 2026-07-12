@@ -1,9 +1,15 @@
-# Monorepo workflow template — one job per workspace.
+# Monorepo workflow template — one job per check per workspace.
 # Replace workspace names / paths to match the target repo.
 # Rename to .github/workflows/ci.yml at install time.
 #
-# Principle: each workspace runs its OWN full quality suite.
-# Add a job per detected workspace. Don't share steps across stacks.
+# Principle: every check of every workspace is its own job, named
+# `<workspace>-<check>` (or just `<check>` when the check is repo-wide,
+# like a root lint that covers all workspaces). Each shows as its own
+# PR status check, so a failure points at exactly one thing.
+#
+# Prefer the repo's own root/workspace scripts when they exist — they are
+# the single source of truth for what each check means. Attach service
+# containers (Postgres, Redis) only to the jobs that need them.
 
 name: CI
 
@@ -12,9 +18,13 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # --- TypeScript workspace example (apps/web) ---
-  ts-web:
+  web-lint:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -25,52 +35,70 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - name: Lint (biome)
-        run: bunx biome check .
-      - name: Typecheck
-        run: bunx tsc --noEmit
-      - name: Fallow
-        # --fail-on-issues makes warn-level findings fail the job; --quiet drops progress noise.
-        run: bunx fallow --quiet --fail-on-issues
-      - name: Test
-        run: bun run test
+      # --error-on-warnings keeps warnings from scrolling past a green check.
+      - run: bunx biome check --error-on-warnings .
+
+  web-typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx tsc --noEmit
+
+  web-dead-code:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      # --fail-on-issues makes warn-level findings fail the job; --quiet drops progress noise.
+      - run: bunx fallow --quiet --fail-on-issues
+
+  web-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run test
 
   # --- Python workspace example (chat-services) ---
-  py-chat:
+  # Repeat the same one-job-per-check pattern:
+  #   chat-lint (ruff check), chat-format (ruff format --check),
+  #   chat-typecheck (basedpyright or pyright), chat-test (pytest).
+  # Swap setup/install for the workspace's Python manager:
+  #   uv     -> astral-sh/setup-uv@v5 + `uv sync --all-extras --dev` + `uv run <tool>`
+  #   Poetry -> actions/setup-python@v5 + `poetry install --with dev` + `poetry run <tool>`
+  #   pip    -> actions/setup-python@v5 + `pip install -r requirements.txt` + direct tools
+  chat-test:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: chat-services
     steps:
       - uses: actions/checkout@v4
-      # Swap setup/install/run commands for the workspace's Python manager:
-      #   Poetry -> actions/setup-python@v5 + `poetry install --with dev` + `poetry run <tool>`
-      #   pip    -> actions/setup-python@v5 + `python -m pip install -r requirements.txt` + direct tool commands
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - run: uv sync --all-extras --dev
-      - name: Lint (ruff)
-        run: uv run ruff check .
-      - name: Format check (ruff)
-        run: uv run ruff format --check .
-      # Swap to `uv run pyright` if the workspace uses pyright.
-      - name: Typecheck (basedpyright)
-        run: uv run basedpyright
-      - name: Test (pytest)
-        run: uv run pytest
+      - run: uv run pytest
 
   # --- Ruby workspace example (apps/admin) ---
-  # rb-admin:
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: apps/admin
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: ruby/setup-ruby@v1
-  #       with:
-  #         bundler-cache: true
-  #         working-directory: apps/admin
-  #     - run: bundle exec rubocop
-  #     - run: bundle exec rake test
+  # Same pattern: admin-lint (rubocop), admin-test (rake test or rspec),
+  # with ruby/setup-ruby@v1 and `bundler-cache: true` per job.

@@ -1,6 +1,11 @@
 # Single-package Python workflow.
+# One job per check so each shows as its own PR status check.
 # Mirrors pre-push hooks so local and CI enforce the same gate.
 # Rename to .github/workflows/ci.yml at install time.
+#
+# Swap setup/install/run commands for the repo's Python manager:
+#   Poetry -> actions/setup-python@v5 + `poetry install --with dev` + `poetry run <tool>`
+#   pip    -> actions/setup-python@v5 + `python -m pip install -r requirements.txt` + direct tool commands
 
 name: CI
 
@@ -9,31 +14,51 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  check:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # Swap setup/install/run commands for the repo's Python manager:
-      #   Poetry -> actions/setup-python@v5 + `poetry install --with dev` + `poetry run <tool>`
-      #   pip    -> actions/setup-python@v5 + `python -m pip install -r requirements.txt` + direct tool commands
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+      - run: uv sync --all-extras --dev
+      - run: uv run ruff check .
 
-      - name: Install
-        run: uv sync --all-extras --dev
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --all-extras --dev
+      - run: uv run ruff format --check .
 
-      - name: Lint (ruff)
-        run: uv run ruff check .
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --all-extras --dev
+      # Swap to `uv run pyright` if the repo uses pyright.
+      - run: uv run basedpyright
 
-      - name: Format check (ruff)
-        run: uv run ruff format --check .
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --all-extras --dev
+      - run: uv run pytest
 
-      # Swap to `uv run pyright` (and rename the step) if your repo uses pyright.
-      - name: Typecheck (basedpyright)
-        run: uv run basedpyright
-
-      - name: Test (pytest)
-        run: uv run pytest
+  # If the repo has more suites (integration, e2e), add one job per suite
+  # following the same shape. Never add a job for a suite that doesn't exist yet.

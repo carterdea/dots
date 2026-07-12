@@ -1,4 +1,5 @@
 # Single-package Ruby workflow.
+# One job per check so each shows as its own PR status check.
 # Rename to .github/workflows/ci.yml at install time.
 
 name: CI
@@ -8,20 +9,30 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  check:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
+      - run: bundle exec rubocop
 
-      - name: Lint (rubocop)
-        run: bundle exec rubocop
-
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
       # Default: `bundle exec rake test` (minitest convention).
-      # Swap to `bundle exec rspec` if your repo uses RSpec.
-      - name: Test
-        run: bundle exec rake test
+      # Swap to `bundle exec rspec` if the repo uses RSpec.
+      - run: bundle exec rake test
+
+  # If the repo has more suites (system tests, e2e), add one job per suite
+  # following the same shape. Never add a job for a suite that doesn't exist yet.
