@@ -54,7 +54,7 @@ The granular `check:*` bodies stay direct binary commands. `node_modules/.bin` r
 
 `check` runs through `scripts/check.sh`, which sources `run_silent.sh`. Clean runs print one compact line per check; failures print full output. Checks that intentionally opt out, such as no preview URL or no `src/`, must say `skipped:` and exit 0 so `run_silent` can render an explicit skipped status.
 
-CI runs `check:*` steps discretely because GitHub already collapses clean output.
+CI runs each `check:*` script as its own job so every check reports as its own PR status check.
 
 ## Local Hooks
 
