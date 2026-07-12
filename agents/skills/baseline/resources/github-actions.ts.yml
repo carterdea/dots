@@ -1,6 +1,16 @@
 # Single-package TypeScript / JavaScript workflow.
+# One job per check so each shows as its own PR status check.
 # Mirrors pre-push hooks so local and CI enforce the same gate.
 # Rename to .github/workflows/ci.yml at install time.
+#
+# If the repo's package.json has its own scripts (lint, typecheck, test,
+# dead-code), call those instead of the bunx fallbacks below — the repo's
+# scripts stay the single source of truth for what each check means.
+#
+# Swap setup + install for the repo's package manager:
+#   npm   -> actions/setup-node@v4   + `npm ci`
+#   pnpm  -> pnpm/action-setup@v4    + `pnpm install --frozen-lockfile`
+#   yarn  -> actions/setup-node@v4   + `yarn install --immutable`
 
 name: CI
 
@@ -10,32 +20,53 @@ on:
     # Replace `main` with your default branch (e.g. `master`, `trunk`) if different.
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  check:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # Swap setup + install for the repo's package manager:
-      #   npm   -> actions/setup-node@v4   + `npm ci`
-      #   pnpm  -> pnpm/action-setup@v4    + `pnpm install --frozen-lockfile`
-      #   yarn  -> actions/setup-node@v4   + `yarn install --immutable`
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+      - run: bun install --frozen-lockfile
+      # --error-on-warnings keeps warnings from scrolling past a green check.
+      - run: bunx biome check --error-on-warnings .
 
-      - name: Install
-        run: bun install --frozen-lockfile
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx tsc --noEmit
 
-      - name: Lint (biome)
-        run: bunx biome check .
+  dead-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      # --fail-on-issues makes warn-level findings fail the job; --quiet drops progress noise.
+      - run: bunx fallow --quiet --fail-on-issues
 
-      - name: Typecheck
-        run: bunx tsc --noEmit
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run test
 
-      - name: Fallow
-        # --fail-on-issues makes warn-level findings fail the job; --quiet drops progress noise.
-        run: bunx fallow --quiet --fail-on-issues
-
-      - name: Test
-        run: bun run test
+  # If the repo has more suites (test:e2e, playwright, test:integration),
+  # add one job per suite following the same shape. Never add a job for a
+  # suite that doesn't exist yet.

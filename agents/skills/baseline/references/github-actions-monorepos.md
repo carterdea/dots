@@ -14,6 +14,16 @@ Skip condition: if any file exists under `.github/workflows/`, log `GitHub Actio
 
 If no workflows exist, write `.github/workflows/ci.yml` from the matching resource template. The workflow name is `CI`.
 
+Job shape — always one job per check:
+
+- Every check (lint, typecheck, dead-code, each test suite) is its own job, so it appears as its own PR status check and a failure points at exactly one thing. Never lump checks into steps of a single job or behind an aggregate script like `npm run check`.
+- Name jobs after the check (`lint`, `typecheck`, `test`); in monorepos prefix the workspace (`web-lint`, `api-test`).
+- Duplicating checkout/setup/install across jobs is expected and fine; setup actions cache, so overhead stays small.
+- Add one test job per suite that actually exists (unit, integration, e2e/playwright). Never add a job for a suite the repo doesn't have yet.
+- Attach service containers (Postgres, Redis) only to the jobs that need them.
+- Include a `concurrency` block keyed on workflow + ref with `cancel-in-progress: true` so superseded runs stop.
+- If the repo's manifest already defines per-check scripts (`lint`, `typecheck`, `test`), have each job call those instead of raw tool commands — the repo stays the source of truth for what a check means.
+
 The workflow should run the full detected suite for every workspace, not only tools this skill installed. Detect:
 
 - `package.json` scripts and deps: `test`, `test:e2e`, `typecheck`, `lint`, vitest, playwright.
@@ -97,4 +107,4 @@ pre-push:
       run: uv run pytest
 ```
 
-For GitHub Actions monorepos, use `resources/github-actions.monorepo.yml` as a base and add one job per workspace with `defaults.run.working-directory`.
+For GitHub Actions monorepos, use `resources/github-actions.monorepo.yml` as a base and add one job per check per workspace (`web-lint`, `web-test`, `api-test`, …) with `defaults.run.working-directory`.
