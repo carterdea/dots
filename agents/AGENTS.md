@@ -48,7 +48,7 @@
 - If something clearly looks off, try to fix it along the way even when it is not directly related to the current task
 
 ## General preferences
-- If computer use is helpful for completing or verifying work, shell out to gpt-5.5 with Codex for it
+- If computer use is helpful for completing or verifying work, shell out to gpt-5.6-sol with Codex for it
 
 ## Commands
 - Don't run dev server commands (e.g. `bun run dev`) unless specifically asked — assume it's already running
