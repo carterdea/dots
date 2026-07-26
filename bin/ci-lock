@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Machine-wide semaphore for heavy checks (tests, e2e, builds).
+# Usage: ci-lock <command> [args...]
+# All ci-lock'd commands across every project share one lock, so only one
+# heavy suite runs at a time no matter how many agents commit/push at once.
+set -euo pipefail
+
+LOCK_FILE="${CI_LOCK_FILE:-/tmp/ci-heavy.lock}"
+LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-1800}"
+
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  echo "ci-lock: waiting for another heavy check to finish (max ${LOCK_TIMEOUT}s)..." >&2
+  flock -w "$LOCK_TIMEOUT" 9 || {
+    echo "ci-lock: timed out after ${LOCK_TIMEOUT}s waiting for $LOCK_FILE" >&2
+    exit 1
+  }
+fi
+
+exec "$@"

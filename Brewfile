@@ -14,6 +14,7 @@ tap "withgraphite/tap"
 # Essential CLI tools
 brew "bat"
 brew "fd"
+brew "flock"
 brew "fzf"
 brew "git"
 brew "gh"
