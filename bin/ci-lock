@@ -5,12 +5,28 @@
 # heavy suite runs at a time no matter how many agents commit/push at once.
 set -euo pipefail
 
-LOCK_FILE="${CI_LOCK_FILE:-/tmp/ci-heavy.lock}"
+if [[ $# -eq 0 ]]; then
+  echo "usage: ci-lock <command> [args...]" >&2
+  exit 64
+fi
+
+# Kept under $HOME rather than /tmp: a world-writable lock path can be
+# pre-created as a symlink, and opening it for write follows and truncates
+# whatever it points at.
+LOCK_FILE="${CI_LOCK_FILE:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/heavy.lock}"
 LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-1800}"
 
+# The queue is an optimization, not a gate: without flock the checks still
+# run, just unserialized. Failing the push over a missing tool is worse.
+if ! command -v flock >/dev/null 2>&1; then
+  echo "ci-lock: flock not found (brew install flock); running without the queue" >&2
+  exec "$@"
+fi
+
+mkdir -p "$(dirname "$LOCK_FILE")"
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
-  echo "ci-lock: waiting for another heavy check to finish (max ${LOCK_TIMEOUT}s)..." >&2
+  echo "ci-lock: another heavy check is running; waiting in queue (max ${LOCK_TIMEOUT}s)..." >&2
   flock -w "$LOCK_TIMEOUT" 9 || {
     echo "ci-lock: timed out after ${LOCK_TIMEOUT}s waiting for $LOCK_FILE" >&2
     exit 1

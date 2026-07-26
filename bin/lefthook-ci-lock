@@ -1,37 +1,57 @@
 #!/usr/bin/env bash
-# LEFTHOOK_BIN shim: serializes `lefthook run pre-push` machine-wide via
-# ci-lock so concurrent agent pushes across projects don't run heavy suites
-# at the same time. All other lefthook invocations pass through unlocked.
-# Wired up via `export LEFTHOOK_BIN=...` in ~/.zshenv; lefthook's generated
-# .git/hooks scripts check LEFTHOOK_BIN before any other resolution.
+# LEFTHOOK_BIN shim: routes `lefthook run pre-push` through ci-lock so heavy
+# checks are serialized machine-wide with no per-repo config. Every other
+# lefthook invocation (fast pre-commit checks) passes through unlocked.
+# Exported from shell/.zshenv and shell/.bashrc; lefthook's generated
+# .git/hooks scripts honor LEFTHOOK_BIN before any other resolution.
 set -euo pipefail
 
-run_lefthook() {
+LEFTHOOK_CMD=()
+
+# LEFTHOOK_BIN short-circuits lefthook's own resolution chain, so this has to
+# cover the same ground: project-local installs first, then the project's
+# package manager, then a global binary.
+resolve_lefthook() {
   local root
   root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+
   if [[ -n "$root" && -x "$root/node_modules/.bin/lefthook" ]]; then
-    exec "$root/node_modules/.bin/lefthook" "$@"
+    LEFTHOOK_CMD=("$root/node_modules/.bin/lefthook")
+  elif [[ -n "$root" && -x "$root/.venv/bin/lefthook" ]]; then
+    LEFTHOOK_CMD=("$root/.venv/bin/lefthook")
   elif [[ -n "$root" && -f "$root/Gemfile" ]] && grep -q lefthook "$root/Gemfile"; then
-    exec bundle exec lefthook "$@"
+    LEFTHOOK_CMD=(bundle exec lefthook)
+  elif [[ -n "$root" && -f "$root/pyproject.toml" ]] && grep -q lefthook "$root/pyproject.toml"; then
+    LEFTHOOK_CMD=(uv run lefthook)
   elif command -v lefthook >/dev/null 2>&1; then
-    exec lefthook "$@"
+    LEFTHOOK_CMD=(lefthook)
+  elif command -v mise >/dev/null 2>&1 && mise which lefthook >/dev/null 2>&1; then
+    LEFTHOOK_CMD=(mise exec -- lefthook)
   else
-    echo "lefthook-ci-lock: cannot find a lefthook binary" >&2
+    echo "lefthook-ci-lock: no lefthook binary found" >&2
     exit 1
   fi
 }
 
-if [[ "${1:-}" == "run" && "${2:-}" == "pre-push" ]]; then
-  LOCK_FILE="${CI_LOCK_FILE:-/tmp/ci-heavy.lock}"
-  LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-1800}"
-  exec 9>"$LOCK_FILE"
-  if ! flock -n 9; then
-    echo "ci-lock: another project's checks are running; waiting in queue (max ${LOCK_TIMEOUT}s)..." >&2
-    flock -w "$LOCK_TIMEOUT" 9 || {
-      echo "ci-lock: timed out after ${LOCK_TIMEOUT}s waiting for $LOCK_FILE" >&2
-      exit 1
-    }
+# ci-lock is symlinked alongside this script; fall back to PATH.
+find_ci_lock() {
+  local here
+  here="$(dirname "$0")"
+  if [[ -x "$here/ci-lock" ]]; then
+    echo "$here/ci-lock"
+  else
+    command -v ci-lock || true
   fi
+}
+
+resolve_lefthook
+
+if [[ "${1:-}" == "run" && "${2:-}" == "pre-push" ]]; then
+  lock="$(find_ci_lock)"
+  if [[ -n "$lock" ]]; then
+    exec "$lock" "${LEFTHOOK_CMD[@]}" "$@"
+  fi
+  echo "lefthook-ci-lock: ci-lock not found; running unqueued" >&2
 fi
 
-run_lefthook "$@"
+exec "${LEFTHOOK_CMD[@]}" "$@"

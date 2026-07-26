@@ -62,6 +62,7 @@ info "Installing essential development tools..."
 brew install \
     bat \
     fd \
+    flock \
     ripgrep \
     zoxide \
     git \
