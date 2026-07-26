@@ -170,10 +170,17 @@ install_skill_dependencies() {
 
 install_shell() {
     info "Installing shell configurations..."
+    create_symlink "$DOTFILES_DIR/shell/.zshenv" "$HOME/.zshenv"
     create_symlink "$DOTFILES_DIR/shell/.zshrc" "$HOME/.zshrc"
     create_symlink "$DOTFILES_DIR/shell/.zprofile" "$HOME/.zprofile"
     create_symlink "$DOTFILES_DIR/shell/.bashrc" "$HOME/.bashrc"
     create_symlink "$DOTFILES_DIR/shell/.bash_profile" "$HOME/.bash_profile"
+
+    info "Installing bin scripts..."
+    local script
+    for script in "$DOTFILES_DIR"/bin/*; do
+        create_symlink "$script" "$HOME/.local/bin/$(basename "$script")"
+    done
 }
 
 install_git() {

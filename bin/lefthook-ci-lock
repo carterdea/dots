@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# LEFTHOOK_BIN shim: serializes `lefthook run pre-push` machine-wide via
+# ci-lock so concurrent agent pushes across projects don't run heavy suites
+# at the same time. All other lefthook invocations pass through unlocked.
+# Wired up via `export LEFTHOOK_BIN=...` in ~/.zshenv; lefthook's generated
+# .git/hooks scripts check LEFTHOOK_BIN before any other resolution.
+set -euo pipefail
+
+run_lefthook() {
+  local root
+  root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  if [[ -n "$root" && -x "$root/node_modules/.bin/lefthook" ]]; then
+    exec "$root/node_modules/.bin/lefthook" "$@"
+  elif [[ -n "$root" && -f "$root/Gemfile" ]] && grep -q lefthook "$root/Gemfile"; then
+    exec bundle exec lefthook "$@"
+  elif command -v lefthook >/dev/null 2>&1; then
+    exec lefthook "$@"
+  else
+    echo "lefthook-ci-lock: cannot find a lefthook binary" >&2
+    exit 1
+  fi
+}
+
+if [[ "${1:-}" == "run" && "${2:-}" == "pre-push" ]]; then
+  LOCK_FILE="${CI_LOCK_FILE:-/tmp/ci-heavy.lock}"
+  LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-1800}"
+  exec 9>"$LOCK_FILE"
+  if ! flock -n 9; then
+    echo "ci-lock: another project's checks are running; waiting in queue (max ${LOCK_TIMEOUT}s)..." >&2
+    flock -w "$LOCK_TIMEOUT" 9 || {
+      echo "ci-lock: timed out after ${LOCK_TIMEOUT}s waiting for $LOCK_FILE" >&2
+      exit 1
+    }
+  fi
+fi
+
+run_lefthook "$@"

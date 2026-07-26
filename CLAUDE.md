@@ -7,6 +7,7 @@ Personal dotfiles and shared agent skills for macOS.
 - `install.sh` — symlinks dotfiles and agent configs; use `--dry-run` to preview
 - `bootstrap.sh` — fresh macOS setup (Xcode CLI tools, Homebrew, oh-my-zsh, tools)
 - `shell/` — zsh/bash configs
+- `bin/` — scripts symlinked into `~/.local/bin` (ci-lock: machine-wide flock queue serializing heavy checks; lefthook-ci-lock: LEFTHOOK_BIN shim queueing all pre-push hooks through it)
 - `git/` — gitconfig with local override pattern (`~/.gitconfig.local`)
 - `config/` — ripgrep, gh, ghostty
 - `ssh/` — SSH config
