@@ -91,4 +91,5 @@ cd "$DOTFILES_DIR"
 ./install.sh --all
 
 info "Bootstrap complete!"
-warn "Please restart your terminal or run: source ~/.zshrc"
+# `source ~/.zshrc` would skip .zshenv, leaving LEFTHOOK_BIN unset in this shell.
+warn "Please restart your terminal or run: exec zsh"
