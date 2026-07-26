@@ -32,4 +32,4 @@ Personal dotfiles and shared agent skills for macOS.
 - Use `--dry-run` before real installs
 - After install, verify symlinks: `ls -la ~/.claude/CLAUDE.md`
 - After OpenCode install, verify: `ls -la ~/.config/opencode/AGENTS.md`
-- Shell changes need `source ~/.zshrc` or a new terminal
+- Shell changes need `exec zsh` or a new terminal; `source ~/.zshrc` skips `.zshenv`

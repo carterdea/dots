@@ -15,7 +15,6 @@ fi
 # whatever it points at.
 LOCK_FILE="${CI_LOCK_FILE:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/heavy.lock}"
 LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-1800}"
-LOCK_BUSY=75
 
 # The queue is an optimization, not a gate: without flock the checks still
 # run, just unserialized. Failing the push over a missing tool is worse.
@@ -26,23 +25,25 @@ fi
 
 mkdir -p "$(dirname "$LOCK_FILE")"
 
-# Probe only so a queued run can say so; the lock itself is taken below.
-if ! flock -n "$LOCK_FILE" true 2>/dev/null; then
+# This script holds the lock on fd 9 for as long as the command runs, so
+# acquiring it stays separate from running it and no exit code has to do
+# double duty as "could not get the lock".
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
   echo "ci-lock: another heavy check is running; waiting in queue (max ${LOCK_TIMEOUT}s)..." >&2
+  flock -w "$LOCK_TIMEOUT" 9 || {
+    echo "ci-lock: timed out after ${LOCK_TIMEOUT}s waiting for $LOCK_FILE" >&2
+    exit 1
+  }
 fi
 
-# --close: a check that leaves a background process behind (a test server, a
-# container) would otherwise pass the lock descriptor to it, and that child
-# keeps the lock long after the check itself has exited.
-# -E: distinguishes "never got the lock" from the command's own exit code.
+# 9>&- closes the lock descriptor for the command and everything it spawns.
+# Without it, a check that leaves a background process behind (a test server,
+# a container) hands that process the lock, and it keeps holding it long
+# after the check itself has exited.
 set +e
-flock --close --conflict-exit-code "$LOCK_BUSY" --timeout "$LOCK_TIMEOUT" \
-  "$LOCK_FILE" "$@"
+"$@" 9>&-
 status=$?
 set -e
 
-if [[ $status -eq "$LOCK_BUSY" ]]; then
-  echo "ci-lock: timed out after ${LOCK_TIMEOUT}s waiting for $LOCK_FILE" >&2
-  exit 1
-fi
 exit "$status"
