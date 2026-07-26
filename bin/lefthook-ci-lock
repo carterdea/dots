@@ -15,22 +15,45 @@ resolve_lefthook() {
   local root
   root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 
-  if [[ -n "$root" && -x "$root/node_modules/.bin/lefthook" ]]; then
-    LEFTHOOK_CMD=("$root/node_modules/.bin/lefthook")
-  elif [[ -n "$root" && -x "$root/.venv/bin/lefthook" ]]; then
-    LEFTHOOK_CMD=("$root/.venv/bin/lefthook")
-  elif [[ -n "$root" && -f "$root/Gemfile" ]] && grep -q lefthook "$root/Gemfile"; then
-    LEFTHOOK_CMD=(bundle exec lefthook)
-  elif [[ -n "$root" && -f "$root/pyproject.toml" ]] && grep -q lefthook "$root/pyproject.toml"; then
-    LEFTHOOK_CMD=(uv run lefthook)
-  elif command -v lefthook >/dev/null 2>&1; then
-    LEFTHOOK_CMD=(lefthook)
-  elif command -v mise >/dev/null 2>&1 && mise which lefthook >/dev/null 2>&1; then
-    LEFTHOOK_CMD=(mise exec -- lefthook)
-  else
-    echo "lefthook-ci-lock: no lefthook binary found" >&2
-    exit 1
+  if [[ -n "$root" ]]; then
+    if [[ -x "$root/node_modules/.bin/lefthook" ]]; then
+      LEFTHOOK_CMD=("$root/node_modules/.bin/lefthook")
+      return
+    fi
+    if [[ -x "$root/.venv/bin/lefthook" ]]; then
+      LEFTHOOK_CMD=("$root/.venv/bin/lefthook")
+      return
+    fi
+    if [[ -f "$root/Gemfile" ]] && grep -q lefthook "$root/Gemfile"; then
+      LEFTHOOK_CMD=(bundle exec lefthook)
+      return
+    fi
+    # Python tools live in a project environment rather than on PATH, and the
+    # runners are not interchangeable: `uv run` builds its own environment and
+    # would miss a Poetry install entirely. Pick by lockfile.
+    if [[ -f "$root/pyproject.toml" ]] && grep -q lefthook "$root/pyproject.toml"; then
+      if [[ -f "$root/poetry.lock" ]]; then
+        LEFTHOOK_CMD=(poetry run lefthook)
+        return
+      fi
+      if [[ -f "$root/uv.lock" ]]; then
+        LEFTHOOK_CMD=(uv run lefthook)
+        return
+      fi
+    fi
   fi
+
+  if command -v lefthook >/dev/null 2>&1; then
+    LEFTHOOK_CMD=(lefthook)
+    return
+  fi
+  if command -v mise >/dev/null 2>&1 && mise which lefthook >/dev/null 2>&1; then
+    LEFTHOOK_CMD=(mise exec -- lefthook)
+    return
+  fi
+
+  echo "lefthook-ci-lock: no lefthook binary found" >&2
+  exit 1
 }
 
 # ci-lock is symlinked alongside this script; fall back to PATH.
