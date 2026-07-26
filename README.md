@@ -130,8 +130,9 @@ Replace the placeholder values:
 ### Shell Reload
 
 ```bash
-# Reload zsh
-source ~/.zshrc
+# Reload zsh. Use exec rather than `source ~/.zshrc`, which skips .zshenv
+# and so leaves exports like LEFTHOOK_BIN unset in the current shell.
+exec zsh
 
 # Or open a new terminal
 ```

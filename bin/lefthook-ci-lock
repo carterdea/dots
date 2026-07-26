@@ -20,6 +20,11 @@ resolve_lefthook() {
       LEFTHOOK_CMD=("$root/node_modules/.bin/lefthook")
       return
     fi
+    # Yarn PnP has no node_modules to look in.
+    if [[ -f "$root/.pnp.cjs" || -f "$root/.pnp.loader.mjs" ]]; then
+      LEFTHOOK_CMD=(yarn lefthook)
+      return
+    fi
     if [[ -x "$root/.venv/bin/lefthook" ]]; then
       LEFTHOOK_CMD=("$root/.venv/bin/lefthook")
       return
