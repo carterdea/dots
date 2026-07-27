@@ -19,8 +19,14 @@ LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-1800}"
 # A wrapped command may reach ci-lock again — a pre-push hook is already
 # queued, and a check inside it is written as `ci-lock <suite>`. Waiting
 # would mean waiting on a lock this very process tree holds, so reuse it.
-if [[ "${CI_LOCK_HELD:-}" == "$LOCK_FILE" ]]; then
-  exec "$@"
+# The holder's pid is part of the marker because a background descendant can
+# outlive the holder and keep the variable in its environment; reusing the
+# lock then would mean not holding one at all.
+if [[ "${CI_LOCK_HELD:-}" == "$LOCK_FILE:"* ]]; then
+  holder="${CI_LOCK_HELD##*:}"
+  if kill -0 "$holder" 2>/dev/null; then
+    exec "$@"
+  fi
 fi
 
 # The queue is an optimization, not a gate: without flock the checks still
@@ -44,7 +50,7 @@ if ! flock -n 9; then
   }
 fi
 
-export CI_LOCK_HELD="$LOCK_FILE"
+export CI_LOCK_HELD="$LOCK_FILE:$$"
 
 # 9>&- closes the lock descriptor for the command and everything it spawns.
 # Without it, a check that leaves a background process behind (a test server,
