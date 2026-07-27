@@ -117,7 +117,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/carterdeangelis/.local/bin/dcg"
+            "command": "$HOME/.local/bin/dcg"
           }
         ]
       }

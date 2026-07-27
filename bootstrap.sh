@@ -66,6 +66,7 @@ brew install \
     zoxide \
     git \
     gh \
+    jq \
     tig
 
 # Install Bun
