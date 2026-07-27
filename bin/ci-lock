@@ -64,8 +64,12 @@ export CI_LOCK_HELD="$LOCK_FILE:$$"
 "$@" 9>&- <&0 &
 child=$!
 trap 'kill -TERM "$child" 2>/dev/null || true' TERM
-trap 'kill -INT "$child" 2>/dev/null || true' INT
 trap 'kill -HUP "$child" 2>/dev/null || true' HUP
+# Ctrl-C is forwarded as TERM, not INT: POSIX has the shell set SIGINT to
+# ignore in an asynchronous job, and an ignored disposition survives exec, so
+# the command cannot be interrupted by the signal it was sent. Without this a
+# cancelled push keeps running its suite and keeps the queue behind it.
+trap 'kill -TERM "$child" 2>/dev/null || true' INT
 
 set +e
 wait "$child"
