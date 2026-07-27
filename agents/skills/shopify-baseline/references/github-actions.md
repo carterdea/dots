@@ -8,6 +8,7 @@ Create or update `.github/workflows/ci.yml`.
 
 - One job per check (`theme-check`, `lint`, `typecheck`, `dead-code`, `unit-tests`, `a11y`), never steps lumped into a single job — each check must report as its own PR status check. Duplicating checkout/setup/install per job is expected; setup actions cache.
 - Include a `concurrency` block keyed on workflow + ref with `cancel-in-progress: true`.
+- When splitting an existing single `check` job into per-check jobs, the old job name stops being emitted. If branch protection requires `check`, PRs stay blocked until required status checks are updated to the new job names. Warn the user and list the new names before replacing the job.
 - Runs static checks on every PR and pushes to the default branch.
 - Uses `shopify/theme-check-action@v2` instead of running local `check:theme`.
 - Pass `theme_root: .` and a pinned `version` matching the resolved `@shopify/cli` version.
