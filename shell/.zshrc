@@ -53,11 +53,18 @@ alias find='fd'
 
 # Docker CLI completions
 fpath=($HOME/.docker/completions $fpath)
+
+# Sentry CLI completions
+fpath=("$HOME/.local/share/zsh/site-functions" $fpath)
+
 autoload -Uz compinit
 compinit
 
 # asdf version manager
 . $(brew --prefix asdf)/libexec/asdf.sh
+
+# Prefer Homebrew globals over stale asdf shims when both expose a command.
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 
 # Load local configuration (API keys, secrets, machine-specific settings)
 [ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"
@@ -74,9 +81,3 @@ if command -v dcg &>/dev/null && command -v jq &>/dev/null; then
     printf '\033[1;33m[dcg] Hook missing from ~/.claude/settings.json — run: dcg install\033[0m\n'
   fi
 fi
-
-# bun completions
-[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
-
-# sentry
-fpath=("$HOME/.local/share/zsh/site-functions" $fpath)
