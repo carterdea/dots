@@ -31,14 +31,18 @@ resolve_lefthook() {
       LEFTHOOK_CMD=("$root/.venv/bin/lefthook")
       return
     fi
-    if [[ -f "$root/Gemfile" ]] && grep -q lefthook "$root/Gemfile"; then
+    # An actual gem declaration, not any mention: a Gemfile commenting that
+    # lefthook is installed globally would otherwise send the repo to bundler.
+    if [[ -f "$root/Gemfile" ]] &&
+      grep -qE '^[[:space:]]*gem[[:space:]]+["'\'']lefthook["'\'']' "$root/Gemfile"; then
       LEFTHOOK_CMD=(bundle exec lefthook)
       return
     fi
     # Python tools live in a project environment rather than on PATH, and the
     # runners are not interchangeable: `uv run` builds its own environment and
     # would miss a Poetry install entirely. Pick by lockfile.
-    if [[ -f "$root/pyproject.toml" ]] && grep -q lefthook "$root/pyproject.toml"; then
+    if [[ -f "$root/pyproject.toml" ]] &&
+      grep -v '^[[:space:]]*#' "$root/pyproject.toml" | grep -q lefthook; then
       if [[ -f "$root/poetry.lock" ]]; then
         LEFTHOOK_CMD=(poetry run lefthook)
         return
