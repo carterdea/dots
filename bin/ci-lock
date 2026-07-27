@@ -16,6 +16,13 @@ fi
 LOCK_FILE="${CI_LOCK_FILE:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/heavy.lock}"
 LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-1800}"
 
+# A wrapped command may reach ci-lock again — a pre-push hook is already
+# queued, and a check inside it is written as `ci-lock <suite>`. Waiting
+# would mean waiting on a lock this very process tree holds, so reuse it.
+if [[ "${CI_LOCK_HELD:-}" == "$LOCK_FILE" ]]; then
+  exec "$@"
+fi
+
 # The queue is an optimization, not a gate: without flock the checks still
 # run, just unserialized. Failing the push over a missing tool is worse.
 if ! command -v flock >/dev/null 2>&1; then
@@ -37,13 +44,32 @@ if ! flock -n 9; then
   }
 fi
 
+export CI_LOCK_HELD="$LOCK_FILE"
+
 # 9>&- closes the lock descriptor for the command and everything it spawns.
 # Without it, a check that leaves a background process behind (a test server,
 # a container) hands that process the lock, and it keeps holding it long
 # after the check itself has exited.
+#
+# Run it as a job and wait, rather than in the foreground, so a supervisor
+# that signals only this wrapper cannot leave the command running with the
+# lock already released. <&0 keeps stdin attached, which a backgrounded job
+# would otherwise lose — pre-push hooks read their refs from it.
+"$@" 9>&- <&0 &
+child=$!
+trap 'kill -TERM "$child" 2>/dev/null || true' TERM
+trap 'kill -INT "$child" 2>/dev/null || true' INT
+trap 'kill -HUP "$child" 2>/dev/null || true' HUP
+
 set +e
-"$@" 9>&-
+wait "$child"
 status=$?
+# A trapped signal makes wait return >128 while the child is still shutting
+# down; keep waiting so the lock outlives it.
+while ((status > 128)) && kill -0 "$child" 2>/dev/null; do
+  wait "$child"
+  status=$?
+done
 set -e
 
 exit "$status"
