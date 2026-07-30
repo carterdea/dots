@@ -118,6 +118,10 @@
           {
             "type": "command",
             "command": "$HOME/.local/bin/dcg"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/ci-queue-hook"
           }
         ]
       }
