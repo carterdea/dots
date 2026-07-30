@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Claude Code PreToolUse(Bash) hook: route long-running checks through ci-lock.
+#
+# Quick checks stay instant. Full suites queue, so several agents cannot run
+# heavy work at once. Pushes are already covered by the LEFTHOOK_BIN shim; this
+# covers the far more common case of an agent running the suite directly.
+#
+# Modes:
+#   dry-run (default) — decide, log to $CI_QUEUE_HOOK_LOG, change nothing
+#   enforce           — CI_QUEUE_HOOK_ENFORCE=1, rewrite the command
+#
+# Always exits 0. A hook on every Bash call must never be the reason one fails.
+set -uo pipefail
+
+LOG="${CI_QUEUE_HOOK_LOG:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/queue-hook.log}"
+mkdir -p "$(dirname "$LOG")" 2>/dev/null || true
+
+payload="$(cat 2>/dev/null || true)"
+
+# Prefer jq; fall back to a crude extraction so a missing jq cannot break Bash.
+if command -v jq >/dev/null 2>&1; then
+  cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // .command // empty' 2>/dev/null)"
+else
+  cmd="$(printf '%s' "$payload" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\(.*\)".*/\1/p' | head -1)"
+fi
+
+[[ -z "${cmd:-}" ]] && exit 0
+
+decide() {
+  # 1. Never queue anything that does not exit on its own. A watch or server
+  #    holding the machine-wide lock would block every project until timeout.
+  if [[ "$cmd" =~ (--watch|[[:space:]]-w([[:space:]]|$)|--ui|interactive) ]] ||
+    [[ "$cmd" =~ (run[[:space:]]+(dev|start|serve)|dev:|expo[[:space:]]+start|vite([[:space:]]|$)|next[[:space:]]+dev) ]]; then
+    echo "SKIP watch-or-server"; return
+  fi
+
+  # 2. Already queued, or is the queue itself.
+  if [[ "$cmd" =~ (ci-lock|lefthook) ]]; then echo "SKIP already-queued"; return; fi
+
+  # 3. Scoped to specific files or a name filter — that is a quick check.
+  if [[ "$cmd" =~ (-k[[:space:]]|-t[[:space:]]|--testNamePattern|--grep) ]]; then
+    echo "SKIP name-filtered"; return
+  fi
+  if [[ "$cmd" =~ [[:space:]][^[:space:]-]*\.(ts|tsx|js|jsx|py|rb|go)([[:space:]]|$) ]]; then
+    echo "SKIP file-scoped"; return
+  fi
+
+  # 4. Long: full suites, e2e, project-wide typecheck, aggregates, builds.
+  if [[ "$cmd" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]])jest([[:space:]]|$)) ]] ||
+    [[ "$cmd" =~ ((^|[[:space:]])pytest([[:space:]]|$)|(^|[[:space:]])rspec([[:space:]]|$)|go[[:space:]]+test) ]] ||
+    [[ "$cmd" =~ (playwright|cypress|detox) ]] ||
+    [[ "$cmd" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright) ]] ||
+    [[ "$cmd" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||
+    [[ "$cmd" =~ scripts/(verify|test)[^[:space:]]*\.sh ]]; then
+    echo "QUEUE long-check"; return
+  fi
+
+  echo "SKIP not-heavy"
+}
+
+verdict="$(decide)"
+action="${verdict%% *}"
+reason="${verdict#* }"
+
+printf '%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$action" "$reason" "${cmd:0:200}" >>"$LOG" 2>/dev/null || true
+
+# Dry-run: observe only.
+[[ "${CI_QUEUE_HOOK_ENFORCE:-0}" != "1" ]] && exit 0
+[[ "$action" != "QUEUE" ]] && exit 0
+
+lock="$HOME/.local/bin/ci-lock"
+[[ -x "$lock" ]] || exit 0
+
+if command -v jq >/dev/null 2>&1; then
+  jq -cn --arg c "$lock $cmd" \
+    '{hookSpecificOutput:{hookEventName:"PreToolUse",updatedInput:{command:$c}}}' 2>/dev/null || true
+fi
+exit 0
