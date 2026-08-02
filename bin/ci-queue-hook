@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Claude Code PreToolUse(Bash) hook: route long-running checks through ci-lock.
+# PreToolUse(Bash) hook: route long-running checks through ci-lock.
+# Works under both Claude Code (~/.claude/settings.json) and Codex
+# (~/.codex/hooks.json); both send {tool_input:{command}} on stdin.
 #
 # Quick checks stay instant. Full suites queue, so several agents cannot run
 # heavy work at once. Pushes are already covered by the LEFTHOOK_BIN shim; this
@@ -47,6 +49,7 @@ decide() {
 
   # 4. Long: full suites, e2e, project-wide typecheck, aggregates, builds.
   if [[ "$cmd" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]])jest([[:space:]]|$)) ]] ||
+    [[ "$cmd" =~ run[[:space:]]+--filter[[:space:]]+[^[:space:]]+[[:space:]]+test([[:space:]]|$) ]] ||
     [[ "$cmd" =~ ((^|[[:space:]])pytest([[:space:]]|$)|(^|[[:space:]])rspec([[:space:]]|$)|go[[:space:]]+test) ]] ||
     [[ "$cmd" =~ (playwright|cypress|detox) ]] ||
     [[ "$cmd" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright) ]] ||
@@ -71,8 +74,22 @@ printf '%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$action" "$reason" "${
 lock="$HOME/.local/bin/ci-lock"
 [[ -x "$lock" ]] || exit 0
 
-if command -v jq >/dev/null 2>&1; then
-  jq -cn --arg c "$lock $cmd" \
+command -v jq >/dev/null 2>&1 || exit 0
+
+# Wrap through `bash -c` so a compound command (cd x && suite, pipes) runs
+# entirely inside the lock. Prefixing `ci-lock` alone would bind only the
+# first simple command, and the suite after `&&` would run unlocked.
+wrapped="$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"
+
+# Codex accepts updatedInput only alongside permissionDecision:"allow".
+# Claude Code gets updatedInput without a decision so the rewritten command
+# still goes through its normal permission flow. Codex payloads are the
+# ones carrying a turn_id.
+if printf '%s' "$payload" | jq -e 'has("turn_id")' >/dev/null 2>&1; then
+  jq -cn --arg c "$wrapped" \
+    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow",updatedInput:{command:$c}}}' 2>/dev/null || true
+else
+  jq -cn --arg c "$wrapped" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",updatedInput:{command:$c}}}' 2>/dev/null || true
 fi
 exit 0
