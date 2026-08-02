@@ -97,7 +97,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus[1m]",
+  "model": "claude-fable-5[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -121,7 +121,7 @@
           },
           {
             "type": "command",
-            "command": "$HOME/.local/bin/ci-queue-hook"
+            "command": "CI_QUEUE_HOOK_ENFORCE=1 $HOME/.local/bin/ci-queue-hook"
           }
         ]
       }
