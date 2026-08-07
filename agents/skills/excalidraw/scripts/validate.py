@@ -61,6 +61,41 @@ def bbox(el):
     return x, y, x + abs(el.get("width", 0)), y + abs(el.get("height", 0))
 
 
+def segment_hits_rect(p0, p1, rect, inset=4.0):
+    """Liang-Barsky: does the segment cross the rect's interior (shrunk by inset)?"""
+    x0, y0, x1, y1 = rect
+    x0 += inset; y0 += inset; x1 -= inset; y1 -= inset
+    if x1 <= x0 or y1 <= y0:
+        return False
+    px, py = p0
+    dx, dy = p1[0] - px, p1[1] - py
+    t0, t1 = 0.0, 1.0
+    for p, q in ((-dx, px - x0), (dx, x1 - px), (-dy, py - y0), (dy, y1 - py)):
+        if p == 0:
+            if q < 0:
+                return False
+        else:
+            r = q / p
+            if p < 0:
+                if r > t1:
+                    return False
+                t0 = max(t0, r)
+            else:
+                if r < t0:
+                    return False
+                t1 = min(t1, r)
+    return t0 <= t1
+
+
+def abs_points(el):
+    ax, ay = el.get("x", 0), el.get("y", 0)
+    pts = []
+    for p in el.get("points") or []:
+        if isinstance(p, list) and len(p) == 2 and is_num(p[0]) and is_num(p[1]):
+            pts.append((ax + p[0], ay + p[1]))
+    return pts
+
+
 def overlap_area(a, b):
     w = min(a[2], b[2]) - max(a[0], b[0])
     h = min(a[3], b[3]) - max(a[1], b[1])
@@ -285,23 +320,38 @@ def check_arrow_endpoint(arrow, key, target):
             return
     ax, ay = arrow.get("x", 0), arrow.get("y", 0)
     px, py = ax + end[0], ay + end[1]
-    x0, y0, x1, y1 = bbox(target)
+    rect = bbox(target)
+    x0, y0, x1, y1 = rect
     pad = 0.2 * max(x1 - x0, y1 - y0) + 30
     if not (x0 - pad <= px <= x1 + pad and y0 - pad <= py <= y1 + pad):
         warn(arrow, f"{key} endpoint ({px:.0f}, {py:.0f}) is far from target {target['id']!r} "
                     f"bbox ({x0:.0f}, {y0:.0f})-({x1:.0f}, {y1:.0f})")
         return
-    # Final segment must approach the near edge, not tunnel through the shape:
-    # if it comes from beyond one side yet terminates at the opposite edge, the
-    # drawn line crosses the whole box.
+    # The final segment should stop at the near edge; if it cuts the interior,
+    # the drawn line runs through the shape to reach the far side.
     qx, qy = ax + prev[0], ay + prev[1]
-    edge_tol = 8
-    if qx < x0 and abs(px - x1) <= edge_tol or qx > x1 and abs(px - x0) <= edge_tol:
-        warn(arrow, f"{key} passes through target {target['id']!r} horizontally "
-                    "(approaches one side, ends on the far edge)")
-    elif qy < y0 and abs(py - y1) <= edge_tol or qy > y1 and abs(py - y0) <= edge_tol:
-        warn(arrow, f"{key} passes through target {target['id']!r} vertically "
-                    "(approaches one side, ends on the far edge)")
+    if segment_hits_rect((qx, qy), (px, py), rect, inset=6):
+        warn(arrow, f"{key} segment passes through target {target['id']!r} "
+                    "instead of stopping at its near edge")
+
+
+def check_arrow_crossings(elements):
+    """Arrows that cut through shapes they are not bound to."""
+    shapes = [e for e in elements if e.get("type") in SHAPES and not e.get("isDeleted")]
+    for el in elements:
+        if el.get("type") != "arrow" or el.get("isDeleted"):
+            continue
+        pts = abs_points(el)
+        if len(pts) < 2:
+            continue
+        bound = {b.get("elementId") for b in (el.get("startBinding"), el.get("endBinding"))
+                 if isinstance(b, dict)}
+        for shape in shapes:
+            if shape.get("id") in bound:
+                continue
+            rect = bbox(shape)
+            if any(segment_hits_rect(pts[i], pts[i + 1], rect) for i in range(len(pts) - 1)):
+                warn(el, f"crosses {label(shape)}")
 
 
 def check_overlaps(elements):
@@ -379,6 +429,7 @@ def main():
     dict_elements = [e for e in elements if isinstance(e, dict)]
     check_cross_references(dict_elements, data.get("files") or {})
     check_overlaps(dict_elements)
+    check_arrow_crossings(dict_elements)
 
     for line in errors + warnings:
         print(line)
