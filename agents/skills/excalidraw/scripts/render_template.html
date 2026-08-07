@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { margin: 0; background: #fff; }
+      #root { display: inline-block; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      // Pinned to the released version the skill's format reference targets.
+      // (jsdelivr +esm — esm.sh's ?bundle build of this package 404s on a transitive dep)
+      import { exportToSvg } from "https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.18.1/+esm";
+
+      window.__renderComplete = false;
+      window.__renderError = null;
+
+      window.renderDiagram = async function (jsonData) {
+        try {
+          const data =
+            typeof jsonData === "string" ? JSON.parse(jsonData) : jsonData;
+          const appState = data.appState || {};
+          const svg = await exportToSvg({
+            elements: data.elements || [],
+            appState: {
+              ...appState,
+              exportBackground: true,
+              exportWithDarkMode: false,
+              viewBackgroundColor: appState.viewBackgroundColor || "#ffffff",
+            },
+            files: data.files || {},
+          });
+          document.getElementById("root").appendChild(svg);
+        } catch (err) {
+          window.__renderError = String((err && err.stack) || err);
+        }
+        window.__renderComplete = true;
+      };
+
+      window.__moduleReady = true;
+    </script>
+  </body>
+</html>
