@@ -18,6 +18,7 @@ Write `.excalidraw` JSON by hand, validate it with the bundled script, and only 
 3. **Write the JSON** following `format.md` and the layout rules below. For editing an existing file, see "Editing" first.
 4. **Validate:** `uv run <skill-dir>/scripts/validate.py diagram.excalidraw` (stdlib-only; plain `python3` works too). Fix every ERROR; treat WARNs as a to-do list unless intentional (e.g. deliberate overlap in a cloud motif). Re-run until clean.
 5. **Visual check (when possible):** `uv run <skill-dir>/scripts/render.py diagram.excalidraw` renders a PNG via Excalidraw's real exporter (needs network + `uv run --with playwright playwright install chromium` once). View the PNG and fix what looks wrong: crossing arrows, cramped vs. empty regions, illegible text, lopsided composition. Iterate. If rendering isn't available, the validator plus careful coordinate math is the fallback.
+6. **Publish (only if asked):** `uv run <skill-dir>/scripts/push.py diagram.excalidraw --name "Scene name"` creates the scene in the user's Excalidraw+ workspace (or `--scene <id>` to update one) and prints its URL. Needs an API key in `EXCALIDRAW_API_KEY` or `~/.config/excalidraw/api_key`; the script adds the API-only fields (`index`, `fixedPoint`/`mode`) without touching the file.
 
 ## Choosing structure
 

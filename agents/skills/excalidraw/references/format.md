@@ -137,6 +137,17 @@ Available text area (padding 5px each side): rectangle `w − 10`; ellipse `roun
 
 Also bidirectional: arrow carries `startBinding`/`endBinding`, and **each target's `boundElements` must include `{"id": "<arrow-id>", "type": "arrow"}`**. Place the arrow's endpoints just outside the target's border (that's what `gap` represents). Bindings whose `elementId` isn't in the scene are nulled on load.
 
+## Excalidraw+ REST API (pushing to a hosted workspace)
+
+`https://api.excalidraw.com/api/v1`, `Authorization: Bearer <key>` (public beta). Scene content (`PUT /scenes/{id}/content`) validates against the **master** schema, stricter than the app's file loader:
+
+- Full document wrapper required (`type`, `version`, `source`, `elements`, …)
+- Every element needs a fractional `index` string (files should omit it; the API rejects its absence)
+- Arrow bindings need `fixedPoint: [fx, fy]` (normalized 0–1 on the target) and `mode: "inside"|"orbit"|"skip"` — keeping `focus`/`gap` alongside is accepted
+- Creating a scene (`POST /collections/{id}/scenes`) requires `pinned`
+
+Don't hand-write these into `.excalidraw` files — `scripts/push.py` adds them on the way out, keeping files app-compatible.
+
 ## Default palette
 
 Excalidraw's native colors — generated files using these look hand-made in the app:
