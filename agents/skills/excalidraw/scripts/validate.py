@@ -279,15 +279,29 @@ def check_arrow_endpoint(arrow, key, target):
     pts = arrow.get("points")
     if not isinstance(pts, list) or len(pts) < 2:
         return
-    p = pts[0] if key == "startBinding" else pts[-1]
-    if not (isinstance(p, list) and len(p) == 2 and is_num(p[0]) and is_num(p[1])):
-        return
-    px, py = arrow.get("x", 0) + p[0], arrow.get("y", 0) + p[1]
+    end, prev = (pts[0], pts[1]) if key == "startBinding" else (pts[-1], pts[-2])
+    for p in (end, prev):
+        if not (isinstance(p, list) and len(p) == 2 and is_num(p[0]) and is_num(p[1])):
+            return
+    ax, ay = arrow.get("x", 0), arrow.get("y", 0)
+    px, py = ax + end[0], ay + end[1]
     x0, y0, x1, y1 = bbox(target)
     pad = 0.2 * max(x1 - x0, y1 - y0) + 30
     if not (x0 - pad <= px <= x1 + pad and y0 - pad <= py <= y1 + pad):
         warn(arrow, f"{key} endpoint ({px:.0f}, {py:.0f}) is far from target {target['id']!r} "
                     f"bbox ({x0:.0f}, {y0:.0f})-({x1:.0f}, {y1:.0f})")
+        return
+    # Final segment must approach the near edge, not tunnel through the shape:
+    # if it comes from beyond one side yet terminates at the opposite edge, the
+    # drawn line crosses the whole box.
+    qx, qy = ax + prev[0], ay + prev[1]
+    edge_tol = 8
+    if qx < x0 and abs(px - x1) <= edge_tol or qx > x1 and abs(px - x0) <= edge_tol:
+        warn(arrow, f"{key} passes through target {target['id']!r} horizontally "
+                    "(approaches one side, ends on the far edge)")
+    elif qy < y0 and abs(py - y1) <= edge_tol or qy > y1 and abs(py - y0) <= edge_tol:
+        warn(arrow, f"{key} passes through target {target['id']!r} vertically "
+                    "(approaches one side, ends on the far edge)")
 
 
 def check_overlaps(elements):
