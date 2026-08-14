@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# LEFTHOOK_BIN shim: routes `lefthook run pre-push` through ci-lock so heavy
-# checks are serialized machine-wide with no per-repo config. Every other
-# lefthook invocation (fast pre-commit checks) passes through unlocked.
+# LEFTHOOK_BIN shim: routes lefthook hook runs through ci-lock so checks are
+# serialized machine-wide with no per-repo config. Slow and fast checks queue
+# in separate lanes: pre-push (tests, builds) takes the heavy lock, pre-commit
+# (staged lint/format) takes the fast lock, so a commit only ever waits behind
+# other commits — never behind a running test suite. Every other lefthook
+# invocation passes through unlocked.
 # Exported from shell/.zshenv and shell/.bashrc; lefthook's generated
 # .git/hooks scripts honor LEFTHOOK_BIN before any other resolution.
 set -euo pipefail
@@ -80,10 +83,18 @@ find_ci_lock() {
 
 resolve_lefthook
 
-if [[ "${1:-}" == "run" && "${2:-}" == "pre-push" ]]; then
+lane=""
+if [[ "${1:-}" == "run" ]]; then
+  case "${2:-}" in
+    pre-push) lane=heavy ;;
+    pre-commit) lane=fast ;;
+  esac
+fi
+
+if [[ -n "$lane" ]]; then
   lock="$(find_ci_lock)"
   if [[ -n "$lock" ]]; then
-    exec "$lock" "${LEFTHOOK_CMD[@]}" "$@"
+    exec env CI_LOCK_LANE="$lane" "$lock" "${LEFTHOOK_CMD[@]}" "$@"
   fi
   echo "lefthook-ci-lock: ci-lock not found; running unqueued" >&2
 fi

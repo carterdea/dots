@@ -1,29 +1,47 @@
 #!/usr/bin/env bash
-# Machine-wide semaphore for heavy checks (tests, e2e, builds).
-# Usage: ci-lock <command> [args...]
-# All ci-lock'd commands across every project share one lock, so only one
-# heavy suite runs at a time no matter how many agents commit/push at once.
+# Machine-wide semaphore for CI-style checks.
+# Usage: [CI_LOCK_LANE=<lane>] ci-lock <command> [args...]
+# Commands queue per lane: everything in a lane shares one lock across every
+# project, so only one runs at a time no matter how many agents commit/push
+# at once. Lanes are independent — the default "heavy" lane (tests, e2e,
+# builds) never blocks the "fast" lane (staged lint/format on commit), so a
+# commit only ever waits behind other commits, not behind a test suite.
 set -euo pipefail
 
 if [[ $# -eq 0 ]]; then
-  echo "usage: ci-lock <command> [args...]" >&2
+  echo "usage: [CI_LOCK_LANE=<lane>] ci-lock <command> [args...]" >&2
+  exit 64
+fi
+
+LANE="${CI_LOCK_LANE:-heavy}"
+if ! [[ "$LANE" =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
+  echo "ci-lock: invalid lane '$LANE' (want [a-z0-9_-])" >&2
   exit 64
 fi
 
 # Kept under $HOME rather than /tmp: a world-writable lock path can be
 # pre-created as a symlink, and opening it for write follows and truncates
 # whatever it points at.
-LOCK_FILE="${CI_LOCK_FILE:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/heavy.lock}"
-LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-1800}"
+LOCK_FILE="${CI_LOCK_FILE:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/$LANE.lock}"
+# A fast-lane check waiting anywhere near the heavy timeout means the queue
+# is wedged, not busy; give it a much shorter leash.
+if [[ "$LANE" == "heavy" ]]; then
+  LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-1800}"
+else
+  LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-300}"
+fi
 
 # A wrapped command may reach ci-lock again — a pre-push hook is already
 # queued, and a check inside it is written as `ci-lock <suite>`. Waiting
 # would mean waiting on a lock this very process tree holds, so reuse it.
-# The holder's pid is part of the marker because a background descendant can
-# outlive the holder and keep the variable in its environment; reusing the
-# lock then would mean not holding one at all.
-if [[ "${CI_LOCK_HELD:-}" == "$LOCK_FILE:"* ]]; then
-  holder="${CI_LOCK_HELD##*:}"
+# The marker is per-lane (one env var per lane) so holding the fast lock
+# never masks an ancestor's heavy hold, and vice versa. The holder's pid is
+# part of the marker because a background descendant can outlive the holder
+# and keep the variable in its environment; reusing the lock then would mean
+# not holding one at all.
+HELD_VAR="CI_LOCK_HELD_$(printf '%s' "${LANE//-/_}" | tr '[:lower:]' '[:upper:]')"
+if [[ "${!HELD_VAR:-}" == "$LOCK_FILE:"* ]]; then
+  holder="${!HELD_VAR##*:}"
   if kill -0 "$holder" 2>/dev/null; then
     exec "$@"
   fi
@@ -43,14 +61,14 @@ mkdir -p "$(dirname "$LOCK_FILE")"
 # double duty as "could not get the lock".
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
-  echo "ci-lock: another heavy check is running; waiting in queue (max ${LOCK_TIMEOUT}s)..." >&2
+  echo "ci-lock: another $LANE check is running; waiting in queue (max ${LOCK_TIMEOUT}s)..." >&2
   flock -w "$LOCK_TIMEOUT" 9 || {
     echo "ci-lock: timed out after ${LOCK_TIMEOUT}s waiting for $LOCK_FILE" >&2
     exit 1
   }
 fi
 
-export CI_LOCK_HELD="$LOCK_FILE:$$"
+export "$HELD_VAR=$LOCK_FILE:$$"
 
 # 9>&- closes the lock descriptor for the command and everything it spawns.
 # Without it, a check that leaves a background process behind (a test server,
