@@ -23,6 +23,8 @@ The highest-trust category — real bugs found by reading, not speculation.
 
 Report only what's evidenced in the code. Do not generate exploit code in plans — describe the fix.
 
+**Write-up rule (keep security findings terse and location-anchored):** state the defect, its `file:line`, the impact, and the fix — nothing more. Do not reconstruct the exploit: no attack payload, no injection/break-out string, no step-by-step bypass sequence, and do not paste the credential/secret-handling code back into the finding. "The routing fence at `x.py:220` is escapable via unsanitized attachment text; sanitize per the sibling paths" — not a worked example of the escape. Keep each finding to a single mechanism; do not chain multiple exploit mechanisms (credential injection *and* prompt-injection *and* a bypass) into one finding or one message. This is a robustness rule *and* a safeguard rule: dense, worked-out offensive-security prose stacked into a single message can trip a model's response-safety classifier mid-synthesis, blocking legitimate defensive work — terse, location-anchored findings avoid that.
+
 **Handling rule:** never copy a secret value into a finding or plan — those files get committed. Reference the `file:line` and credential type only ("Stripe live key at `config.ts:12`"), and the fix sketch always includes rotation, not just removal (a committed secret is burned even after deletion).
 
 **By-design is not a finding:** standard platform conventions are intentional behavior — honoring `https_proxy`/`NO_PROXY`, reading `~/.netrc`, an explicitly local dev tool shelling out to configured package managers. Flag these only when the *implementation* adds risk beyond the convention itself.
