@@ -7,6 +7,18 @@ description: Get a second opinion on code changes from Claude Code CLI. Use befo
 
 Get an independent code review from Anthropic's Claude CLI as a second opinion.
 
+## Model selection
+
+Pass `--model` with an alias — aliases always resolve to the latest version of each model, so never pin dated model IDs:
+
+- `sonnet` — Claude Sonnet (latest is v5, `claude-sonnet-5`). Default: fast and cheap, good enough for most reviews.
+- `opus` — Claude Opus (latest is v5, `claude-opus-5`). Stronger reasoning for tricky or subtle diffs.
+- `fable` — Claude Fable (`claude-fable-5`), Anthropic's most capable model (Mythos-class, above Opus). Use when the user asks for the deepest possible review or the diff is high-stakes (security-sensitive, complex concurrency, large refactors).
+
+If the user names a model ("use fable", "review with opus"), use that. Otherwise default to `sonnet`.
+
+Non-interactive calls use print mode: `claude -p --model <alias> "<prompt>"` with the diff piped via stdin.
+
 ## Process
 
 ### 1. Determine the diff
@@ -34,10 +46,11 @@ If the diff is empty, tell the user there are no changes to review and stop.
 
 If the user provided custom focus instructions (e.g., "focus on security"), use those as the review prompt. Otherwise use the default comprehensive prompt below.
 
-Pipe the diff into Claude's non-interactive print mode:
+Set the model per the Model selection section, then pipe the diff into Claude's non-interactive print mode:
 
 ```bash
-eval "$DIFF_CMD" | claude -p --model sonnet "Review the code changes in this diff for quality, correctness, and adherence to best practices.
+MODEL=sonnet  # or opus / fable per Model selection
+eval "$DIFF_CMD" | claude -p --model "$MODEL" "Review the code changes in this diff for quality, correctness, and adherence to best practices.
 
 ## Review Checklist
 
@@ -100,7 +113,7 @@ If the diff exceeds ~4000 lines, split by file:
 ```bash
 for file in $(eval "$NAMES_CMD"); do
   echo "=== Reviewing: $file ==="
-  eval "${FILE_DIFF_CMD//FILE/$file}" | claude -p --model sonnet "Review this diff of $file for bugs, security issues, and code quality problems. Be specific and concise."
+  eval "${FILE_DIFF_CMD//FILE/$file}" | claude -p --model "$MODEL" "Review this diff of $file for bugs, security issues, and code quality problems. Be specific and concise."
 done
 ```
 
