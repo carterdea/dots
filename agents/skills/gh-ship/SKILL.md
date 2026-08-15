@@ -1,12 +1,12 @@
 ---
 name: gh-ship
-description: Commit, push, and create PR in one step
+description: Commit, push, and file a concise pull request in one step. Use when the user asks to ship, file, open, or create a PR.
 user-invocable: true
 ---
 
 # Ship
 
-Commit, push, and create PR in one step.
+Commit, push, and file a concise PR in one step.
 
 ## Steps
 
@@ -28,9 +28,28 @@ git commit -m "type(scope): short description"
 4. Push
 git push -u origin $(git branch --show-current)
 
-5. Create PR if needed
-gh pr view --json number 2>/dev/null
-- If no PR: `gh pr create --title "type(scope): desc" --body $'## Summary\n- changes'` (use `$'...'` so `\n` becomes a real newline)
-- If PR exists: report URL
+5. File the PR — see below. If one already exists, report its URL instead.
 
 Read if present: `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`.
+
+## Filing
+
+Before filing, check whether a PR for this branch already exists. Review the diff locally against `origin/main` to make sure its contents match the goal.
+
+PR titles usually become commit messages, so follow the repository's title conventions. Look at recently merged PRs and Git history for examples. Prefer a concise, human-readable title that explains why the change matters:
+
+BAD
+> ❌ perf(server): negotiate permessage-deflate on the websocket
+
+GOOD
+> ✅ perf(server): cut websocket frame size by 70%+ with gzipping
+
+Open the description with a simple explanation of the problem based on Carter's original prompt, then briefly explain the solution. Do not lead with an implementation inventory:
+
+BAD
+> ❌ Removed implicit workspace carry-over from every "new thread" entry point (cmd+n / cmd+shift+o, sidebar v1/v2 buttons, command palette). New threads inherit only the project from context; branch, worktree, and env mode always come from the configured defaults. Deleted buildContextualThreadOptions, startNewThreadInProjectFromContext, and the v1 sidebar's seed-context machinery.
+
+GOOD
+> ✅ My "new worktree" default was ignored when starting new threads on existing worktrees. Super unintuitive. Now your preferences always apply.
+
+Open a real PR rather than a draft so review bots run. If Carter also asked to babysit it, continue with the `babysit-pr` skill.
