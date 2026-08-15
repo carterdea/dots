@@ -59,7 +59,7 @@ Check out the branch before touching anything: `gh pr checkout {NUMBER}`.
 ## Each cycle
 
 1. Read state: `gh pr view {NUMBER} --json state,mergeable,reviewDecision,statusCheckRollup` and `gh pr checks {NUMBER}`. `gh pr checks` is the source of truth for checks — `gh run list` only covers GitHub Actions.
-2. Read comments newer than the latest push. Prefer unresolved review threads over flat comment lists; flat comments lose resolution state and inline context. Skip resolved threads, outdated threads, deploy-preview bots, and bare `@claude` / `@codex` mentions.
+2. Read every unresolved, non-outdated review thread — not just the ones newer than the last push. A push marks a thread outdated only when it touched that thread's lines, so an older thread on an untouched file is still live feedback. Track the thread ids you have handled this session and skip those instead. Prefer threads over flat comment lists; flat comments lose resolution state and inline context. Skip deploy-preview bots and bare `@claude` / `@codex` mentions.
 3. Triage each item.
 4. Fix what deserves fixing, run the narrowest relevant checks, then commit and push. Never push code whose checks you just watched fail — report and stop.
 5. If nothing was actionable, wait and go again.
@@ -92,5 +92,5 @@ Report each stop with what changed, what you rejected and why, and what is left.
 ## Do not
 
 - Submit reviews, close the PR, or merge unless Carter asked. Dismissal replies and the threads they resolve are the writes you make on your own.
-- Force-push while review is in flight. Rebasing onto `main` is fine when the branch falls behind.
+- Force-push while review is in flight, except to publish a rebase onto `main` — that one takes `git push --force-with-lease`, never a bare `--force`.
 - Count your own pushes as new activity — they are what the next cycle is measuring.
