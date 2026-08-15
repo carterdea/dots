@@ -1,6 +1,6 @@
 ---
 name: html-communication
-description: When the user asks for an HTML writeup of work (NOT as part of the codebase), use this skill to create it and report its local path, or a hosted link when one is needed.
+description: Present finished work as a standalone document to read — a writeup, plan, findings, comparison, or a set of UI mocks to pick from. Use when the user asks for something to review, not when they ask to edit HTML, copy, or components inside a project.
 ---
 
 # HTML Communication
