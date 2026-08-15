@@ -1,6 +1,6 @@
 ---
 name: html-communication
-description: When the user asks for an HTML writeup of work (NOT as part of the codebase), use this skill to create it and report a link.
+description: When the user asks for an HTML writeup of work (NOT as part of the codebase), use this skill to create it and report its local path, or a hosted link when one is needed.
 ---
 
 # HTML Communication
