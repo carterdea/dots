@@ -18,6 +18,7 @@ agents/
     ├── app-store-preflight-compliance/    # App Store submission readiness
     ├── asana-cli/                         # Drive Asana through the `asana` CLI
     ├── audit-ai-frontend/                # Audit AI-looking frontend implementations
+    ├── babysit-pr/                       # Watch a PR through review and CI until mergeable
     ├── baseline/                         # Install quality baseline (linter, hooks, dead-code)
     ├── claude-review/                    # Second opinion via Claude Code CLI
     ├── clean-coder/                      # Invoked when user swears or is upset
@@ -40,6 +41,7 @@ agents/
     ├── grilling/                         # Relentless one-question-at-a-time planning interview
     ├── grill-me/                         # Stress-test plan via relentless interview
     ├── handoff/                          # Generate continuation prompt
+    ├── html-communication/               # HTML write-ups of work, reported as a link
     ├── humanize-ai-text/                 # Humanize AI-shaped writing and citation cleanup
     ├── improve/                          # Senior codebase survey and improvement plan
     ├── improve-codebase-architecture/    # Find deepening opportunities
@@ -132,14 +134,16 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/dogfood` — Systematic bug hunt with structured repro evidence
 - `/merge-conflicts` — Rebase onto main, resolve conflicts, force-push
 - `/simple-html-artifact` — Build or refine single-file HTML artifacts
+- `/html-communication` — HTML write-up of work, written locally and reported as a link
 
 ### GitHub Workflow
 
-- `/gh-ship` — Commit, push, open PR in one step
+- `/gh-ship` — Commit, push, and file a concise PR in one step
 - `/gh-commit` — Imperative conventional commit message
 - `/gh-review-pr` — Thorough PR review (correctness, tests, risk)
 - `/gh-address-pr-comments` — Watch PR comments and fix valid review feedback
 - `/gh-fix-ci` — Debug and fix first failing CI check
+- `/babysit-pr` — Watch a PR through review and CI, responding to comments and failures
 - `/clean-worktrees` — Audit and clean agent worktrees and gone branches safely
 - `/trello-delivery` — Ship a Trello ticket end to end as a reviewable PR (non-Shopify web apps). Requires the `trello-cli` binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
