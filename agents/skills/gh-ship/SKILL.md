@@ -17,7 +17,8 @@ git branch --show-current
 2. Inspect changes
 git status --porcelain
 git diff --stat
-git log --oneline origin/main..HEAD
+BASE=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)
+git log --oneline "origin/$BASE..HEAD"
 - If the tree is clean but the branch has commits ahead of the base, skip to step 4 — this is the "just open the PR" case
 - If there are no changes and no commits ahead, stop
 
