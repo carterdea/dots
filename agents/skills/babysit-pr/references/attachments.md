@@ -5,15 +5,18 @@
 ```bash
 FILE=shot.png
 NAME=$(printf %s "$(basename "$FILE")" | jq -sRr @uri)
-MIME=$(file --mime-type -b "$FILE")
+MIME=$(printf %s "$(file --mime-type -b "$FILE")" | jq -sRr @uri)
 REPO_ID=$(gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)" --jq .id)
 
-curl -sS --fail-with-body -X POST \
+printf 'Authorization: Bearer %s\n' "$(gh auth token)" | curl -sS --fail-with-body -X POST \
+  --connect-timeout 15 --max-time 300 \
   "https://uploads.github.com/user-attachments/assets?name=$NAME&content_type=$MIME&repository_id=$REPO_ID" \
-  -H "Authorization: Bearer $(gh auth token)" \
+  -H @- \
   -H "Accept: application/json" \
   --data-binary "@$FILE"
 ```
+
+`MIME` is encoded because `image/svg+xml` arrives as `image/svg xml` otherwise — `+` is a space in a query value. The token goes in over stdin so it never lands in `curl`'s arguments, where any process on the machine could read it.
 
 The JSON response carries a `github.com/user-attachments/assets/...` URL. Embed images as `![](url)`; post a video URL bare and GitHub renders a player. These URLs are scoped to the repository, so they work on private repos.
 
