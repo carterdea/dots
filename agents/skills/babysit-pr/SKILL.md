@@ -1,0 +1,93 @@
+---
+name: babysit-pr
+description: Monitor a pull request through review and CI, responding to new comments and failures until it is ready to merge. Use when the user asks to monitor, watch, or babysit a PR.
+user-invocable: true
+---
+
+# Babysit PR
+
+All the repos we work in have various AI review bots. They're helpful, even if they are not always right.
+
+If your harness offers tools to monitor a PR, use them so you can respond when comments arrive. Otherwise, poll the PR for new comments and checks.
+
+Only act on checks and comments newer than the latest push. Verify every bot finding against the source before changing code. Fix real findings and CI failures, distinguish repository failures from infrastructure flakes, and reply with a written reason when dismissing false positives.
+
+Keep an eye on changes to `main` and rebase when needed. If an overlapping PR makes this one obsolete, stop monitoring, report it to Carter, and ask before closing the PR unless closure was explicitly authorized.
+
+If a review bot leaves feedback you believe is not worth addressing, reply and resolve the comment. Format comments left on Carter's behalf as:
+
+```md
+[MODEL-SLUG] RESPONDING ON BEHALF OF CARTER
+-----
+
+[actual reply]
+```
+
+Screenshots and videos help as well. `gh` has no attach command, but the upload endpoint behind the browser's drag-and-drop takes a `gh auth token`:
+
+```bash
+FILE=shot.png
+REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+curl -s -X POST \
+  "https://uploads.github.com/user-attachments/assets?name=$(basename "$FILE")&content_type=image/png&repository_id=$(gh api "repos/$REPO" --jq .id)" \
+  -H "Authorization: Bearer $(gh auth token)" \
+  -H "Accept: application/json" \
+  --data-binary "@$FILE"
+```
+
+The JSON response carries a `github.com/user-attachments/assets/...` URL. Embed images as `![](url)`; post a video URL bare and GitHub renders a player. These URLs are scoped to the repository, so they work on private repos.
+
+The endpoint is undocumented and could break. If it returns an error, say so and post the finding without the image rather than dropping the reply.
+
+Do not let review feedback expand the PR beyond Carter's original goal. Address real shortcomings, but avoid scope creep.
+
+## Resolve the PR
+
+Take the PR the user named. Otherwise:
+
+```bash
+gh pr view --json number,url,state,headRefName,statusCheckRollup
+```
+
+Fall back to `gh pr list --head "$(git branch --show-current)" --state open --json number,url`. Ask only if that finds nothing or finds several.
+
+Check out the branch before touching anything: `gh pr checkout {NUMBER}`.
+
+## Each cycle
+
+1. Read state: `gh pr view {NUMBER} --json state,mergeable,reviewDecision,statusCheckRollup` and `gh pr checks {NUMBER}`. `gh pr checks` is the source of truth for checks — `gh run list` only covers GitHub Actions.
+2. Read comments newer than the latest push. Prefer unresolved review threads over flat comment lists; flat comments lose resolution state and inline context. Skip resolved threads, outdated threads, deploy-preview bots, and bare `@claude` / `@codex` mentions.
+3. Triage each item.
+4. Fix what deserves fixing, run the narrowest relevant checks, then commit and push. Never push code whose checks you just watched fail — report and stop.
+5. If nothing was actionable, wait and go again.
+
+## Triage
+
+**Humans** get trust by default. Assume the comment is correct; verify scope, then apply.
+
+**Bots** get skepticism by default. Read the cited code before believing the claim. Apply the fix when the issue is real and the fix improves the code. Reject false positives, style noise, and anything that fights the project's own patterns — never by silencing the bot with a no-op change. Reply in the format above and resolve the thread.
+
+**Failing checks** get read, not guessed at. Pull the failing job's log and name the cause before touching anything:
+
+- A **repository failure** is yours — the code, a test, a lockfile, a type. Fix it, rerun that check locally, push.
+- An **infrastructure flake** is not — a runner timeout, a registry 5xx, a cancelled job, a network reset, a failure that passes on rerun with no code change. Rerun it (`gh run rerun --failed`) rather than editing code to appease it. If the same job flakes twice, say so instead of a third rerun.
+
+Never edit code to make a flake go away; you will be debugging a green build that was never broken.
+
+Ask Carter when a comment is ambiguous, when two comments conflict, when the fix is destructive, or when it needs product judgment.
+
+## Stop when
+
+- The PR is approved and every required check is green — say so and offer to merge.
+- The PR merged or closed underneath you.
+- Checks have been green and comments quiet for roughly 20 minutes since the last push or fix.
+- An overlapping PR made this one obsolete.
+- Something needs Carter: a judgment call, a `gh` auth or rate-limit wall, a failure you cannot fix.
+
+Report each stop with what changed, what you rejected and why, and what is left.
+
+## Do not
+
+- Submit reviews, close the PR, or merge unless Carter asked. Dismissal replies and the threads they resolve are the writes you make on your own.
+- Force-push while review is in flight. Rebasing onto `main` is fine when the branch falls behind.
+- Count your own pushes as new activity — they are what the next cycle is measuring.
