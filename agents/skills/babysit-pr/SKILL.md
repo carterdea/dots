@@ -80,10 +80,31 @@ Never edit code to make a flake go away; you will be debugging a green build tha
 
 Ask Carter when a comment is ambiguous, when two comments conflict, when the fix is destructive, or when it needs product judgment.
 
+## Merging
+
+A Codex approval on the current head is Carter's standing go-ahead to merge, provided every required check is green. Confirm it is an approval of the code now on the branch, not an older push:
+
+```bash
+gh api repos/{OWNER}/{REPO}/pulls/{NUMBER}/reviews \
+  --jq '[.[] | select(.user.login=="chatgpt-codex-connector")] | last | {state, commit_id}'
+```
+
+The `state` must be `APPROVED` and `commit_id` must equal the PR head. A thumbs-up in prose is not an approval; neither is an approval of a commit you have since pushed past.
+
+Then merge with the best method the repository allows, in this order — squash, rebase, plain merge:
+
+```bash
+gh api repos/{OWNER}/{REPO} --jq '{squash:.allow_squash_merge, rebase:.allow_rebase_merge, merge:.allow_merge_commit}'
+gh pr merge {NUMBER} --squash   # or --rebase, or --merge
+```
+
+Squash first because these branches carry review-fix commits worth collapsing. If the merge is blocked — required reviewers, a protected branch, a failing required check — report the reason and stop rather than forcing a way through.
+
 ## Stop when
 
-- The PR is approved and every required check is green — say so and offer to merge.
-- The PR merged or closed underneath you.
+- The PR is merged, whether by you under a Codex approval or by someone else.
+- The PR is approved and green but you cannot merge — say why and hand back.
+- The PR was closed underneath you.
 - Checks have been green and comments quiet for roughly 20 minutes since the last push or fix.
 - An overlapping PR made this one obsolete.
 - Something needs Carter: a judgment call, a `gh` auth or rate-limit wall, a failure you cannot fix.
@@ -92,6 +113,6 @@ Report each stop with what changed, what you rejected and why, and what is left.
 
 ## Do not
 
-- Submit reviews, close the PR, or merge unless Carter asked. Replying on a thread and resolving it are the writes you make on your own.
+- Submit reviews or close the PR unless Carter asked. Replying on a thread, resolving it, and merging under a Codex approval are the writes you make on your own.
 - Force-push while review is in flight, except to publish a rebase onto `main` — that one takes `git push --force-with-lease`, never a bare `--force`.
 - Count your own pushes as new activity — they are what the next cycle is measuring.
