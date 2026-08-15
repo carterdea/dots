@@ -59,7 +59,7 @@ Check out the branch before touching anything: `gh pr checkout {NUMBER}`.
 ## Each cycle
 
 1. Read state: `gh pr view {NUMBER} --json state,mergeable,reviewDecision,statusCheckRollup` and `gh pr checks {NUMBER}`. `gh pr checks` is the source of truth for checks — `gh run list` only covers GitHub Actions.
-2. Read every unresolved, non-outdated review thread — not just the ones newer than the last push. A push marks a thread outdated only when it touched that thread's lines, so an older thread on an untouched file is still live feedback. Track the thread ids you have handled this session and skip those instead. Prefer threads over flat comment lists; flat comments lose resolution state and inline context. Skip deploy-preview bots and bare `@claude` / `@codex` mentions.
+2. Read every unresolved, non-outdated review thread — not just the ones newer than the last push. A push marks a thread outdated only when it touched that thread's lines, so an older thread on an untouched file is still live feedback. Track each handled thread by id *and* its newest comment, so a reply added to a thread you already handled reads as new feedback rather than as one you can skip. Prefer threads over flat comment lists; flat comments lose resolution state and inline context. Skip deploy-preview bots and bare `@claude` / `@codex` mentions.
 3. Triage each item.
 4. Fix what deserves fixing, run the narrowest relevant checks, then commit and push. Never push code whose checks you just watched fail — report and stop.
 5. Close every thread you acted on: reply with the commit sha that fixed it, or with the reason you dismissed it, then resolve. A review bot may be rate limited and never re-review, so a fixed thread left open stays open forever.
@@ -82,14 +82,25 @@ Ask Carter when a comment is ambiguous, when two comments conflict, when the fix
 
 ## Merging
 
-A Codex approval on the current head is Carter's standing go-ahead to merge, provided every required check is green. Confirm it is an approval of the code now on the branch, not an older push:
+A Codex approval of the current head is Carter's standing go-ahead to merge, provided every required check is green. Codex signals approval two ways, and either counts:
 
 ```bash
-gh api repos/{OWNER}/{REPO}/pulls/{NUMBER}/reviews \
-  --jq '[.[] | select(.user.login=="chatgpt-codex-connector")] | last | {state, commit_id}'
+HEAD_SHA=$(gh pr view {NUMBER} --json headRefOid -q .headRefOid)
+PUSHED_AT=$(gh api repos/{OWNER}/{REPO}/commits/"$HEAD_SHA" --jq .commit.committer.date)
+
+# a thumbs-up reaction on the PR description, left after the head commit
+gh api --paginate repos/{OWNER}/{REPO}/issues/{NUMBER}/reactions \
+  --jq "[.[] | select(.content==\"+1\" and (.user.login|startswith(\"chatgpt-codex\")) and .created_at > \"$PUSHED_AT\")] | length"
+
+# or a review whose state is APPROVED at that same commit
+gh api --paginate repos/{OWNER}/{REPO}/pulls/{NUMBER}/reviews \
+  --jq "[.[] | select(.user.login|startswith(\"chatgpt-codex\"))] | sort_by(.submitted_at) | last
+        | select(.state==\"APPROVED\" and .commit_id==\"$HEAD_SHA\")"
 ```
 
-The `state` must be `APPROVED` and `commit_id` must equal the PR head. A thumbs-up in prose is not an approval; neither is an approval of a commit you have since pushed past.
+In practice the reaction is the usual signal — Codex posts its findings as `COMMENTED` reviews and rarely submits a formal approval.
+
+Both checks are pinned to the head commit on purpose. A reaction carries no commit, so date it against the head commit and ignore anything older; the monitor pushes its own fixes between reviews, and an approval of code you have since pushed past approves nothing. Paginate and sort rather than taking the last element of the first page, since a busy PR runs past thirty reviews. A thumbs-up written in prose is not a signal either way.
 
 Then merge with the best method the repository allows, in this order — squash, rebase, plain merge:
 
