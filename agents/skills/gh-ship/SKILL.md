@@ -1,6 +1,6 @@
 ---
 name: gh-ship
-description: Commit, push, and file a concise pull request in one step. Use when the user asks to ship, file, open, or create a PR.
+description: Commit, push, and file a concise pull request in one step, or file one for a branch already committed. Use when the user asks to ship or open a PR; `babysit-pr` takes it from there.
 user-invocable: true
 ---
 
@@ -37,7 +37,7 @@ Read if present: `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`.
 
 ## Filing
 
-Before filing, check whether a PR for this branch already exists. Review the diff locally against `origin/main` to make sure its contents match the goal.
+Before filing, check whether a PR for this branch already exists. Review the diff locally against `origin/$BASE` to make sure its contents match the goal.
 
 PR titles usually become commit messages, so follow the repository's title conventions. Look at recently merged PRs and Git history for examples. Prefer a concise, human-readable title that explains why the change matters:
 
