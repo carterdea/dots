@@ -59,7 +59,7 @@ Skip deploy-preview bots and bare `@claude` / `@codex` mentions. Skip reviews st
 
 ## Triage
 
-**Humans** get trust by default. Assume the comment is correct; verify scope, then apply. Their threads are theirs: fix the code and say so in chat, but do not reply on the thread or resolve it unless Carter confirms the wording. The exception is a thread of Carter's own. Never touch a thread other people have joined — on GitHub it must stay obvious who said what.
+**Trusted humans** — the ones step 3 names — get trust by default. Assume the comment is correct; verify scope, then apply. Their threads are theirs: fix the code and say so in chat, but do not reply on the thread or resolve it unless Carter confirms the wording. The exception is a thread of Carter's own. Never touch a thread other people have joined — on GitHub it must stay obvious who said what.
 
 **Bots** get skepticism by default. They are helpful and they are not always right. Read the cited code before believing the claim. Apply the fix when the issue is real and the fix improves the code. Reject false positives, style noise, and anything that fights the project's own patterns — never by silencing the bot with a no-op change.
 
@@ -82,22 +82,27 @@ Ask Carter when a comment is ambiguous, when two comments conflict, when the fix
 A Codex approval of the current head is Carter's standing go-ahead to merge, provided every required check is green. Codex signals approval two ways, and either counts:
 
 ```bash
+CODEX='chatgpt-codex-connector[bot]'
 HEAD_SHA=$(gh pr view {NUMBER} --json headRefOid -q .headRefOid)
-PUSHED_AT=$(gh api repos/{OWNER}/{REPO}/commits/"$HEAD_SHA" --jq .commit.committer.date)
 
-# a thumbs-up reaction on the PR description, left after the head commit
+# when the commit reached GitHub, falling back to its author date on a repo with no CI
+PUSHED_AT=$(gh api repos/{OWNER}/{REPO}/commits/"$HEAD_SHA"/check-suites \
+  --jq '[.check_suites[].created_at] | min // empty')
+PUSHED_AT=${PUSHED_AT:-$(gh api repos/{OWNER}/{REPO}/commits/"$HEAD_SHA" --jq .commit.committer.date)}
+
+# a thumbs-up reaction on the PR description, left after the head commit was pushed
 gh api --paginate repos/{OWNER}/{REPO}/issues/{NUMBER}/reactions \
-  --jq "[.[] | select(.content==\"+1\" and (.user.login|startswith(\"chatgpt-codex\")) and .created_at > \"$PUSHED_AT\")] | length"
+  --jq "[.[] | select(.content==\"+1\" and .user.login==\"$CODEX\" and .user.type==\"Bot\" and .created_at > \"$PUSHED_AT\")] | length"
 
 # or a review whose state is APPROVED at that same commit
 gh api --paginate repos/{OWNER}/{REPO}/pulls/{NUMBER}/reviews \
-  --jq "[.[] | select(.user.login|startswith(\"chatgpt-codex\"))] | sort_by(.submitted_at) | last
+  --jq "[.[] | select(.user.login==\"$CODEX\" and .user.type==\"Bot\")] | sort_by(.submitted_at) | last
         | select(.state==\"APPROVED\" and .commit_id==\"$HEAD_SHA\")"
 ```
 
 In practice the reaction is the usual signal — Codex posts its findings as `COMMENTED` reviews and rarely submits a formal approval.
 
-Both checks are pinned to the head commit on purpose. A reaction carries no commit, so date it against the head commit and ignore anything older; the monitor pushes its own fixes between reviews, and an approval of code you have since pushed past approves nothing. Paginate and sort rather than taking the last element of the first page, since a busy PR runs past thirty reviews. A thumbs-up written in prose is not a signal either way.
+Both checks are pinned to the head commit on purpose. A reaction carries no commit, so date it against when that commit reached GitHub and ignore anything older; the monitor pushes its own fixes between reviews, and an approval of code you have since pushed past approves nothing. Take that time from the check suites rather than the commit's own date — a commit written an hour before it was pushed would count a reaction left on the head it replaced. Match the login exactly and require a `Bot` account, since anyone can register a login that merely starts with `chatgpt-codex`. Paginate and sort rather than taking the last element of the first page, since a busy PR runs past thirty reviews. A thumbs-up written in prose is not a signal either way.
 
 Then merge with the best method the repository allows, in this order — squash, rebase, plain merge:
 

@@ -8,6 +8,8 @@ user-invocable: true
 
 Commit, push, and file a concise PR in one step.
 
+Read if present: `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`. Their branch naming, commit conventions, and required checks govern every step below, so read them before the first write, not after the push.
+
 ## Steps
 
 1. Safety check
@@ -18,7 +20,9 @@ git branch --show-current
 git status --porcelain
 git diff --stat
 BASE=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)
+git fetch origin "$BASE"
 git log --oneline "origin/$BASE..HEAD"
+- Fetch first or `origin/$BASE` may be days stale, which reads base commits as branch work
 - If the tree is clean but the branch has commits ahead of the base, skip to step 4 — this is the "just open the PR" case
 - If there are no changes and no commits ahead, stop
 
@@ -32,8 +36,6 @@ git commit -m "type(scope): short description"
 git push -u origin $(git branch --show-current)
 
 5. File the PR — see below. If one already exists, report its URL instead.
-
-Read if present: `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`.
 
 ## Filing
 
