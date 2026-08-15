@@ -10,7 +10,7 @@ All the repos we work in have various AI review bots. They're helpful, even if t
 
 If your harness offers tools to monitor a PR, use them so you can respond when comments arrive. Otherwise, poll the PR for new comments and checks.
 
-Only act on checks and comments newer than the latest push. Verify every bot finding against the source before changing code. Fix real findings and CI failures, distinguish repository failures from infrastructure flakes, and reply with a written reason when dismissing false positives.
+Only act on live feedback: checks from the latest push, and review threads still unresolved and not outdated. Verify every bot finding against the source before changing code. Fix real findings and CI failures, distinguish repository failures from infrastructure flakes, and reply with a written reason when dismissing false positives.
 
 Keep an eye on changes to `main` and rebase when needed. If an overlapping PR makes this one obsolete, stop monitoring, report it to Carter, and ask before closing the PR unless closure was explicitly authorized.
 
@@ -62,7 +62,8 @@ Check out the branch before touching anything: `gh pr checkout {NUMBER}`.
 2. Read every unresolved, non-outdated review thread — not just the ones newer than the last push. A push marks a thread outdated only when it touched that thread's lines, so an older thread on an untouched file is still live feedback. Track the thread ids you have handled this session and skip those instead. Prefer threads over flat comment lists; flat comments lose resolution state and inline context. Skip deploy-preview bots and bare `@claude` / `@codex` mentions.
 3. Triage each item.
 4. Fix what deserves fixing, run the narrowest relevant checks, then commit and push. Never push code whose checks you just watched fail — report and stop.
-5. If nothing was actionable, wait and go again.
+5. Close every thread you acted on: reply with the commit sha that fixed it, or with the reason you dismissed it, then resolve. A review bot may be rate limited and never re-review, so a fixed thread left open stays open forever.
+6. If nothing was actionable, wait and go again.
 
 ## Triage
 
@@ -91,6 +92,6 @@ Report each stop with what changed, what you rejected and why, and what is left.
 
 ## Do not
 
-- Submit reviews, close the PR, or merge unless Carter asked. Dismissal replies and the threads they resolve are the writes you make on your own.
+- Submit reviews, close the PR, or merge unless Carter asked. Replying on a thread and resolving it are the writes you make on your own.
 - Force-push while review is in flight, except to publish a rebase onto `main` — that one takes `git push --force-with-lease`, never a bare `--force`.
 - Count your own pushes as new activity — they are what the next cycle is measuring.
