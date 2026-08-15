@@ -134,7 +134,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/dogfood` — Systematic bug hunt with structured repro evidence
 - `/merge-conflicts` — Rebase onto main, resolve conflicts, force-push
 - `/simple-html-artifact` — Build or refine single-file HTML artifacts
-- `/html-communication` — HTML write-up of work, written locally and reported as a link
+- `/html-communication` — HTML write-up of work, reported as a local path or a hosted link
 
 ### GitHub Workflow
 

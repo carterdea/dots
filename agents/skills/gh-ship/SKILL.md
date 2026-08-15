@@ -52,4 +52,10 @@ BAD
 GOOD
 > ✅ My "new worktree" default was ignored when starting new threads on existing worktrees. Super unintuitive. Now your preferences always apply.
 
-Open a real PR rather than a draft so review bots run. If Carter also asked to babysit it, continue with the `babysit-pr` skill.
+Open a real PR rather than a draft so review bots run:
+
+```bash
+gh pr create --title "type(scope): why the change matters" --body "..."
+```
+
+If Carter also asked to babysit it, continue with the `babysit-pr` skill.

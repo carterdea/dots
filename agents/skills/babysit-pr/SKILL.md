@@ -27,9 +27,12 @@ Screenshots and videos help as well. `gh` has no attach command, but the upload 
 
 ```bash
 FILE=shot.png
-REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-curl -s -X POST \
-  "https://uploads.github.com/user-attachments/assets?name=$(basename "$FILE")&content_type=image/png&repository_id=$(gh api "repos/$REPO" --jq .id)" \
+NAME=$(printf %s "$(basename "$FILE")" | jq -sRr @uri)
+MIME=$(file --mime-type -b "$FILE")
+REPO_ID=$(gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)" --jq .id)
+
+curl -sS --fail-with-body -X POST \
+  "https://uploads.github.com/user-attachments/assets?name=$NAME&content_type=$MIME&repository_id=$REPO_ID" \
   -H "Authorization: Bearer $(gh auth token)" \
   -H "Accept: application/json" \
   --data-binary "@$FILE"
@@ -70,7 +73,7 @@ Check out the branch before touching anything: `gh pr checkout {NUMBER}`.
 **Failing checks** get read, not guessed at. Pull the failing job's log and name the cause before touching anything:
 
 - A **repository failure** is yours — the code, a test, a lockfile, a type. Fix it, rerun that check locally, push.
-- An **infrastructure flake** is not — a runner timeout, a registry 5xx, a cancelled job, a network reset, a failure that passes on rerun with no code change. Rerun it (`gh run rerun --failed`) rather than editing code to appease it. If the same job flakes twice, say so instead of a third rerun.
+- An **infrastructure flake** is not — a runner timeout, a registry 5xx, a cancelled job, a network reset, a failure that passes on rerun with no code change. Rerun it (`gh run rerun <run-id> --failed`, taking the id from `gh run list`; a bare `gh run rerun` opens an interactive picker and hangs) rather than editing code to appease it. For checks that are not GitHub Actions, follow the provider link. If the same job flakes twice, say so instead of a third rerun.
 
 Never edit code to make a flake go away; you will be debugging a green build that was never broken.
 

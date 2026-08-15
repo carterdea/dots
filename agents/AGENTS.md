@@ -21,7 +21,7 @@ The work is making complex things simple. Reduce complexity while solving the pr
 - Write TypeScript in ways that Matt Pocock and Theo would be proud of
 
 ## Package managers
-- Default to pnpm; otherwise use whatever the project already uses
+- Default to pnpm, or bun if the project already uses it
 - Never use npm or yarn
 
 ## Tech stack preferences
@@ -68,10 +68,10 @@ The work is making complex things simple. Reduce complexity while solving the pr
 
 ## UI quality
 - When end-to-end testing a website or app, be picky about the UI and aim for pixel polish
-- If something clearly looks off, try to fix it along the way even when it is not directly related to the current task
+- If something clearly looks off, fix it along the way when the fix is low-risk. Route unrelated or non-trivial UI changes through Visual and design work below
 
 ## Visual and design work
-- Do not edit real components first. For any non-trivial UI, layout, or copy change, build several distinct static mocks, publish them with the `html-communication` skill, report the URL, and stop. Wait for a pick before implementing
+- Do not edit real components first. For any non-trivial UI, layout, or copy change, build several distinct static mocks, publish them with the `html-communication` skill, report the path or link, and stop. Wait for a pick before implementing
 - Standing constraints: information-dense, no decorative card/pill chrome, no light-gray subtitle lines above sections. Minimal copy. No em dashes
 - Do not impose a palette. Default to a plain light document and match the client's brand, type, and color when the work has one
 - Avoid continuously repainting CSS animations (pulse, shimmer, blur, spinners); they peg the GPU on high-refresh displays
