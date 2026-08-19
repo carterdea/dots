@@ -54,13 +54,9 @@ type State =
 
 The same smell hides in optional-everything interfaces — `{ id?: string; items?: Item[]; error?: string }` where every field is `?` because one type is trying to describe every lifecycle stage at once. Model each stage as its own union variant; a field should be optional only when it's genuinely optional in every state, not as a hedge against "sometimes it isn't there yet".
 
-Pair every union with an exhaustiveness check so adding a variant becomes a compile error, not a silent fallthrough:
+Pair every union with an exhaustiveness check so adding a variant becomes a compile error, not a silent fallthrough. Assign the narrowed value to a `never` local in the default arm; no helper needed:
 
 ```ts
-function assertNever(x: never): never {
-  throw new Error(`Unhandled: ${JSON.stringify(x)}`);
-}
-
 function render(state: State) {
   switch (state.status) {
     case "loading":
@@ -69,11 +65,57 @@ function render(state: State) {
       return profile(state.user);
     case "error":
       return banner(state.error);
-    default:
-      return assertNever(state); // new variant -> type error here
+    default: {
+      const _exhaustive: never = state; // new variant -> type error here
+      return _exhaustive;
+    }
   }
 }
 ```
+
+In a void switch, `void _exhaustive;` instead of returning it.
+
+### Constructive modeling
+
+Build the type from parts that are all legal instead of restricting a loose type with runtime checks. TypeScript has no refinement types (no `arr.length > 0` at the type level); you don't need them.
+
+```ts
+type NonEmpty<T> = [T, ...T[]];
+
+// Don't: T[] plus a length check every caller must repeat
+function pickWinner(entries: string[]): string {
+  if (entries.length === 0) throw new Error("no entries");
+  return entries[Math.floor(Math.random() * entries.length)];
+}
+
+// Do: an empty value of the type can't exist
+function pickWinner(entries: NonEmpty<string>): string {
+  return entries[Math.floor(Math.random() * entries.length)];
+}
+
+// Where a plain T[] arrives, narrow once; the fact then travels in the type
+const isNonEmpty = <T>(arr: T[]): arr is NonEmpty<T> => arr.length > 0;
+```
+
+Same move elsewhere: even-length list as `[T, T][]`; a time range as `{ start: Date; durationMs: number }` so a negative range can't be written, instead of `{ start; end }` with a comment holding the invariant. Pick the representation that makes the bad state unconstructable, then expose the reading you need on top (`pairs.flat()`, a `rangeEnd()` helper).
+
+### Simplest total type
+
+Don't strengthen everything. Keep `T[]` while every operation on it stays total (`xs.reduce((a, b) => a + b, 0)` is fine on `[]`). Strengthen only when the loose type forces a lie at a use site. The tells are `!`, `arr[0] as T`, and a "should never happen" throw:
+
+```ts
+// Don't: partiality smuggled past the compiler
+function newestSession(sessions: Session[]): Session {
+  return sessions.at(0)!;
+}
+
+// Do: strengthen the input; the assertion disappears
+function newestSession(sessions: NonEmpty<Session>): Session {
+  return sessions[0];
+}
+```
+
+Weakening the result to `Session | undefined` is the other total signature. Either way the empty case lands at the call site, the one place that knows what empty means.
 
 ## Let the types flow end-to-end
 
@@ -104,7 +146,7 @@ sendEmail("Welcome!", "Hi there");
 sendEmail({ to: "alice@x.com", body: "Hi there" });
 ```
 
-Positional is fine for one or two distinct, well-typed params. Switch to an object once you have three or more, or any same-typed neighbors that could be swapped silently.
+Positional is fine for one or two distinct, well-typed params. Switch to an object once you have three or more, or any same-typed neighbors that could be swapped silently. Skip on hot paths (per-frame render, tokenizers, parsers, tight loops) where the allocation cost matters.
 
 ## Prefer `satisfies`, `unknown`, and `as const`
 
@@ -140,9 +182,19 @@ Suppressions are the checker turned off with extra steps. Treat every one as a d
 - **`@ts-nocheck` — never.** It unchecks the whole file.
 - **`@ts-ignore` — never.** It suppresses the next line forever, even after the underlying error is fixed. If suppression is truly unavoidable (usually a third-party types bug), use `@ts-expect-error` with a reason comment — it becomes an error itself once stale.
 - **`as any` and `as unknown as T` double casts** launder a value past the checker with zero verification. Narrow, validate, or fix the source type instead.
+- **Bare `as T`** is a runtime crash waiting. Cast only after validation has earned it (the `return data as User` at the end of a parse function).
 - **Non-null assertions (`!`)** are unchecked promises about runtime state. Prefer narrowing, a thrown error with context, or fixing the type so the value can't be null there.
 
 Hand-rolled type predicates deserve the same suspicion. A `function isFoo(x): x is Foo` is an `as` cast wearing a function costume — the compiler trusts the body blindly, so a wrong or stale guard is a silent unsafe cast. `isRecord`/`isObject`/`isDefined` helpers sprinkled through internal code mean the boundary type was never fixed; parse and validate once at the boundary (with the project's schema validator) and let downstream code trust the type. Reserve `is` predicates for the rare case narrowing genuinely can't be expressed inline via discriminants, `in`, `typeof`, or `instanceof` — and keep the body trivially verifiable.
+
+When narrowing, prefer in this order: discriminant `switch`/`if` > `in` operator > `typeof`/`instanceof` > user-defined type guard > `as`.
+
+When refactoring an `as` out of existing code, find out why TypeScript can't infer:
+
+- Missing discriminant: add one, switch to a discriminated union.
+- Overly wide source type (e.g. `Record<string, unknown>`): narrow it.
+- Untyped boundary: add a parse function or schema.
+- Genuinely inexpressible: use a branded type or `satisfies`.
 
 Enforce mechanically where the project lints: `@typescript-eslint/ban-ts-comment` (with `ts-expect-error: allow-with-description`), `no-explicit-any`, and `no-non-null-assertion`.
 
@@ -208,4 +260,4 @@ Real services are slower, so don't make every test pay for them: real services a
 
 ## The common TypeScript red flags
 
-Prioritize fixing non-strict tsconfig, `any` at boundaries, `as` casts instead of narrowing, `as unknown as` double casts, `@ts-ignore`/`@ts-nocheck`/undocumented `@ts-expect-error`, non-null assertions, hand-rolled `isRecord`-style type guards over unparsed boundaries, `Function`/`{}` as types, optional-everything interfaces, flag-bag state types, `enum`, hand-duplicated types that drift from the source of truth, same-typed positional args, thrown strings, `catch` blocks that assume `Error`, floating promises, missing exhaustiveness checks, and mock-heavy tests for things you could run for real.
+Prioritize fixing non-strict tsconfig, `any` at boundaries, `as` casts instead of narrowing, `as unknown as` double casts, `@ts-ignore`/`@ts-nocheck`/undocumented `@ts-expect-error`, non-null assertions and "should never happen" throws that a `NonEmpty`-style input type would remove, hand-rolled `isRecord`-style type guards over unparsed boundaries, `Function`/`{}` as types, optional-everything interfaces, flag-bag state types, `enum`, hand-duplicated types that drift from the source of truth, same-typed positional args, thrown strings, `catch` blocks that assume `Error`, floating promises, missing exhaustiveness checks, and mock-heavy tests for things you could run for real.
