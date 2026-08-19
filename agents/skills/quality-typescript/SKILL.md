@@ -54,7 +54,7 @@ type State =
 
 The same smell hides in optional-everything interfaces — `{ id?: string; items?: Item[]; error?: string }` where every field is `?` because one type is trying to describe every lifecycle stage at once. Model each stage as its own union variant; a field should be optional only when it's genuinely optional in every state, not as a hedge against "sometimes it isn't there yet".
 
-Pair every union with an exhaustiveness check so adding a variant becomes a compile error, not a silent fallthrough. Assign the narrowed value to a `never` local in the default arm; no helper needed:
+Pair every union with an exhaustiveness check so adding a variant becomes a compile error, not a silent fallthrough. Assign the narrowed value to a `never` local in the default arm and throw; no helper needed, and the throw still catches a bad discriminant that slipped past a boundary at runtime:
 
 ```ts
 function render(state: State) {
@@ -67,13 +67,11 @@ function render(state: State) {
       return banner(state.error);
     default: {
       const _exhaustive: never = state; // new variant -> type error here
-      return _exhaustive;
+      throw new Error(`Unhandled state: ${JSON.stringify(_exhaustive)}`);
     }
   }
 }
 ```
-
-In a void switch, `void _exhaustive;` instead of returning it.
 
 ### Constructive modeling
 
@@ -82,22 +80,22 @@ Build the type from parts that are all legal instead of restricting a loose type
 ```ts
 type NonEmpty<T> = [T, ...T[]];
 
-// Don't: T[] plus a length check every caller must repeat
-function pickWinner(entries: string[]): string {
-  if (entries.length === 0) throw new Error("no entries");
-  return entries[Math.floor(Math.random() * entries.length)];
+// Don't: T[] plus a length check every caller must repeat; seedless reduce() throws on []
+function heaviest(items: Item[]): Item {
+  if (items.length === 0) throw new Error("no items");
+  return items.reduce((a, b) => (a.weight > b.weight ? a : b));
 }
 
-// Do: an empty value of the type can't exist
-function pickWinner(entries: NonEmpty<string>): string {
-  return entries[Math.floor(Math.random() * entries.length)];
+// Do: an empty value of the type can't exist, so seedless reduce() is total
+function heaviest(items: NonEmpty<Item>): Item {
+  return items.reduce((a, b) => (a.weight > b.weight ? a : b));
 }
 
 // Where a plain T[] arrives, narrow once; the fact then travels in the type
 const isNonEmpty = <T>(arr: T[]): arr is NonEmpty<T> => arr.length > 0;
 ```
 
-Same move elsewhere: even-length list as `[T, T][]`; a time range as `{ start: Date; durationMs: number }` so a negative range can't be written, instead of `{ start; end }` with a comment holding the invariant. Pick the representation that makes the bad state unconstructable, then expose the reading you need on top (`pairs.flat()`, a `rangeEnd()` helper).
+Same move elsewhere: even-length list as `[T, T][]`; a time range as `{ start: Date; durationMs: number }` instead of `{ start; end }` with a comment holding `start <= end`. The cross-field invariant disappears; if a raw negative number could still sneak in, brand `durationMs` as a validated nonnegative `Duration` rather than re-adding the check everywhere. Pick the representation that makes the bad state unconstructable, then expose the reading you need on top (`pairs.flat()`, a `rangeEnd()` helper).
 
 ### Simplest total type
 
