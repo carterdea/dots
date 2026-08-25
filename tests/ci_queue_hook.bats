@@ -243,3 +243,45 @@ EOF
 @test "typecheck plus an unrecognized command stays on the heavy lane" {
     [ "$(classify 'bun run typecheck && bun run integration')" = "QUEUE long-check" ]
 }
+
+# --- third review round ---
+
+@test "pytest --ignore path does not count as file scope" {
+    [ "$(classify 'pytest --ignore tests/flaky-test.py')" = "QUEUE long-check" ]
+}
+
+@test "heredoc fed to bash -s still counts" {
+    cmd="$(printf "bash -s <<'EOF'\nbun run test\nEOF")"
+    [ "$(classify "$cmd")" = "QUEUE long-check" ]
+}
+
+@test "heredoc fed to an absolute-path shell still counts" {
+    cmd="$(printf "/bin/bash <<'EOF'\nbun run test\nEOF")"
+    [ "$(classify "$cmd")" = "QUEUE long-check" ]
+}
+
+@test "backslash-quoted heredoc delimiter still terminates stripping" {
+    cmd="$(printf 'cat <<\\EOF\npytest notes\nEOF\nbun run test')"
+    [ "$(classify "$cmd")" = "QUEUE long-check" ]
+}
+
+@test "substitution inside an unquoted heredoc body queues" {
+    cmd="$(printf '%s\n' 'cat >/dev/null <<EOF' '$(bun run test)' 'EOF')"
+    [ "$(classify "$cmd")" = "QUEUE long-check" ]
+}
+
+@test "awk system() call is not read-only" {
+    [ "$(classify 'awk '"'"'BEGIN{system("bun run test")}'"'"'')" = "QUEUE long-check" ]
+}
+
+@test "searching for system( stays read-only" {
+    [ "$(classify 'rg -n "system\(" src')" = "SKIP read-only-tool" ]
+}
+
+@test "bun run lint routes to the check lane" {
+    [ "$(classify 'bun run lint')" = "QUEUE check-only" ]
+}
+
+@test "full-repo ruff check routes to the check lane" {
+    [ "$(classify 'uv run ruff check .')" = "QUEUE check-only" ]
+}

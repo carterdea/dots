@@ -68,6 +68,7 @@ split_segments() {
 consumes_value() {
   case "$1" in
     --config | -c | --project | -p | -r | --require) return 0 ;;
+    --ignore | --ignore-glob | --deselect) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -103,7 +104,10 @@ strip_heredocs() {
     body {
       line = $0
       sub(/^\t+/, "", line)
-      if (line == tag) body = 0
+      if (line == tag) { body = 0; next }
+      # An unquoted delimiter means the shell expands the body, so a
+      # substitution in it executes; keep such lines visible.
+      if (expand && (index($0, "$(") > 0 || index($0, "`") > 0)) print
       next
     }
     {
@@ -115,11 +119,16 @@ strip_heredocs() {
       if (match(detect, /<<-?[[:space:]]*[^<[:space:]]+/)) {
         # A heredoc piped into a shell runs its body as commands, so the
         # body must stay visible to classification, not be stripped as data.
-        if (detect ~ /(^|[[:space:]]|[|;&(])(env +)?(ba|z|da)?sh *<</) next
-        tag = substr(detect, RSTART, RLENGTH)
-        sub(/^<<-?[[:space:]]*/, "", tag)
-        gsub(/["\047]/, "", tag)
-        if (tag != "") body = 1
+        if (detect ~ /(^|[[:space:]]|[|;&(])(env +)?([^[:space:]]*\/)?(ba|z|da)?sh( +-[^[:space:]]+)* *<</) next
+        raw = substr(detect, RSTART, RLENGTH)
+        sub(/^<<-?[[:space:]]*/, "", raw)
+        tag = raw
+        gsub(/["\047\\]/, "", tag)
+        if (tag != "") {
+          body = 1
+          # Quoting on the delimiter is what disables expansion in the body.
+          expand = (tag == raw)
+        }
       }
     }
   '
@@ -144,7 +153,11 @@ read_only_seg() {
   ((i >= ${#tok[@]})) && return 0
   first="${tok[i]##*/}"
   case "$first" in
-    sed|awk|grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|find|echo|printf|cd|pwd|gh) return 0 ;;
+    # awk can execute subprocesses from its program text.
+    awk)
+      [[ "$seg" =~ system[[:space:]]*\( ]] && return 1
+      return 0 ;;
+    sed|grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|find|echo|printf|cd|pwd|gh) return 0 ;;
     git)
       case "${tok[i + 1]:-}" in
         log|diff|show|status|branch|remote|ls-remote|ls-files|rev-parse|fetch|blame|describe) return 0 ;;
@@ -197,7 +210,8 @@ decide() {
     fi
     # Typecheck and lint only: CPU-bound, no ports, DBs, or fixtures — they
     # get their own lane so a 30s tsc never waits behind a Playwright run.
-    if [[ "$seg" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright|biome[[:space:]]+check([[:space:]]+-[^[:space:]]+)*[[:space:]]+\.([[:space:]]|$)) ]]; then
+    if [[ "$seg" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright|run[[:space:]]+lint(:[^[:space:]]*)?([[:space:]]|$)) ]] ||
+      [[ "$seg" =~ (biome[[:space:]]+check|(^|[[:space:]])eslint|ruff[[:space:]]+check)([[:space:]]+-[^[:space:]]+)*[[:space:]]+\.([[:space:]]|$) ]]; then
       checkonly=1
       continue
     fi
