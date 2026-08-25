@@ -51,7 +51,60 @@ file_scoped() {
   return 1
 }
 
+# Everything between a heredoc operator and its terminator is data being
+# written, not a command being run; classification must not see it, or a
+# script whose text mentions a suite queues the cat that writes it.
+strip_heredocs() {
+  awk '
+    body {
+      line = $0
+      sub(/^\t+/, "", line)
+      if (line == tag) body = 0
+      next
+    }
+    {
+      print
+      if (match($0, /<<-?[[:space:]]*[^<[:space:]]+/)) {
+        tag = substr($0, RSTART, RLENGTH)
+        sub(/^<<-?[[:space:]]*/, "", tag)
+        gsub(/[^A-Za-z0-9_]/, "", tag)
+        if (tag != "") body = 1
+      }
+    }
+  '
+}
+
+# True when every segment of the command starts with a tool that only reads
+# or reports. Their arguments routinely name suites — a grep FOR "pytest",
+# a PR title mentioning playwright — and must not queue. Any segment led by
+# something else falls through to normal classification.
+read_only_cmd() {
+  local seg first i
+  local -a tok
+  while IFS= read -r seg; do
+    read -ra tok <<<"$seg"
+    i=0
+    while ((i < ${#tok[@]})) && [[ "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; do
+      i=$((i + 1))
+    done
+    ((i >= ${#tok[@]})) && continue
+    first="${tok[i]##*/}"
+    case "$first" in
+      sed|awk|grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|find|echo|printf|cd|pwd|gh) ;;
+      git)
+        case "${tok[i + 1]:-}" in
+          log|diff|show|status|branch|remote|ls-remote|ls-files|rev-parse|fetch|blame|describe) ;;
+          *) return 1 ;;
+        esac ;;
+      *) return 1 ;;
+    esac
+  done < <(printf '%s\n' "$1" | tr '|;&' '\n')
+  return 0
+}
+
 decide() {
+  local cmd="$1"
+
   # 1. Never queue anything that does not exit on its own. A watch or server
   #    holding the machine-wide lock would block every project until timeout.
   if [[ "$cmd" =~ (--watch|[[:space:]]-w([[:space:]]|$)|--ui|interactive) ]] ||
@@ -61,6 +114,9 @@ decide() {
 
   # 2. Already queued, or is the queue itself.
   if [[ "$cmd" =~ (ci-lock|lefthook) ]]; then echo "SKIP already-queued"; return; fi
+
+  # 2.5. Every segment starts with a read-only tool — nothing heavy can run.
+  if read_only_cmd "$cmd"; then echo "SKIP read-only-tool"; return; fi
 
   # 3. Scoped to specific files or a name filter — that is a quick check.
   if [[ "$cmd" =~ (-k[[:space:]]|-t[[:space:]]|--testNamePattern|--grep) ]]; then
@@ -84,7 +140,7 @@ decide() {
   echo "SKIP not-heavy"
 }
 
-verdict="$(decide)"
+verdict="$(decide "$(strip_heredocs <<<"$cmd")")"
 action="${verdict%% *}"
 reason="${verdict#* }"
 

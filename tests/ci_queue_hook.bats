@@ -81,6 +81,38 @@ enforce() {
     [ "$(classify 'bun test -t "adds tax to total"')" = "SKIP name-filtered" ]
 }
 
+# --- read-only commands mentioning heavy words must not queue ---
+
+@test "sed printing a verify script is not queued" {
+    [ "$(classify "sed -n '1,240p' scripts/verify-quick.sh")" = "SKIP read-only-tool" ]
+}
+
+@test "rg searching for verify:quick is not queued" {
+    [ "$(classify "rg -n verify:quick package.json scripts")" = "SKIP read-only-tool" ]
+}
+
+@test "gh pr create with suite words in the title is not queued" {
+    [ "$(classify "gh pr create --title 'chore(mobile): cap playwright workers'")" = "SKIP read-only-tool" ]
+}
+
+@test "piped read-only chain is not queued" {
+    [ "$(classify 'git diff --stat | grep test')" = "SKIP read-only-tool" ]
+}
+
+@test "cat heredoc writing a test file is not queued" {
+    cmd="$(printf "cat > zz-probe.test.ts <<'EOF'\nuv run pytest -q\nEOF")"
+    [ "$(classify "$cmd")" = "SKIP read-only-tool" ]
+}
+
+@test "heredoc body does not classify the command that writes it" {
+    cmd="$(printf "python3 - <<'PY'\nprint('bun run test and pytest')\nPY")"
+    [ "$(classify "$cmd")" = "SKIP not-heavy" ]
+}
+
+@test "cd into a dir then running the suite still queues" {
+    [ "$(classify 'cd app && bun run test')" = "QUEUE long-check" ]
+}
+
 # --- enforce mode ---
 
 @test "enforce mode wraps a full suite in ci-lock" {
