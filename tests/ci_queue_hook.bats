@@ -7,6 +7,12 @@ setup() {
     DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" && pwd )"
     HOOK="$(dirname "$DIR")/bin/ci-queue-hook"
     LOG="$BATS_TEST_TMPDIR/queue-hook.log"
+    # The hook resolves ci-lock at $HOME/.local/bin/ci-lock; point HOME at a
+    # tmpdir holding the repo's copy so enforce-mode tests do not depend on
+    # the developer's dotfiles being installed.
+    FAKE_HOME="$BATS_TEST_TMPDIR/home"
+    mkdir -p "$FAKE_HOME/.local/bin"
+    ln -sf "$(dirname "$DIR")/bin/ci-lock" "$FAKE_HOME/.local/bin/ci-lock"
 }
 
 # Prints "ACTION REASON" for a command classified in dry-run mode.
@@ -20,7 +26,7 @@ classify() {
 # Prints the hook's stdout (the rewrite JSON, if any) in enforce mode.
 enforce() {
     jq -cn --arg c "$1" '{tool_input:{command:$c}}' |
-        CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=1 "$HOOK"
+        HOME="$FAKE_HOME" CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=1 "$HOOK"
 }
 
 # --- single-file tests must stay out of the queue, kebab-case included ---
@@ -150,4 +156,63 @@ enforce() {
 @test "enforce mode leaves a file-scoped test untouched" {
     out="$(enforce 'bun run test -- server/routers/migration-batch.test.ts')"
     [ -z "$out" ]
+}
+
+# --- review fixes: flags that do not consume the next argument ---
+
+@test "single-file pytest behind a quiet flag is file-scoped" {
+    [ "$(classify 'pytest -q tests/test_one.py')" = "SKIP file-scoped" ]
+}
+
+@test "single-file jest behind runInBand is file-scoped" {
+    [ "$(classify 'jest --runInBand tests/foo.test.js')" = "SKIP file-scoped" ]
+}
+
+# --- review fixes: nested execution is not read-only ---
+
+@test "command substitution running a suite queues" {
+    [ "$(classify 'echo "$(bun run test)"')" = "QUEUE long-check" ]
+}
+
+@test "find -exec running a suite queues" {
+    [ "$(classify 'find . -exec bun run test \;')" = "QUEUE long-check" ]
+}
+
+# --- review fixes: a file in one segment does not scope another ---
+
+@test "file in one segment does not excuse a suite in the next" {
+    [ "$(classify 'cat src/foo-bar.ts && bun run test')" = "QUEUE long-check" ]
+}
+
+# --- review fixes: separators inside quotes do not split segments ---
+
+@test "quoted semicolon in a PR title stays read-only" {
+    [ "$(classify "gh pr create --title 'fix playwright; cap workers'")" = "SKIP read-only-tool" ]
+}
+
+@test "quoted pipe in an rg pattern stays read-only" {
+    [ "$(classify "rg -n 'playwright|cypress' README.md")" = "SKIP read-only-tool" ]
+}
+
+# --- review fixes: here-strings and shell heredocs ---
+
+@test "here-string does not swallow the rest of the command" {
+    cmd="$(printf "cat <<< note\nbun run test")"
+    [ "$(classify "$cmd")" = "QUEUE long-check" ]
+}
+
+@test "heredoc fed to bash is executed, so its body still counts" {
+    cmd="$(printf "bash <<'EOF'\nbun run test\nEOF")"
+    [ "$(classify "$cmd")" = "QUEUE long-check" ]
+}
+
+# --- review fixes: log records stay one line ---
+
+@test "multiline command logs a single sanitized record" {
+    : > "$LOG"
+    cmd="$(printf 'bun run test\nrm -rf docs')"
+    jq -cn --arg c "$cmd" '{tool_input:{command:$c}}' |
+        CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=0 "$HOOK"
+    [ "$(wc -l < "$LOG" | tr -d ' ')" = "1" ]
+    [ "$(head -1 "$LOG" | awk -F'\t' '{print NF}')" = "4" ]
 }

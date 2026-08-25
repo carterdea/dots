@@ -109,7 +109,11 @@ while ((status > 128)) && kill -0 "$child" 2>/dev/null; do
 done
 set -e
 
+# Tabs and newlines in the command would add fields or records to the
+# tab-separated log; flatten them so one run is always one six-field line.
 cmd_str="$*"
+cmd_str="${cmd_str//$'\t'/ }"
+cmd_str="${cmd_str//$'\n'/ }"
 mkdir -p "$(dirname "$CI_LOCK_LOG")" 2>/dev/null || true
 printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$LANE" \
   "$((started_at - queued_at))" "$(($(date +%s) - started_at))" "$status" \

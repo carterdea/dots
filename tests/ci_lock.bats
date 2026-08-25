@@ -24,3 +24,9 @@ setup() {
     [ "$status" -eq 3 ]
     [ "$(head -1 "$LOG" | awk -F'\t' '{print $5}')" = "3" ]
 }
+
+@test "ci-lock log keeps a multiline command to one six-field record" {
+    CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$BATS_TEST_TMPDIR/l.lock" "$CI_LOCK" bash -c "$(printf 'true\ntrue')"
+    [ "$(wc -l < "$LOG" | tr -d ' ')" = "1" ]
+    [ "$(head -1 "$LOG" | awk -F'\t' '{print NF}')" = "6" ]
+}
