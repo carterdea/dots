@@ -126,15 +126,20 @@ decide() {
     echo "SKIP file-scoped"; return
   fi
 
-  # 4. Long: full suites, e2e, project-wide typecheck, aggregates, builds.
+  # 4. Long: full suites, e2e, aggregates, builds — the heavy lane.
   if [[ "$cmd" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]])jest([[:space:]]|$)) ]] ||
     [[ "$cmd" =~ run[[:space:]]+--filter[[:space:]]+[^[:space:]]+[[:space:]]+test([[:space:]]|$) ]] ||
     [[ "$cmd" =~ ((^|[[:space:]])pytest([[:space:]]|$)|(^|[[:space:]])rspec([[:space:]]|$)|go[[:space:]]+test) ]] ||
     [[ "$cmd" =~ (playwright|cypress|detox) ]] ||
-    [[ "$cmd" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright) ]] ||
     [[ "$cmd" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||
     [[ "$cmd" =~ scripts/(verify|test)[^[:space:]]*\.sh ]]; then
     echo "QUEUE long-check"; return
+  fi
+
+  # 5. Typecheck and lint only: CPU-bound, no ports, DBs, or fixtures — they
+  #    get their own lane so a 30s tsc never waits behind a Playwright run.
+  if [[ "$cmd" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright|biome[[:space:]]+check[[:space:]]+\.([[:space:]]|$)) ]]; then
+    echo "QUEUE check-only"; return
   fi
 
   echo "SKIP not-heavy"
@@ -158,7 +163,9 @@ command -v jq >/dev/null 2>&1 || exit 0
 # Wrap through `bash -c` so a compound command (cd x && suite, pipes) runs
 # entirely inside the lock. Prefixing `ci-lock` alone would bind only the
 # first simple command, and the suite after `&&` would run unlocked.
-wrapped="$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"
+lane=""
+[[ "$reason" == "check-only" ]] && lane="CI_LOCK_LANE=check "
+wrapped="$lane$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"
 
 # Codex accepts updatedInput only alongside permissionDecision:"allow".
 # Claude Code gets updatedInput without a decision so the rewritten command

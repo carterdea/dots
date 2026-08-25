@@ -113,6 +113,33 @@ enforce() {
     [ "$(classify 'cd app && bun run test')" = "QUEUE long-check" ]
 }
 
+# --- typecheck and lint get their own lane, not the heavy one ---
+
+@test "bun run typecheck routes to the check lane" {
+    [ "$(classify 'bun run typecheck')" = "QUEUE check-only" ]
+}
+
+@test "tsc --noEmit routes to the check lane" {
+    [ "$(classify 'bunx tsc --noEmit')" = "QUEUE check-only" ]
+}
+
+@test "basedpyright routes to the check lane" {
+    [ "$(classify 'cd chat-services && uv run basedpyright chat_service')" = "QUEUE check-only" ]
+}
+
+@test "full-repo biome check routes to the check lane" {
+    [ "$(classify 'bunx biome check .')" = "QUEUE check-only" ]
+}
+
+@test "typecheck combined with a suite stays on the heavy lane" {
+    [ "$(classify 'bun run typecheck && bun run test')" = "QUEUE long-check" ]
+}
+
+@test "enforce mode puts a check-only command on the check lane" {
+    out="$(enforce 'bun run typecheck')"
+    [[ "$out" == *'CI_LOCK_LANE=check'* ]]
+}
+
 # --- enforce mode ---
 
 @test "enforce mode wraps a full suite in ci-lock" {

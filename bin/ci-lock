@@ -24,9 +24,12 @@ fi
 # whatever it points at.
 LOCK_FILE="${CI_LOCK_FILE:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/$LANE.lock}"
 # A fast-lane check waiting anywhere near the heavy timeout means the queue
-# is wedged, not busy; give it a much shorter leash.
+# is wedged, not busy; give it a much shorter leash. The check lane
+# (typecheck/lint) sits in between: minutes of work, never half an hour.
 if [[ "$LANE" == "heavy" ]]; then
   LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-1800}"
+elif [[ "$LANE" == "check" ]]; then
+  LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-600}"
 else
   LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-300}"
 fi
