@@ -28,6 +28,29 @@ fi
 
 [[ -z "${cmd:-}" ]] && exit 0
 
+# A command that names a concrete source file is a scoped, quick check no
+# matter which runner executes it. A token scan instead of one regex: paths
+# are routinely kebab-case and quoted, and a file that is the value of a
+# flag (vitest run --config vitest.e2e.ts) configures a full run rather
+# than scoping it — only a file in argument position counts.
+file_scoped() {
+  local prev="" w t
+  set -f
+  # shellcheck disable=SC2086
+  set -- $1
+  set +f
+  for w in "$@"; do
+    t="${w#[\"\']}"
+    t="${t%[\"\']}"
+    if [[ "$t" =~ ^[^-][^[:space:]]*\.(ts|tsx|js|jsx|py|rb|go)$ ]] &&
+      { [[ "$prev" == "--" ]] || [[ "$prev" != -* ]]; }; then
+      return 0
+    fi
+    prev="$t"
+  done
+  return 1
+}
+
 decide() {
   # 1. Never queue anything that does not exit on its own. A watch or server
   #    holding the machine-wide lock would block every project until timeout.
@@ -43,7 +66,7 @@ decide() {
   if [[ "$cmd" =~ (-k[[:space:]]|-t[[:space:]]|--testNamePattern|--grep) ]]; then
     echo "SKIP name-filtered"; return
   fi
-  if [[ "$cmd" =~ [[:space:]][^[:space:]-]*\.(ts|tsx|js|jsx|py|rb|go)([[:space:]]|$) ]]; then
+  if file_scoped "$cmd"; then
     echo "SKIP file-scoped"; return
   fi
 
