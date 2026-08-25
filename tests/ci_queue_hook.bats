@@ -216,3 +216,30 @@ enforce() {
     [ "$(wc -l < "$LOG" | tr -d ' ')" = "1" ]
     [ "$(head -1 "$LOG" | awk -F'\t' '{print NF}')" = "4" ]
 }
+
+# --- second review round ---
+
+@test "punctuated heredoc delimiter still terminates stripping" {
+    cmd="$(printf "cat > x.json <<'END-JSON'\nuv run pytest\nEND-JSON\nbun run test")"
+    [ "$(classify "$cmd")" = "QUEUE long-check" ]
+}
+
+@test "process substitution running a suite queues" {
+    [ "$(classify 'cat <(bun run test)')" = "QUEUE long-check" ]
+}
+
+@test "escaped quotes inside double quotes stay one segment" {
+    cmd="$(cat <<'EOF'
+printf '%s\n' "fix \"x; playwright\""
+EOF
+)"
+    [ "$(classify "$cmd")" = "SKIP read-only-tool" ]
+}
+
+@test "biome check with flags before the dot routes to the check lane" {
+    [ "$(classify 'bunx biome check --error-on-warnings .')" = "QUEUE check-only" ]
+}
+
+@test "typecheck plus an unrecognized command stays on the heavy lane" {
+    [ "$(classify 'bun run typecheck && bun run integration')" = "QUEUE long-check" ]
+}

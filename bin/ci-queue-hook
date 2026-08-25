@@ -40,8 +40,10 @@ split_segments() {
       esc=0
       continue
     fi
+    # Backslash escapes the next character outside quotes and inside double
+    # quotes; inside single quotes it is a literal.
     # shellcheck disable=SC1003 # comparing against a literal backslash
-    if [[ -z "$q" && "$c" == '\' ]]; then
+    if [[ "$q" != "'" && "$c" == '\' ]]; then
       out+="$c"
       esc=1
       continue
@@ -116,7 +118,7 @@ strip_heredocs() {
         if (detect ~ /(^|[[:space:]]|[|;&(])(env +)?(ba|z|da)?sh *<</) next
         tag = substr(detect, RSTART, RLENGTH)
         sub(/^<<-?[[:space:]]*/, "", tag)
-        gsub(/[^A-Za-z0-9_]/, "", tag)
+        gsub(/["\047]/, "", tag)
         if (tag != "") body = 1
       }
     }
@@ -132,6 +134,7 @@ read_only_seg() {
   local -a tok
   # shellcheck disable=SC2016 # literal $( is the point: no expansion wanted
   [[ "$seg" == *'$('* || "$seg" == *'`'* ]] && return 1
+  [[ "$seg" == *'<('* || "$seg" == *'>('* ]] && return 1
   [[ "$seg" =~ [[:space:]]-(exec|execdir|ok|okdir)([[:space:]]|$) ]] && return 1
   read -ra tok <<<"$seg"
   i=0
@@ -167,7 +170,7 @@ decide() {
   # 3. Judge each pipeline segment on its own. A file argument scopes only
   #    the segment it appears in, and a read-only lead-in never excuses a
   #    suite running after && — one heavy segment queues the whole command.
-  local seg any_file=0 any_name=0 any_ro=0 checkonly=0
+  local seg any_file=0 any_name=0 any_ro=0 checkonly=0 any_other=0
   while IFS= read -r seg; do
     [[ "$seg" =~ [^[:space:]] ]] || continue
     if read_only_seg "$seg"; then
@@ -194,12 +197,20 @@ decide() {
     fi
     # Typecheck and lint only: CPU-bound, no ports, DBs, or fixtures — they
     # get their own lane so a 30s tsc never waits behind a Playwright run.
-    if [[ "$seg" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright|biome[[:space:]]+check[[:space:]]+\.([[:space:]]|$)) ]]; then
+    if [[ "$seg" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright|biome[[:space:]]+check([[:space:]]+-[^[:space:]]+)*[[:space:]]+\.([[:space:]]|$)) ]]; then
       checkonly=1
+      continue
     fi
+    # A segment this classifier does not recognize could be anything.
+    any_other=1
   done < <(split_segments "$cmd")
 
-  ((checkonly)) && { echo "QUEUE check-only"; return; }
+  # An unrecognized command riding alongside a typecheck may be heavy
+  # itself; the conservative lane for the pair is the heavy one.
+  if ((checkonly)); then
+    if ((any_other)); then echo "QUEUE long-check"; else echo "QUEUE check-only"; fi
+    return
+  fi
   ((any_file)) && { echo "SKIP file-scoped"; return; }
   ((any_name)) && { echo "SKIP name-filtered"; return; }
   ((any_ro)) && { echo "SKIP read-only-tool"; return; }
