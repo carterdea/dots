@@ -24,9 +24,12 @@ fi
 # whatever it points at.
 LOCK_FILE="${CI_LOCK_FILE:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/$LANE.lock}"
 # A fast-lane check waiting anywhere near the heavy timeout means the queue
-# is wedged, not busy; give it a much shorter leash.
+# is wedged, not busy; give it a much shorter leash. The check lane
+# (typecheck/lint) sits in between: minutes of work, never half an hour.
 if [[ "$LANE" == "heavy" ]]; then
   LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-1800}"
+elif [[ "$LANE" == "check" ]]; then
+  LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-600}"
 else
   LOCK_TIMEOUT="${CI_LOCK_TIMEOUT:-300}"
 fi
@@ -56,6 +59,11 @@ fi
 
 mkdir -p "$(dirname "$LOCK_FILE")"
 
+# One line per completed run — when, lane, seconds queued, seconds running,
+# exit code, command — the duration data queue tuning never had.
+CI_LOCK_LOG="${CI_LOCK_LOG:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/ci-lock.log}"
+queued_at="$(date +%s)"
+
 # This script holds the lock on fd 9 for as long as the command runs, so
 # acquiring it stays separate from running it and no exit code has to do
 # double duty as "could not get the lock".
@@ -69,6 +77,7 @@ if ! flock -n 9; then
 fi
 
 export "$HELD_VAR=$LOCK_FILE:$$"
+started_at="$(date +%s)"
 
 # 9>&- closes the lock descriptor for the command and everything it spawns.
 # Without it, a check that leaves a background process behind (a test server,
@@ -99,5 +108,15 @@ while ((status > 128)) && kill -0 "$child" 2>/dev/null; do
   status=$?
 done
 set -e
+
+# Tabs and newlines in the command would add fields or records to the
+# tab-separated log; flatten them so one run is always one six-field line.
+cmd_str="$*"
+cmd_str="${cmd_str//$'\t'/ }"
+cmd_str="${cmd_str//$'\n'/ }"
+mkdir -p "$(dirname "$CI_LOCK_LOG")" 2>/dev/null || true
+printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$LANE" \
+  "$((started_at - queued_at))" "$(($(date +%s) - started_at))" "$status" \
+  "${cmd_str:0:200}" >>"$CI_LOCK_LOG" 2>/dev/null || true
 
 exit "$status"

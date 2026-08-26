@@ -28,7 +28,148 @@ fi
 
 [[ -z "${cmd:-}" ]] && exit 0
 
+# Splits a command into pipeline segments on |, ; and & — but only outside
+# quotes, so a PR title or grep pattern containing a separator stays one
+# argument instead of becoming a phantom command.
+split_segments() {
+  local s="$1" out="" c="" q="" esc=0 i
+  for ((i = 0; i < ${#s}; i++)); do
+    c="${s:i:1}"
+    if ((esc)); then
+      out+="$c"
+      esc=0
+      continue
+    fi
+    # Backslash escapes the next character outside quotes and inside double
+    # quotes; inside single quotes it is a literal.
+    # shellcheck disable=SC1003 # comparing against a literal backslash
+    if [[ "$q" != "'" && "$c" == '\' ]]; then
+      out+="$c"
+      esc=1
+      continue
+    fi
+    if [[ -n "$q" ]]; then
+      out+="$c"
+      [[ "$c" == "$q" ]] && q=""
+      continue
+    fi
+    case "$c" in
+      \' | \") q="$c"; out+="$c" ;;
+      '|' | ';' | '&') out+=$'\n' ;;
+      *) out+="$c" ;;
+    esac
+  done
+  printf '%s\n' "$out"
+}
+
+# Flags whose value is the next token. A file there configures the run
+# (vitest run --config vitest.e2e.ts) instead of scoping it. Any other flag
+# (-q, --runInBand) is presumed flag-only, so the file after it still counts.
+consumes_value() {
+  case "$1" in
+    --config | -c | --project | -p | -r | --require) return 0 ;;
+    --ignore | --ignore-glob | --deselect) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# A segment that names a concrete source file is a scoped, quick check no
+# matter which runner executes it. A token scan instead of one regex: paths
+# are routinely kebab-case and quoted. Globs are excluded — *.test.ts is a
+# selection pattern, not one file.
+file_scoped() {
+  local prev="" w t
+  set -f
+  # shellcheck disable=SC2086
+  set -- $1
+  set +f
+  for w in "$@"; do
+    t="${w#[\"\']}"
+    t="${t%[\"\']}"
+    if [[ "$t" =~ ^[^-][^[:space:]]*\.(ts|tsx|js|jsx|py|rb|go)$ ]] &&
+      [[ "$t" != *[\*\?\[]* ]] &&
+      ! consumes_value "$prev"; then
+      return 0
+    fi
+    prev="$t"
+  done
+  return 1
+}
+
+# Everything between a heredoc operator and its terminator is data being
+# written, not a command being run; classification must not see it, or a
+# script whose text mentions a suite queues the cat that writes it.
+strip_heredocs() {
+  awk '
+    body {
+      line = $0
+      sub(/^\t+/, "", line)
+      if (line == tag) { body = 0; next }
+      # An unquoted delimiter means the shell expands the body, so a
+      # substitution in it executes; keep such lines visible.
+      if (expand && (index($0, "$(") > 0 || index($0, "`") > 0)) print
+      next
+    }
+    {
+      print
+      # A here-string (<<<) is not a heredoc: it takes no terminator, so
+      # treating it as one would swallow every following line.
+      detect = $0
+      gsub(/<<</, " ", detect)
+      if (match(detect, /<<-?[[:space:]]*[^<[:space:]]+/)) {
+        # A heredoc piped into a shell runs its body as commands, so the
+        # body must stay visible to classification, not be stripped as data.
+        if (detect ~ /(^|[[:space:]]|[|;&(])(env +)?([^[:space:]]*\/)?(ba|z|da)?sh( +-[^[:space:]]+)* *<</) next
+        raw = substr(detect, RSTART, RLENGTH)
+        sub(/^<<-?[[:space:]]*/, "", raw)
+        tag = raw
+        gsub(/["\047\\]/, "", tag)
+        if (tag != "") {
+          body = 1
+          # Quoting on the delimiter is what disables expansion in the body.
+          expand = (tag == raw)
+        }
+      }
+    }
+  '
+}
+
+# True when a segment starts with a tool that only reads or reports. Their
+# arguments routinely name suites — a grep FOR "pytest", a PR title
+# mentioning playwright — and must not queue. Not read-only if the segment
+# can execute something else: command substitution, or find's -exec family.
+read_only_seg() {
+  local seg="$1" first i
+  local -a tok
+  # shellcheck disable=SC2016 # literal $( is the point: no expansion wanted
+  [[ "$seg" == *'$('* || "$seg" == *'`'* ]] && return 1
+  [[ "$seg" == *'<('* || "$seg" == *'>('* ]] && return 1
+  [[ "$seg" =~ [[:space:]]-(exec|execdir|ok|okdir)([[:space:]]|$) ]] && return 1
+  read -ra tok <<<"$seg"
+  i=0
+  while ((i < ${#tok[@]})) && [[ "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; do
+    i=$((i + 1))
+  done
+  ((i >= ${#tok[@]})) && return 0
+  first="${tok[i]##*/}"
+  case "$first" in
+    # awk can execute subprocesses from its program text.
+    awk)
+      [[ "$seg" =~ system[[:space:]]*\( ]] && return 1
+      return 0 ;;
+    sed|grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|find|echo|printf|cd|pwd|gh) return 0 ;;
+    git)
+      case "${tok[i + 1]:-}" in
+        log|diff|show|status|branch|remote|ls-remote|ls-files|rev-parse|fetch|blame|describe) return 0 ;;
+        *) return 1 ;;
+      esac ;;
+    *) return 1 ;;
+  esac
+}
+
 decide() {
+  local cmd="$1"
+
   # 1. Never queue anything that does not exit on its own. A watch or server
   #    holding the machine-wide lock would block every project until timeout.
   if [[ "$cmd" =~ (--watch|[[:space:]]-w([[:space:]]|$)|--ui|interactive) ]] ||
@@ -39,33 +180,65 @@ decide() {
   # 2. Already queued, or is the queue itself.
   if [[ "$cmd" =~ (ci-lock|lefthook) ]]; then echo "SKIP already-queued"; return; fi
 
-  # 3. Scoped to specific files or a name filter — that is a quick check.
-  if [[ "$cmd" =~ (-k[[:space:]]|-t[[:space:]]|--testNamePattern|--grep) ]]; then
-    echo "SKIP name-filtered"; return
-  fi
-  if [[ "$cmd" =~ [[:space:]][^[:space:]-]*\.(ts|tsx|js|jsx|py|rb|go)([[:space:]]|$) ]]; then
-    echo "SKIP file-scoped"; return
-  fi
+  # 3. Judge each pipeline segment on its own. A file argument scopes only
+  #    the segment it appears in, and a read-only lead-in never excuses a
+  #    suite running after && — one heavy segment queues the whole command.
+  local seg any_file=0 any_name=0 any_ro=0 checkonly=0 any_other=0
+  while IFS= read -r seg; do
+    [[ "$seg" =~ [^[:space:]] ]] || continue
+    if read_only_seg "$seg"; then
+      any_ro=1
+      continue
+    fi
+    if [[ "$seg" =~ (-k[[:space:]]|-t[[:space:]]|--testNamePattern|--grep) ]]; then
+      any_name=1
+      continue
+    fi
+    if file_scoped "$seg"; then
+      any_file=1
+      continue
+    fi
+    # Long: full suites, e2e, aggregates, builds — the heavy lane.
+    if [[ "$seg" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]])jest([[:space:]]|$)) ]] ||
+      [[ "$seg" =~ run[[:space:]]+--filter[[:space:]]+[^[:space:]]+[[:space:]]+test([[:space:]]|$) ]] ||
+      [[ "$seg" =~ ((^|[[:space:]])pytest([[:space:]]|$)|(^|[[:space:]])rspec([[:space:]]|$)|go[[:space:]]+test) ]] ||
+      [[ "$seg" =~ (playwright|cypress|detox) ]] ||
+      [[ "$seg" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||
+      [[ "$seg" =~ scripts/(verify|test)[^[:space:]]*\.sh ]]; then
+      echo "QUEUE long-check"
+      return
+    fi
+    # Typecheck and lint only: CPU-bound, no ports, DBs, or fixtures — they
+    # get their own lane so a 30s tsc never waits behind a Playwright run.
+    if [[ "$seg" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright|run[[:space:]]+lint(:[^[:space:]]*)?([[:space:]]|$)) ]] ||
+      [[ "$seg" =~ (biome[[:space:]]+check|(^|[[:space:]])eslint|ruff[[:space:]]+check)([[:space:]]+-[^[:space:]]+)*[[:space:]]+\.([[:space:]]|$) ]]; then
+      checkonly=1
+      continue
+    fi
+    # A segment this classifier does not recognize could be anything.
+    any_other=1
+  done < <(split_segments "$cmd")
 
-  # 4. Long: full suites, e2e, project-wide typecheck, aggregates, builds.
-  if [[ "$cmd" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]])jest([[:space:]]|$)) ]] ||
-    [[ "$cmd" =~ run[[:space:]]+--filter[[:space:]]+[^[:space:]]+[[:space:]]+test([[:space:]]|$) ]] ||
-    [[ "$cmd" =~ ((^|[[:space:]])pytest([[:space:]]|$)|(^|[[:space:]])rspec([[:space:]]|$)|go[[:space:]]+test) ]] ||
-    [[ "$cmd" =~ (playwright|cypress|detox) ]] ||
-    [[ "$cmd" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright) ]] ||
-    [[ "$cmd" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||
-    [[ "$cmd" =~ scripts/(verify|test)[^[:space:]]*\.sh ]]; then
-    echo "QUEUE long-check"; return
+  # An unrecognized command riding alongside a typecheck may be heavy
+  # itself; the conservative lane for the pair is the heavy one.
+  if ((checkonly)); then
+    if ((any_other)); then echo "QUEUE long-check"; else echo "QUEUE check-only"; fi
+    return
   fi
-
+  ((any_file)) && { echo "SKIP file-scoped"; return; }
+  ((any_name)) && { echo "SKIP name-filtered"; return; }
+  ((any_ro)) && { echo "SKIP read-only-tool"; return; }
   echo "SKIP not-heavy"
 }
 
-verdict="$(decide)"
+verdict="$(decide "$(strip_heredocs <<<"$cmd")")"
 action="${verdict%% *}"
 reason="${verdict#* }"
 
-printf '%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$action" "$reason" "${cmd:0:200}" >>"$LOG" 2>/dev/null || true
+# Flatten tabs and newlines so one decision is always one four-field line.
+log_cmd="${cmd//$'\t'/ }"
+log_cmd="${log_cmd//$'\n'/ }"
+printf '%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$action" "$reason" "${log_cmd:0:200}" >>"$LOG" 2>/dev/null || true
 
 # Dry-run: observe only.
 [[ "${CI_QUEUE_HOOK_ENFORCE:-0}" != "1" ]] && exit 0
@@ -79,7 +252,9 @@ command -v jq >/dev/null 2>&1 || exit 0
 # Wrap through `bash -c` so a compound command (cd x && suite, pipes) runs
 # entirely inside the lock. Prefixing `ci-lock` alone would bind only the
 # first simple command, and the suite after `&&` would run unlocked.
-wrapped="$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"
+lane=""
+[[ "$reason" == "check-only" ]] && lane="CI_LOCK_LANE=check "
+wrapped="$lane$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"
 
 # Codex accepts updatedInput only alongside permissionDecision:"allow".
 # Claude Code gets updatedInput without a decision so the rewritten command
