@@ -47,6 +47,20 @@ def git_worktrees(repo: Path) -> list[dict[str, str]]:
     return rows
 
 
+def main_worktree(repo: Path) -> Path:
+    """Resolve the repo's primary checkout.
+
+    `git worktree list` returns the same set from any worktree in the repo, so a
+    --repo pointing at a *linked* worktree would otherwise leave the real primary
+    checkout looking like just another removable row. Anchor on git's own answer.
+    """
+    proc = run(["git", "-C", str(repo), "rev-parse", "--path-format=absolute", "--git-common-dir"])
+    common = proc.stdout.strip()
+    if proc.returncode != 0 or not common:
+        return repo
+    return Path(common).parent.resolve()
+
+
 def short_branch(branch_ref: str | None) -> str:
     return (branch_ref or "").removeprefix("refs/heads/")
 
@@ -92,10 +106,11 @@ def is_recent(path: Path, min_age_hours: float) -> bool:
 def pr_lookup(repo: Path, branch: str) -> list[dict[str, object]]:
     if not branch or shutil.which("gh") is None:
         return []
+    # gh has no -C flag; it resolves the repo from the working directory.
     proc = run([
-        "gh", "-C", str(repo), "pr", "list", "--head", branch,
+        "gh", "pr", "list", "--head", branch,
         "--json", "number,title,url,state,headRefName,baseRefName",
-    ])
+    ], cwd=repo)
     if proc.returncode != 0 or not proc.stdout.strip():
         return []
     try:
@@ -160,7 +175,7 @@ def main() -> int:
     parser.add_argument("--min-age-hours", type=float, default=24.0, help="Skip worktrees modified more recently than this many hours. Use 0 to disable.")
     args = parser.parse_args()
 
-    repo = expand(args.repo)
+    repo = main_worktree(expand(args.repo))
     roots = [expand(r) for r in args.root]
     audit_dir = expand(args.audit_dir) / dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     audit_dir.mkdir(parents=True, exist_ok=True)
