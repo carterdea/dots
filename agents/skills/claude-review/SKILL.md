@@ -13,11 +13,53 @@ Pass `--model` with an alias — aliases always resolve to the latest version of
 
 - `sonnet` — Claude Sonnet (latest is v5, `claude-sonnet-5`). Default: fast and cheap, good enough for most reviews.
 - `opus` — Claude Opus (latest is v5, `claude-opus-5`). Stronger reasoning for tricky or subtle diffs.
-- `fable` — Claude Fable (`claude-fable-5`), Anthropic's most capable model (Mythos-class, above Opus). Use when the user asks for the deepest possible review or the diff is high-stakes (security-sensitive, complex concurrency, large refactors).
+- `fable` — Claude Fable (`claude-fable-5`), Anthropic's most capable model. Premium tier, roughly 2x Opus pricing. See Reviewing with Fable below.
 
-If the user names a model ("use fable", "review with opus"), use that. Otherwise default to `sonnet`.
+If the user names a model ("use fable", "review with opus"), use that. Otherwise default to `sonnet`. Never upgrade to `fable` on your own initiative — it is opt-in.
 
 Non-interactive calls use print mode: `claude -p --model <alias> "<prompt>"` with the diff piped via stdin.
+
+## Reviewing with Fable
+
+Only reach for Fable when the user asks for it by name, asks for "the deepest review" or "the best model", or the diff is genuinely high-stakes: security-sensitive code, auth, payments, concurrency, migrations, or a large refactor. For everything else Sonnet or Opus is the right call.
+
+Fable behaves differently enough from the Opus family that the default recipe in Process needs three changes.
+
+### 1. Set effort explicitly
+
+Fable accepts `--effort low|medium|high|xhigh|max`. Effort controls how deep it thinks and how many tokens it spends, and it matters more on Fable than on any earlier model:
+
+```bash
+claude -p --model fable --effort xhigh "<prompt>"
+```
+
+- `xhigh` — the default for a Fable review. Best quality-per-token for code work.
+- `max` — only when correctness beats cost: security audits, release-blocking diffs, anything the user calls critical.
+- `high` — a fast Fable pass on a small diff.
+- Do not pass `--effort` for Sonnet or Opus reviews unless the user asks; the CLI default is already right.
+
+### 2. Use the short prompt, not the checklist
+
+The long checklist in step 2 is tuned for smaller models. Prescriptive, step-by-step prompts measurably *reduce* Fable's output quality — it does better when given the goal and the stakes and left to structure the review itself. For Fable, replace the checklist prompt with:
+
+```bash
+eval "$DIFF_CMD" | claude -p --model fable --effort xhigh "Review this diff as a senior engineer who owns this codebase. Find real defects: correctness bugs, security holes, data-loss or concurrency risks, broken error handling, missing test coverage on the paths that matter. Judge the design too — wrong abstraction, misplaced responsibility, complexity that will not survive the next change.
+
+Cite file and line for every finding, rate it critical/warning/suggestion, and show the fix. Skip praise and skip style nits already handled by linters. If the diff is fine, say so in one line."
+```
+
+Keep any user-supplied focus instructions ("focus on the auth changes") — append them, do not pad them out with extra scaffolding.
+
+### 3. Give it time, and do not split the diff
+
+- **It runs long.** A single Fable review of a real diff can take many minutes. Give the Bash call a long timeout, and run it in the background for anything past a few hundred lines rather than letting the call get killed mid-review. Fast mode does not exist for Fable, so there is no way to speed this up.
+- **Do not split by file.** Fable has a 1M context window; the ~4000-line split in step 3 exists for smaller context budgets. Splitting throws away the cross-file reasoning that is the entire reason to use Fable. Send the whole diff in one call.
+
+### Other Fable specifics
+
+- Thinking is always on and cannot be disabled. The raw chain of thought is never returned, so asking it to "show your reasoning" gets you a summary at best — ask for conclusions and evidence instead.
+- Fable can decline a request outright (safety classifier refusal) instead of returning a review. If that happens, rerun on `opus` and tell the user; do not keep rephrasing the prompt.
+- If the CLI errors that the model is unavailable, the account lacks Fable access. Fall back to `opus` and say so explicitly in the output.
 
 ## Process
 
@@ -46,10 +88,10 @@ If the diff is empty, tell the user there are no changes to review and stop.
 
 If the user provided custom focus instructions (e.g., "focus on security"), use those as the review prompt. Otherwise use the default comprehensive prompt below.
 
-Set the model per the Model selection section, then pipe the diff into Claude's non-interactive print mode:
+Set the model per the Model selection section, then pipe the diff into Claude's non-interactive print mode. If the model is `fable`, use the short prompt and effort flag from Reviewing with Fable instead of the checklist below:
 
 ```bash
-MODEL=sonnet  # or opus / fable per Model selection
+MODEL=sonnet  # or opus per Model selection; fable has its own recipe above
 eval "$DIFF_CMD" | claude -p --model "$MODEL" "Review the code changes in this diff for quality, correctness, and adherence to best practices.
 
 ## Review Checklist
@@ -108,7 +150,7 @@ Summarize with: issues by severity, overall assessment, ready-to-merge verdict. 
 
 ### 3. For large diffs
 
-If the diff exceeds ~4000 lines, split by file:
+If the diff exceeds ~4000 lines, split by file. Skip this entirely for `fable` — send the whole diff in one call:
 
 ```bash
 for file in $(eval "$NAMES_CMD"); do
