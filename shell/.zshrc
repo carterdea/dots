@@ -81,3 +81,6 @@ if command -v dcg &>/dev/null && command -v jq &>/dev/null; then
     printf '\033[1;33m[dcg] Hook missing from ~/.claude/settings.json — run: dcg install\033[0m\n'
   fi
 fi
+
+# bun completions
+[ -s "/Users/carterdeangelis/.bun/_bun" ] && source "/Users/carterdeangelis/.bun/_bun"

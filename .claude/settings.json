@@ -88,7 +88,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-fable-5[1m]",
+  "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -136,7 +136,8 @@
     "shopify-plugin@shopify-ai-toolkit": true,
     "ralph-loop@claude-plugins-official": true,
     "resend@claude-plugins-official": true,
-    "github@claude-plugins-official": true
+    "github@claude-plugins-official": true,
+    "shopify-ai-toolkit@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "shopify-ai-toolkit": {
