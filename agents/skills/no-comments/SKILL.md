@@ -1,24 +1,114 @@
 ---
 name: no-comments
-description: "Spawn Comment Sicko, fix accepted findings, and offer encodings for claimed constraints."
+description: "Aggressively remove comments, docstrings, suppressions, and explanatory clutter that code can express better. Preserve only proven external constraints, required public documentation, and rationale that cannot be encoded."
 disable-model-invocation: true
 ---
 
 # No comments
 
-Spawn Comment Sicko. Act on accepted findings.
+Treat every comment as guilty until the surrounding code proves it earns its place. The goal is not literally zero comments. The goal is code that explains itself and a small residue of comments that preserve information the code cannot carry.
 
-Authoring agents defend comments. Defer to Comment Sicko's fresh perspective.
+Follow the rubric directly. The workflow has no named-agent, slash-command, or external-skill dependencies.
 
 ## Scope
 
-Use the caller's files or diff. Otherwise use the current diff against the base branch, default `main`, including the working tree.
+Use the files or diff named by the caller. Otherwise inspect the current diff against the base branch, defaulting to `main`, including staged and unstaged changes.
 
-## Steps
+Stay inside that scope except for the smallest adjacent change required to remove a workaround safely. Do not edit generated files, vendored code, dependencies, or unrelated comments.
 
-1. Spawn `Task` with `subagent_type: "Comment Sicko"`. Pass the scope. Do not restate its rules.
-2. Inspect its report and diff. Reject application-code edits, scope escapes, exception-protected deletions, misstated `MUST KILL` reasons, and flags that treat kept intentional code as guilty. Reshape flags on our-code surprises stay actionable. Do not restore those comments. A keep survives only with proof it is about something we cannot change. Audit missed scoped lint and TypeScript suppressions. Correctness or safety suppressions stay actionable `MUST KILL`s. Restore deletions only with exact exceptions and scoped proof. Before accepting thin `IMPORTANT` or `do not remove` kills or keeps, run `/how` or `/why` on their symbol. If a kill is ambiguous, do not restore. If a keep is refuted or still ambiguous, delete it. Revert and rerun one rejected report with the failure named. Reject a second, report it open, and fail `/no-comments`.
-3. Fix trivial accepted flags directly by deleting a dead path, dropping a parameter, or using the real API. If any fix needs a shape, run `/architect` once for the accepted set and surrounding code. Stop at the sketch. Architect shapes. Step 4 implements.
-4. Implement the smallest root-cause fix in scope. Remove every named workaround. If the root cause is out of scope, land the smallest in-scope fix and report the rest open. The **principle-fix-root-causes** and **principle-redesign-from-first-principles** skills guide intent only: fix real causes, redesign as if requirements always existed, never bolt on symptom guards. Neither authorizes widening the fence nor fixing instances outside it.
-5. Constraint comments say `do not remove`, `do not change wording`, or `talk to X before changing`. Leave keeps about things we cannot change. Offer the cheapest in-scope type, runtime, test, or CI lint. Wait for interactive approval. Unattended and eval require caller pre-approval. If approved, encode then delete. Otherwise delete, report the constraint open, and sketch out-of-scope work.
-6. Report the deletion count, restored comments, reruns, architect sketch, fixes, encoding offers, encodings, unenforced constraints, and other open work.
+Review comments and comment-shaped constructs:
+
+- Line and block comments
+- Docstrings and documentation comments
+- Commented-out code
+- TODO, FIXME, HACK, NOTE, IMPORTANT, and warning banners
+- Linter, formatter, type-checker, coverage, and test suppressions
+- Disabled code paths and dead parameters justified only by comments
+
+## Review rubric
+
+### Delete
+
+Delete comments that:
+
+- Restate names, types, control flow, or the next line of code
+- Narrate implementation steps or organize a short file with decorative headings
+- Explain a workaround that can be removed by using the real API or fixing the type
+- Preserve dead code, old behavior, debugging notes, or version-control history
+- Make vague claims such as `important`, `temporary`, `for safety`, or `do not remove` without a concrete external reason
+- Apologize for complexity instead of removing it
+- Describe what a test does rather than why the behavior matters
+- Repeat information already enforced by a type, schema, assertion, test name, error, or public documentation
+- Are stale, speculative, or impossible to verify from the repository
+
+When deletion makes code unclear, improve the name, type, interface, control flow, or test instead of rewriting the comment.
+
+### Keep
+
+Keep a comment only when it carries information that cannot reasonably live in code:
+
+- A required license, copyright, generated-file marker, or tool directive
+- Public API documentation required by the language, framework, or published contract
+- A concrete external constraint such as a vendor bug, protocol rule, platform quirk, legal requirement, or compatibility boundary
+- Non-obvious correctness, security, concurrency, numerical, or performance rationale where a simpler implementation would look valid but be wrong
+- An intentionally surprising decision whose rejected alternative is likely to be reintroduced
+
+A kept constraint should name the reason precisely. Add or preserve a stable issue, specification, or upstream reference when one exists. Do not invent citations.
+
+### Fix, then delete
+
+Comments often expose a code problem. Prefer the smallest root-cause fix:
+
+- Rename an unclear symbol
+- Extract a focused function or constant
+- Replace a boolean mode or magic value with a meaningful type
+- Delete a dead path or unused parameter
+- Use the supported API instead of a workaround
+- Encode an invariant in a type, parser, assertion, focused test, or lint rule
+- Fix the underlying type or control flow before removing a suppression
+
+Do not change product behavior merely to eliminate a comment. If the root cause is outside scope or the safe fix is non-trivial, keep the necessary comment and report the blocker.
+
+### Shape check
+
+When a root-cause fix changes an interface, type, module boundary, data flow, or multiple callers, sketch the shape before implementing:
+
+1. Trace the current path and name the module that owns the behavior.
+2. Write the intended caller usage first.
+3. Sketch the smallest types, signatures, and module changes that support that usage. Do not add scaffolding or placeholder abstractions.
+4. Compare the sketch with the simpler options: delete the dead path, rename the unclear symbol, use the supported API, or make a local control-flow fix.
+5. Check every caller, default behavior, error path, and focused test the shape would affect.
+
+Implement the sketch only when it remains a small, in-scope cleanup. If it reveals a new capability, migration, cross-module redesign, or behavior change, keep the necessary comment and report the proposed shape as separate follow-up work.
+
+## Suppressions
+
+Treat suppressions as executable exceptions, not prose:
+
+- Audit `eslint-disable`, `biome-ignore`, `prettier-ignore`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `type: ignore`, `noqa`, coverage ignores, test skips, and equivalents.
+- Remove the suppression by fixing the underlying issue when the scoped fix is safe.
+- Preserve correctness or compatibility suppressions only when the tool is wrong or the constraint is external and proven.
+- Never delete a suppression while leaving code that fails the corresponding check.
+- Keep the narrowest possible suppression and require an exact reason when the syntax supports one.
+
+## Workflow
+
+1. Establish the base and list scoped files.
+2. Read each scoped file and enough surrounding code to judge comments in context.
+3. Classify each comment as `delete`, `keep`, `fix then delete`, or `blocked` using the rubric above.
+4. Apply unambiguous deletions and the smallest safe root-cause fixes. Run the shape check for any fix that meets its trigger. Do not pause for approval unless a fix would change behavior, widen scope materially, or encode a disputed constraint.
+5. Search the scope again for missed comments and suppressions.
+6. Run the narrowest relevant formatter, lint, type, and test checks. Never claim a check passed unless it ran.
+7. Re-read the diff to confirm the cleanup preserved behavior and did not remove required documentation or directives.
+
+## Report
+
+Return:
+
+- Account for every scoped comment and suppression, with totals for deleted, kept, fixed then deleted, and blocked
+- Root-cause fixes made
+- Comments kept, with one-line reasons
+- Blocked or unenforced constraints
+- Checks run and their results
+
+If nothing should change, say so. Do not manufacture cleanup to justify the pass.
