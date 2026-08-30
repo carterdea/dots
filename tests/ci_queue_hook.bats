@@ -285,3 +285,73 @@ EOF
 @test "full-repo ruff check routes to the check lane" {
     [ "$(classify 'uv run ruff check .')" = "QUEUE check-only" ]
 }
+
+# --- fourth review round: redirections are not separators ---
+
+@test "typecheck with 2>&1 piped to tail routes to the check lane" {
+    [ "$(classify 'bun run typecheck 2>&1 | tail -5')" = "QUEUE check-only" ]
+}
+
+@test "tsc with both streams redirected routes to the check lane" {
+    [ "$(classify 'npx tsc --noEmit >/dev/null 2>&1')" = "QUEUE check-only" ]
+}
+
+@test "typecheck with a combined redirection routes to the check lane" {
+    [ "$(classify 'bun run typecheck &> out.log')" = "QUEUE check-only" ]
+}
+
+# --- fourth review round: browser downloads are not checks ---
+
+@test "playwright install is not queued" {
+    [ "$(classify 'bunx playwright install chromium')" = "SKIP not-a-check" ]
+}
+
+@test "playwright install-deps is not queued" {
+    [ "$(classify 'bunx playwright install-deps')" = "SKIP not-a-check" ]
+}
+
+@test "playwright test still queues" {
+    [ "$(classify 'bunx playwright test')" = "QUEUE long-check" ]
+}
+
+# --- fourth review round: polling loops must not hold the lock ---
+
+@test "until loop polling with sleep is skipped" {
+    [ "$(classify 'until ! kill -0 $(pgrep -f "tsc --noEmit" | head -1) 2>/dev/null; do sleep 5; done; echo done')" = "SKIP wait-loop" ]
+}
+
+# --- fourth review round: rails suites queue ---
+
+@test "bin/rails test queues" {
+    [ "$(classify 'bin/rails test')" = "QUEUE long-check" ]
+}
+
+@test "rails system tests queue" {
+    [ "$(classify 'bin/rails test:system')" = "QUEUE long-check" ]
+}
+
+@test "bundle exec rails test queues" {
+    [ "$(classify 'bundle exec rails test')" = "QUEUE long-check" ]
+}
+
+@test "rake test queues" {
+    [ "$(classify 'rake test')" = "QUEUE long-check" ]
+}
+
+@test "rails test:all queues" {
+    [ "$(classify 'rails test:all')" = "QUEUE long-check" ]
+}
+
+@test "single-file rails test is file-scoped" {
+    [ "$(classify 'bin/rails test test/models/donation_test.rb')" = "SKIP file-scoped" ]
+}
+
+# --- fourth review round: theme check gets the check lane ---
+
+@test "shopify theme check routes to the check lane" {
+    [ "$(classify 'shopify theme check')" = "QUEUE check-only" ]
+}
+
+@test "theme check via a package script routes to the check lane" {
+    [ "$(classify 'bun run check:theme')" = "QUEUE check-only" ]
+}

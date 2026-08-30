@@ -55,7 +55,16 @@ split_segments() {
     fi
     case "$c" in
       \' | \") q="$c"; out+="$c" ;;
-      '|' | ';' | '&') out+=$'\n' ;;
+      # An & inside a redirection operator (2>&1, >&2, &>log, &>>log, <&0)
+      # belongs to the previous command, not between two. Only a bare & — a
+      # trailing background & or the && of a list — separates.
+      '&')
+        if [[ "${out: -1}" == '>' || "${out: -1}" == '<' || "${s:i+1:1}" == '>' ]]; then
+          out+="$c"
+        else
+          out+=$'\n'
+        fi ;;
+      '|' | ';') out+=$'\n' ;;
       *) out+="$c" ;;
     esac
   done
@@ -177,13 +186,20 @@ decide() {
     echo "SKIP watch-or-server"; return
   fi
 
+  # 1b. A loop that polls until something else finishes spends its life in
+  #     sleep. Queued, it would hold the exclusive lock doing nothing.
+  local wait_loop='(while|until)[[:space:]].*;[[:space:]]*do[[:space:]].*sleep'
+  if [[ "$cmd" =~ $wait_loop ]]; then
+    echo "SKIP wait-loop"; return
+  fi
+
   # 2. Already queued, or is the queue itself.
   if [[ "$cmd" =~ (ci-lock|lefthook) ]]; then echo "SKIP already-queued"; return; fi
 
   # 3. Judge each pipeline segment on its own. A file argument scopes only
   #    the segment it appears in, and a read-only lead-in never excuses a
   #    suite running after && — one heavy segment queues the whole command.
-  local seg any_file=0 any_name=0 any_ro=0 checkonly=0 any_other=0
+  local seg any_file=0 any_name=0 any_ro=0 checkonly=0 any_install=0 any_other=0
   while IFS= read -r seg; do
     [[ "$seg" =~ [^[:space:]] ]] || continue
     if read_only_seg "$seg"; then
@@ -198,11 +214,18 @@ decide() {
       any_file=1
       continue
     fi
+    # Downloading browsers is a fetch, not a check: minutes of network in
+    # the exclusive lane, and nothing else can run meanwhile.
+    if [[ "$seg" =~ playwright[[:space:]]+install(-deps)?([[:space:]]|$) ]]; then
+      any_install=1
+      continue
+    fi
     # Long: full suites, e2e, aggregates, builds — the heavy lane.
     if [[ "$seg" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]])jest([[:space:]]|$)) ]] ||
       [[ "$seg" =~ run[[:space:]]+--filter[[:space:]]+[^[:space:]]+[[:space:]]+test([[:space:]]|$) ]] ||
       [[ "$seg" =~ ((^|[[:space:]])pytest([[:space:]]|$)|(^|[[:space:]])rspec([[:space:]]|$)|go[[:space:]]+test) ]] ||
       [[ "$seg" =~ (playwright|cypress|detox) ]] ||
+      [[ "$seg" =~ (^|[[:space:]/])(rails|rake)[[:space:]]+test(:[a-z]+)?([[:space:]]|$) ]] ||
       [[ "$seg" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||
       [[ "$seg" =~ scripts/(verify|test)[^[:space:]]*\.sh ]]; then
       echo "QUEUE long-check"
@@ -211,6 +234,7 @@ decide() {
     # Typecheck and lint only: CPU-bound, no ports, DBs, or fixtures — they
     # get their own lane so a 30s tsc never waits behind a Playwright run.
     if [[ "$seg" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright|run[[:space:]]+lint(:[^[:space:]]*)?([[:space:]]|$)) ]] ||
+      [[ "$seg" =~ (shopify[[:space:]]+theme[[:space:]]+check|run[[:space:]]+check:theme([[:space:]]|$)) ]] ||
       [[ "$seg" =~ (biome[[:space:]]+check|(^|[[:space:]])eslint|ruff[[:space:]]+check)([[:space:]]+-[^[:space:]]+)*[[:space:]]+\.([[:space:]]|$) ]]; then
       checkonly=1
       continue
@@ -225,6 +249,7 @@ decide() {
     if ((any_other)); then echo "QUEUE long-check"; else echo "QUEUE check-only"; fi
     return
   fi
+  ((any_install)) && { echo "SKIP not-a-check"; return; }
   ((any_file)) && { echo "SKIP file-scoped"; return; }
   ((any_name)) && { echo "SKIP name-filtered"; return; }
   ((any_ro)) && { echo "SKIP read-only-tool"; return; }
@@ -239,6 +264,17 @@ reason="${verdict#* }"
 log_cmd="${cmd//$'\t'/ }"
 log_cmd="${log_cmd//$'\n'/ }"
 printf '%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$action" "$reason" "${log_cmd:0:200}" >>"$LOG" 2>/dev/null || true
+
+# One line per Bash call adds up: rotate past ~5MB, keeping the recent tail.
+# Best-effort — a full disk or a read-only log must not fail the hook.
+log_size="$(stat -f%z "$LOG" 2>/dev/null || stat -c%s "$LOG" 2>/dev/null || echo 0)"
+if [[ "$log_size" =~ ^[0-9]+$ ]] && ((log_size > 5242880)); then
+  if tail -n 20000 "$LOG" >"$LOG.rotating" 2>/dev/null; then
+    mv -f "$LOG.rotating" "$LOG" 2>/dev/null || rm -f "$LOG.rotating" 2>/dev/null || true
+  else
+    rm -f "$LOG.rotating" 2>/dev/null || true
+  fi
+fi
 
 # Dry-run: observe only.
 [[ "${CI_QUEUE_HOOK_ENFORCE:-0}" != "1" ]] && exit 0
