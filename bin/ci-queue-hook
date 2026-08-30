@@ -167,6 +167,8 @@ read_only_seg() {
       [[ "$seg" =~ system[[:space:]]*\( ]] && return 1
       return 0 ;;
     sed|grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|find|echo|printf|cd|pwd|gh) return 0 ;;
+    # Process and disk inspectors: their patterns name suites (pgrep -f vitest).
+    ps|pgrep|lsof|stat|du|df|uptime|which) return 0 ;;
     git)
       case "${tok[i + 1]:-}" in
         log|diff|show|status|branch|remote|ls-remote|ls-files|rev-parse|fetch|blame|describe) return 0 ;;

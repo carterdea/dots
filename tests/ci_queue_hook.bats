@@ -355,3 +355,11 @@ EOF
 @test "theme check via a package script routes to the check lane" {
     [ "$(classify 'bun run check:theme')" = "QUEUE check-only" ]
 }
+
+@test "pgrep for a suite name is read-only" {
+    [ "$(classify "pgrep -fc 'vitest|jest|playwright'")" = "SKIP read-only-tool" ]
+}
+
+@test "ps listing piped through grep for a runner is read-only" {
+    [ "$(classify 'ps -axo pid,command | grep playwright')" = "SKIP read-only-tool" ]
+}
