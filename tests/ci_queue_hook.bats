@@ -363,3 +363,19 @@ EOF
 @test "ps listing piped through grep for a runner is read-only" {
     [ "$(classify 'ps -axo pid,command | grep playwright')" = "SKIP read-only-tool" ]
 }
+
+@test "suite inside a sleeping loop still queues" {
+    [ "$(classify 'while true; do bun test; sleep 1; done')" = "QUEUE long-check" ]
+}
+
+@test "suite after a wait loop still queues" {
+    [ "$(classify 'until ! kill -0 1234; do sleep 1; done && bun run test')" = "QUEUE long-check" ]
+}
+
+@test "quoted loop text does not excuse a suite" {
+    [ "$(classify "printf 'while x; do sleep 1; done' > note.txt && bun test")" = "QUEUE long-check" ]
+}
+
+@test "versioned playwright install is not a check" {
+    [ "$(classify 'bunx playwright@1.55.0 install chromium')" = "SKIP not-a-check" ]
+}

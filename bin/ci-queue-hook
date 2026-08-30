@@ -189,10 +189,24 @@ decide() {
   fi
 
   # 1b. A loop that polls until something else finishes spends its life in
-  #     sleep. Queued, it would hold the exclusive lock doing nothing.
-  local wait_loop='(while|until)[[:space:]].*;[[:space:]]*do[[:space:]].*sleep'
+  #     sleep. Queued, it would hold the exclusive lock doing nothing. Only
+  #     the loop is excused: its body and whatever runs around it are judged
+  #     on their own, so a suite inside `while true; do bun test; ...` or
+  #     after `...; done && bun test` still queues.
+  local wait_loop='(while|until)[[:space:]][^;]*;[[:space:]]*do[[:space:]](.*)done'
+  local loop body rest
   if [[ "$cmd" =~ $wait_loop ]]; then
-    echo "SKIP wait-loop"; return
+    loop="${BASH_REMATCH[0]}"
+    body="${BASH_REMATCH[2]}"
+    if [[ "$body" == *sleep* && "$(decide "$body")" != QUEUE* ]]; then
+      # Quoted so the match is spliced out literally, not as a glob.
+      rest="${cmd%%"$loop"*}${cmd#*"$loop"}"
+      if [[ "$rest" =~ [^[:space:]] ]]; then
+        rest="$(decide "$rest")"
+        [[ "$rest" == QUEUE* ]] && { echo "$rest"; return; }
+      fi
+      echo "SKIP wait-loop"; return
+    fi
   fi
 
   # 2. Already queued, or is the queue itself.
@@ -218,7 +232,7 @@ decide() {
     fi
     # Downloading browsers is a fetch, not a check: minutes of network in
     # the exclusive lane, and nothing else can run meanwhile.
-    if [[ "$seg" =~ playwright[[:space:]]+install(-deps)?([[:space:]]|$) ]]; then
+    if [[ "$seg" =~ playwright(@[^[:space:]]+)?[[:space:]]+install(-deps)?([[:space:]]|$) ]]; then
       any_install=1
       continue
     fi

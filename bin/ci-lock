@@ -96,13 +96,18 @@ mkdir -p "$QUEUE_DIR"
 
 # Drops tickets whose owner is gone — a killed waiter must not wedge the
 # queue — and prints the oldest survivor. One directory listing and a few
-# `kill -0` per poll, so a waiter costs nothing while it waits.
+# `kill -0` per poll, so a waiter costs nothing while it waits. A ticket
+# older than the lane's timeout is stale even if its pid answers: no waiter
+# outlives its own deadline, so that pid has been reused by something else.
 queue_head() {
-  local ticket head=""
+  local ticket head="" stamp now
+  now="$(date +%s)"
   for ticket in "$QUEUE_DIR"/*; do
     [[ -e "$ticket" ]] || continue
-    # 10# because the pid is zero-padded, and a leading zero reads as octal.
-    if kill -0 "$((10#${ticket##*-}))" 2>/dev/null; then
+    stamp="${ticket##*/}"
+    # 10# because the fields are zero-padded, and a leading zero reads as octal.
+    if ((now - 10#${stamp%%-*} <= LOCK_TIMEOUT + 60)) &&
+      kill -0 "$((10#${ticket##*-}))" 2>/dev/null; then
       [[ -n "$head" ]] || head="$ticket"
     else
       rm -f "$ticket"

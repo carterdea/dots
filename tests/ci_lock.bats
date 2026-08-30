@@ -89,3 +89,12 @@ setup() {
     CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" "$CI_LOCK" true
     [ -z "$(ls -A "$LOCK.q")" ]
 }
+
+@test "ci-lock prunes a ticket older than the lane timeout even if its pid is alive" {
+    mkdir -p "$LOCK.q"
+    # A ticket stamped an hour ago, naming this test's own (live) shell.
+    printf '' > "$(printf '%s/%010d-%010d' "$LOCK.q" "$(( $(date +%s) - 3600 ))" "$$")"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=2 "$CI_LOCK" true
+    [ "$status" -eq 0 ]
+    [ -z "$(ls -A "$LOCK.q")" ]
+}
