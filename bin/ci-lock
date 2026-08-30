@@ -59,22 +59,105 @@ fi
 
 mkdir -p "$(dirname "$LOCK_FILE")"
 
-# One line per completed run — when, lane, seconds queued, seconds running,
-# exit code, command — the duration data queue tuning never had.
 CI_LOCK_LOG="${CI_LOCK_LOG:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/ci-lock.log}"
 queued_at="$(date +%s)"
+deadline=$((queued_at + LOCK_TIMEOUT))
+
+# Tabs and newlines in the command would add fields or records to the
+# tab-separated log; flatten them so one run is always one six-field line.
+cmd_str="$*"
+cmd_str="${cmd_str//$'\t'/ }"
+cmd_str="${cmd_str//$'\n'/ }"
+
+# One line per run — when, lane, seconds queued, seconds running, exit code,
+# command — the duration data queue tuning never had. A wait that times out
+# logs too, with `timeout` in the exit field, so the waits that never got to
+# run are as visible as the ones that did.
+log_run() {
+  mkdir -p "$(dirname "$CI_LOCK_LOG")" 2>/dev/null || true
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$LANE" \
+    "$1" "$2" "$3" "${cmd_str:0:200}" >>"$CI_LOCK_LOG" 2>/dev/null || true
+}
+
+# FIFO queue. macOS flock wakes every waiter on unlock and they race, so
+# acquisition order is arbitrary: waiters have starved for the whole timeout
+# while newer arrivals slipped past them. Tickets impose arrival order, while
+# flock on $LOCK_FILE stays the actual mutex — an older ci-lock that knows
+# nothing about tickets is still mutually excluded with a new one.
+QUEUE_DIR="$LOCK_FILE.q"
+# Ticket names sort lexically in arrival order: zero-padded epoch seconds,
+# then zero-padded pid to make the name unique. Sub-second arrival times
+# would need a helper process (no %N on macOS date, no EPOCHREALTIME on
+# bash 3.2) on every invocation, which is not worth it: same-second ties fall
+# back to pid order, which is arbitrary but bounds unfairness to one second.
+# The goal is bounding starvation, not perfect ordering.
+TICKET="$(printf '%s/%010d-%010d' "$QUEUE_DIR" "$queued_at" "$$")"
+mkdir -p "$QUEUE_DIR"
+
+# Drops tickets whose owner is gone — a killed waiter must not wedge the
+# queue — and prints the oldest survivor. One directory listing and a few
+# `kill -0` per poll, so a waiter costs nothing while it waits.
+queue_head() {
+  local ticket head=""
+  for ticket in "$QUEUE_DIR"/*; do
+    [[ -e "$ticket" ]] || continue
+    # 10# because the pid is zero-padded, and a leading zero reads as octal.
+    if kill -0 "$((10#${ticket##*-}))" 2>/dev/null; then
+      [[ -n "$head" ]] || head="$ticket"
+    else
+      rm -f "$ticket"
+    fi
+  done
+  printf '%s' "$head"
+}
+
+# Only the head of the queue contends for flock; everyone else polls. That
+# way arrival order decides who goes next, not the kernel's wakeup race.
+acquire() {
+  local remaining
+  # Fast path: no one queued and the lock is free, so take it without a
+  # ticket and without the "waiting in queue" noise.
+  if [[ -z "$(queue_head)" ]] && flock -n 9; then
+    return 0
+  fi
+  : >"$TICKET"
+  echo "ci-lock: another $LANE check is running; waiting in queue (max ${LOCK_TIMEOUT}s)..." >&2
+  while :; do
+    remaining=$((deadline - $(date +%s)))
+    ((remaining > 0)) || return 1
+    if [[ "$(queue_head)" == "$TICKET" ]]; then
+      # One second at a time rather than one blocking wait for the whole
+      # budget: bash runs a trap only once the foreground command returns,
+      # and a waiter that ignores Ctrl-C for half an hour — leaving its
+      # ticket behind the whole time — is its own kind of wedge.
+      flock -w 1 9 && return 0
+    else
+      sleep 1
+    fi
+  done
+}
 
 # This script holds the lock on fd 9 for as long as the command runs, so
 # acquiring it stays separate from running it and no exit code has to do
 # double duty as "could not get the lock".
 exec 9>"$LOCK_FILE"
-if ! flock -n 9; then
-  echo "ci-lock: another $LANE check is running; waiting in queue (max ${LOCK_TIMEOUT}s)..." >&2
-  flock -w "$LOCK_TIMEOUT" 9 || {
-    echo "ci-lock: timed out after ${LOCK_TIMEOUT}s waiting for $LOCK_FILE" >&2
-    exit 1
-  }
+
+# The ticket has to go even if the wait is cut short. The signal traps exit
+# rather than clean up directly so there is one removal path; they are
+# replaced with child-forwarding traps once the command is running.
+trap 'rm -f "$TICKET"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
+
+if ! acquire; then
+  echo "ci-lock: timed out after ${LOCK_TIMEOUT}s waiting for $LOCK_FILE" >&2
+  log_run "$(($(date +%s) - queued_at))" 0 timeout
+  exit 1
 fi
+# The queue holds waiters only: leaving the ticket in place would make the
+# next arrival think it is not head and never block on flock.
+rm -f "$TICKET"
 
 export "$HELD_VAR=$LOCK_FILE:$$"
 started_at="$(date +%s)"
@@ -109,14 +192,6 @@ while ((status > 128)) && kill -0 "$child" 2>/dev/null; do
 done
 set -e
 
-# Tabs and newlines in the command would add fields or records to the
-# tab-separated log; flatten them so one run is always one six-field line.
-cmd_str="$*"
-cmd_str="${cmd_str//$'\t'/ }"
-cmd_str="${cmd_str//$'\n'/ }"
-mkdir -p "$(dirname "$CI_LOCK_LOG")" 2>/dev/null || true
-printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$LANE" \
-  "$((started_at - queued_at))" "$(($(date +%s) - started_at))" "$status" \
-  "${cmd_str:0:200}" >>"$CI_LOCK_LOG" 2>/dev/null || true
+log_run "$((started_at - queued_at))" "$(($(date +%s) - started_at))" "$status"
 
 exit "$status"
