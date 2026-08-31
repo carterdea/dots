@@ -59,3 +59,6 @@
 [credential "https://gist.github.com"]
 	helper = 
 	helper = !/opt/homebrew/bin/gh auth git-credential
+[credential "https://git.heroku.com"]
+	helper =
+	helper = !heroku git:credentials

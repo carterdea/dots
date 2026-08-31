@@ -88,7 +88,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus[1m]",
+  "model": "claude-fable-5[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -119,6 +119,7 @@
     ]
   },
   "enableWorkflows": false,
+  "enableArtifact": false,
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline-command.sh"
