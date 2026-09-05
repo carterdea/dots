@@ -181,6 +181,16 @@ read_only_seg() {
 decide() {
   local cmd="$1"
 
+  # Classify the script argument, not the shell wrapper's quoted text.
+  local shell_script="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+-[a-z]*c[[:space:]]+(['\"])(.*)"
+  if [[ "$cmd" =~ $shell_script ]]; then
+    local quote="${BASH_REMATCH[3]}" script="${BASH_REMATCH[4]}"
+    if [[ "$script" == *"$quote" ]]; then
+      decide "${script%"$quote"}"
+      return
+    fi
+  fi
+
   # 1. Never queue anything that does not exit on its own. A watch or server
   #    holding the machine-wide lock would block every project until timeout.
   if [[ "$cmd" =~ (--watch|[[:space:]]-w([[:space:]]|$)|--ui|interactive) ]] ||
@@ -193,18 +203,35 @@ decide() {
   #     the loop is excused: its body and whatever runs around it are judged
   #     on their own, so a suite inside `while true; do bun test; ...` or
   #     after `...; done && bun test` still queues.
-  local wait_loop='(while|until)[[:space:]][^;]*;[[:space:]]*do[[:space:]](.*)done'
-  local loop body rest
+  local wait_loop=$'(while|until)[[:space:]]([^;\n]*)[;\n][[:space:]]*do[[:space:]](.*)done'
+  local loop body rest condition verdict substitution condition_verdict=""
   if [[ "$cmd" =~ $wait_loop ]]; then
     loop="${BASH_REMATCH[0]}"
-    body="${BASH_REMATCH[2]}"
+    condition="${BASH_REMATCH[2]}"
+    body="${BASH_REMATCH[3]}"
     if [[ "$body" == *sleep* && "$(decide "$body")" != QUEUE* ]]; then
+      # Inspect substitutions before removing their output from the condition.
+      # A pgrep pattern names a runner without executing it.
+      substitution='\$\(([^()]*)\)'
+      while [[ "$condition" =~ $substitution ]]; do
+        local expansion="${BASH_REMATCH[0]}" inner="${BASH_REMATCH[1]}"
+        verdict="$(decide "$inner")"
+        [[ "$verdict" == 'QUEUE long-check' ]] && { echo "$verdict"; return; }
+        [[ "$verdict" != QUEUE* ]] || condition_verdict="$verdict"
+        condition="${condition/"$expansion"/0}"
+      done
+      condition="${condition#"${condition%%[![:space:]]*}"}"
+      condition="${condition#!}"
+      verdict="$(decide "$condition")"
+      [[ "$verdict" == 'QUEUE long-check' ]] && { echo "$verdict"; return; }
+      [[ "$verdict" != QUEUE* ]] || condition_verdict="$verdict"
       # Quoted so the match is spliced out literally, not as a glob.
       rest="${cmd%%"$loop"*}${cmd#*"$loop"}"
       if [[ "$rest" =~ [^[:space:]] ]]; then
         rest="$(decide "$rest")"
         [[ "$rest" == QUEUE* ]] && { echo "$rest"; return; }
       fi
+      [[ -z "$condition_verdict" ]] || { echo "$condition_verdict"; return; }
       echo "SKIP wait-loop"; return
     fi
   fi

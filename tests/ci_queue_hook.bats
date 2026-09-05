@@ -379,3 +379,19 @@ EOF
 @test "versioned playwright install is not a check" {
     [ "$(classify 'bunx playwright@1.55.0 install chromium')" = "SKIP not-a-check" ]
 }
+
+@test "newline polling loops skip the queue" {
+    [ "$(classify $'until ! pgrep -f playwright\ndo\n sleep 5\ndone')" = "SKIP wait-loop" ]
+}
+
+@test "checks in sleeping loop conditions queue" {
+    [ "$(classify 'while bun test; do sleep 1; done')" = "QUEUE long-check" ]
+    [ "$(classify 'until bun run typecheck; do sleep 1; done')" = "QUEUE check-only" ]
+    [ "$(classify 'until bun run typecheck; do sleep 1; done; bun test')" = "QUEUE long-check" ]
+}
+
+@test "quoted shell installs do not mask subsequent checks" {
+    [ "$(classify "bash -c 'playwright install chromium && playwright test'")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'playwright install chromium && bun test'")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'playwright install chromium'")" = "SKIP not-a-check" ]
+}
