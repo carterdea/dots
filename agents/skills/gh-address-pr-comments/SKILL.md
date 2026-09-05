@@ -1,6 +1,6 @@
 ---
 name: gh-address-pr-comments
-description: Address PR review feedback and babysit PR review and CI until approval or sustained quiet. Use when asked to fix PR comments or babysit a PR already filed; gh-ship opens it.
+description: Address PR review feedback and babysit PR review until approval or sustained quiet. Use when asked to fix PR comments or babysit a PR already filed; gh-ship opens it.
 user-invocable: true
 ---
 
@@ -22,7 +22,7 @@ Proceed only with an unambiguous PR and current-head evidence. Closed or merged 
 2. Triage all feedback using the rules below. Track thread id, comment ids and update timestamps, head SHA, verdict, reply id, and resolution in session state. New replies, edits, reopened threads, or a new head require reconsideration. Skip unchanged handled items without repeating their bodies in chat.
 3. Apply every valid in-scope fix. Run the narrowest relevant checks. In watch mode, commit and push only after they pass. For one pass, leave changes unstaged unless shipping was requested; threads whose fixes remain local stay unresolved.
 4. Reply and resolve eligible threads using [references/thread-replies.md](references/thread-replies.md). A fixed thread is complete only after its fix is pushed, the reply names that commit, and GitHub confirms resolution. Dismissed or superseded findings need a code-backed explanation. Duplicate threads still need individual closure referencing the canonical fix.
-5. Inspect current-head checks. On failure, read [references/ci.md](references/ci.md), diagnose, and fix or report the blocker. Recheck the base branch when mergeability changes; rebase only when needed, validate again, and use `--force-with-lease` if publishing a rebase. A changed head resets approval and quiet time. If another PR supersedes this one, report it and stop; closing needs authorization.
+5. Inspect current-head checks. Report failed checks and route CI diagnosis, reruns, and repairs to [gh-fix-ci](../gh-fix-ci/SKILL.md). This skill validates its own review fixes but does not repair CI failures. Recheck the base branch when mergeability changes; rebase only when needed, validate again, and use `--force-with-lease` if publishing a rebase. A changed head resets approval and quiet time. If another PR supersedes this one, report it and stop; closing needs authorization.
 6. Evaluate the stop conditions, then wait five minutes and repeat. Use interruptible waits or waits of at most 60 seconds. Stay quiet about unchanged polls unless the user requested updates.
 
 ## Triage
@@ -40,8 +40,8 @@ Ask only for ambiguity, conflicting requirements, destructive changes, or produc
 Evaluate approval only after triage and closure, never before reading outstanding feedback.
 
 - Approved current head, checks green, no pending review, known mergeability, and no unresolved actionable feedback: report ready. Merge only when the user has authorized it and repository gates pass; pin the merge to the inspected head with `gh pr merge --match-head-commit SHA` and an allowed merge method. Approval alone is not permission to merge.
-- Otherwise stop after four clean polls, each separated by five minutes, spanning at least 20 minutes since the last push, fix, or new feedback. A clean poll requires green checks, no pending checks/reviews, known mergeability, and no unresolved actionable feedback. The initial fetch starts the clock; it does not count as five elapsed minutes. Reset on new feedback, edits, pushes, failures, or pending checks.
-- Stop on merge, closure, supersession, authentication/rate-limit blockers, unfixable failures, or a required user decision. For one pass, stop after the cycle and report anything pending.
+- Otherwise stop after four clean polls, each separated by five minutes, spanning at least 20 minutes since the last push, fix, or new feedback. A clean poll requires no pending review and no unresolved actionable feedback. CI status does not extend the comment watch; report failed or pending checks at handoff. The initial fetch starts the clock; it does not count as five elapsed minutes. Reset on new feedback, edits, pushes, or failed local validation of a review fix.
+- Stop on merge, closure, supersession, authentication/rate-limit blockers, failed local validation of a review fix, or a required user decision. For one pass, stop after the cycle and report anything pending.
 
 The helper's `approval.has_agent_approval` accepts a latest submitted approval from an explicitly recognized Codex or Claude bot on the current SHA. Reactions are informational unless the user explicitly accepts them; they have no commit binding. Never count stale approval after a push or infer approval from prose.
 
