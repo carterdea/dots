@@ -55,7 +55,16 @@ split_segments() {
     fi
     case "$c" in
       \' | \") q="$c"; out+="$c" ;;
-      '|' | ';' | '&') out+=$'\n' ;;
+      # An & inside a redirection operator (2>&1, >&2, &>log, &>>log, <&0)
+      # belongs to the previous command, not between two. Only a bare & — a
+      # trailing background & or the && of a list — separates.
+      '&')
+        if [[ "${out: -1}" == '>' || "${out: -1}" == '<' || "${s:i+1:1}" == '>' ]]; then
+          out+="$c"
+        else
+          out+=$'\n'
+        fi ;;
+      '|' | ';') out+=$'\n' ;;
       *) out+="$c" ;;
     esac
   done
@@ -158,6 +167,8 @@ read_only_seg() {
       [[ "$seg" =~ system[[:space:]]*\( ]] && return 1
       return 0 ;;
     sed|grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|find|echo|printf|cd|pwd|gh) return 0 ;;
+    # Process and disk inspectors: their patterns name suites (pgrep -f vitest).
+    ps|pgrep|lsof|stat|du|df|uptime|which) return 0 ;;
     git)
       case "${tok[i + 1]:-}" in
         log|diff|show|status|branch|remote|ls-remote|ls-files|rev-parse|fetch|blame|describe) return 0 ;;
@@ -165,6 +176,34 @@ read_only_seg() {
       esac ;;
     *) return 1 ;;
   esac
+}
+
+# A shell's quoted script is one argument; later tokens supply $0, $1, etc.
+shell_verdict() {
+  local prefix="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+-[a-z]*c[[:space:]]+(['\"])(.*)"
+  [[ "$1" =~ $prefix ]] || return 1
+  local quote="${BASH_REMATCH[3]}" tail="${BASH_REMATCH[4]}"
+  local script="" c i escaped=0
+  for ((i=0; i<${#tail}; i++)); do
+    c="${tail:i:1}"
+    if ((escaped)); then
+      script+="$c"
+      escaped=0
+    elif [[ "$c" == "$quote" ]]; then
+      # Resolving dynamic arguments would require evaluating shell code.
+      # Treat non-read-only scripts using positional parameters as heavy.
+      if [[ "$script" =~ \$\{?[0-9@*] ]] && ! read_only_seg "$script"; then
+        echo "QUEUE long-check"
+      else
+        decide "$script"
+      fi
+      return 0
+    else
+      script+="$c"
+      [[ "$quote" != '"' || "$c" != $'\\' ]] || escaped=1
+    fi
+  done
+  return 1
 }
 
 decide() {
@@ -177,17 +216,67 @@ decide() {
     echo "SKIP watch-or-server"; return
   fi
 
+  # 1b. A loop that polls until something else finishes spends its life in
+  #     sleep. Queued, it would hold the exclusive lock doing nothing. Only
+  #     the loop is excused: its body and whatever runs around it are judged
+  #     on their own, so a suite inside `while true; do bun test; ...` or
+  #     after `...; done && bun test` still queues.
+  local wait_loop=$'(while|until)[[:space:]]([^;\n]*)[;\n][[:space:]]*do[[:space:]](.*)done'
+  local loop body rest condition verdict substitution condition_verdict=""
+  if [[ "$cmd" =~ $wait_loop ]]; then
+    loop="${BASH_REMATCH[0]}"
+    condition="${BASH_REMATCH[2]}"
+    body="${BASH_REMATCH[3]}"
+    if [[ "$body" == *sleep* && "$(decide "$body")" != QUEUE* ]]; then
+      # Inspect substitutions before removing their output from the condition.
+      # A pgrep pattern names a runner without executing it.
+      substitution='\$\(([^()]*)\)'
+      while [[ "$condition" =~ $substitution ]]; do
+        local expansion="${BASH_REMATCH[0]}" inner="${BASH_REMATCH[1]}"
+        verdict="$(decide "$inner")"
+        [[ "$verdict" == 'QUEUE long-check' ]] && { echo "$verdict"; return; }
+        [[ "$verdict" != QUEUE* ]] || condition_verdict="$verdict"
+        condition="${condition/"$expansion"/0}"
+      done
+      condition="${condition#"${condition%%[![:space:]]*}"}"
+      condition="${condition#!}"
+      verdict="$(decide "$condition")"
+      [[ "$verdict" == 'QUEUE long-check' ]] && { echo "$verdict"; return; }
+      [[ "$verdict" != QUEUE* ]] || condition_verdict="$verdict"
+      # Quoted so the match is spliced out literally, not as a glob.
+      rest="${cmd%%"$loop"*}${cmd#*"$loop"}"
+      if [[ "$rest" =~ [^[:space:]] ]]; then
+        rest="$(decide "$rest")"
+        [[ "$rest" == QUEUE* ]] && { echo "$rest"; return; }
+        if [[ "$condition_verdict" == 'QUEUE check-only' && "$rest" == 'SKIP not-heavy' ]]; then
+          echo 'QUEUE long-check'; return
+        fi
+      fi
+      [[ -z "$condition_verdict" ]] || { echo "$condition_verdict"; return; }
+      echo "SKIP wait-loop"; return
+    fi
+  fi
+
   # 2. Already queued, or is the queue itself.
   if [[ "$cmd" =~ (ci-lock|lefthook) ]]; then echo "SKIP already-queued"; return; fi
 
   # 3. Judge each pipeline segment on its own. A file argument scopes only
   #    the segment it appears in, and a read-only lead-in never excuses a
   #    suite running after && — one heavy segment queues the whole command.
-  local seg any_file=0 any_name=0 any_ro=0 checkonly=0 any_other=0
+  local seg any_file=0 any_name=0 any_ro=0 checkonly=0 any_install=0 any_other=0
   while IFS= read -r seg; do
     [[ "$seg" =~ [^[:space:]] ]] || continue
     if read_only_seg "$seg"; then
       any_ro=1
+      continue
+    fi
+    if verdict="$(shell_verdict "$seg")"; then
+      case "$verdict" in
+        'QUEUE long-check') echo "$verdict"; return ;;
+        'QUEUE check-only') checkonly=1 ;;
+        'SKIP not-a-check') any_install=1 ;;
+        'SKIP not-heavy') any_other=1 ;;
+      esac
       continue
     fi
     if [[ "$seg" =~ (-k[[:space:]]|-t[[:space:]]|--testNamePattern|--grep) ]]; then
@@ -198,11 +287,18 @@ decide() {
       any_file=1
       continue
     fi
+    # Downloading browsers is a fetch, not a check: minutes of network in
+    # the exclusive lane, and nothing else can run meanwhile.
+    if [[ "$seg" =~ playwright(@[^[:space:]]+)?[[:space:]]+install(-deps)?([[:space:]]|$) ]]; then
+      any_install=1
+      continue
+    fi
     # Long: full suites, e2e, aggregates, builds — the heavy lane.
     if [[ "$seg" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]])jest([[:space:]]|$)) ]] ||
       [[ "$seg" =~ run[[:space:]]+--filter[[:space:]]+[^[:space:]]+[[:space:]]+test([[:space:]]|$) ]] ||
       [[ "$seg" =~ ((^|[[:space:]])pytest([[:space:]]|$)|(^|[[:space:]])rspec([[:space:]]|$)|go[[:space:]]+test) ]] ||
       [[ "$seg" =~ (playwright|cypress|detox) ]] ||
+      [[ "$seg" =~ (^|[[:space:]/])(rails|rake)[[:space:]]+test(:[a-z]+)?([[:space:]]|$) ]] ||
       [[ "$seg" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||
       [[ "$seg" =~ scripts/(verify|test)[^[:space:]]*\.sh ]]; then
       echo "QUEUE long-check"
@@ -211,6 +307,7 @@ decide() {
     # Typecheck and lint only: CPU-bound, no ports, DBs, or fixtures — they
     # get their own lane so a 30s tsc never waits behind a Playwright run.
     if [[ "$seg" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright|run[[:space:]]+lint(:[^[:space:]]*)?([[:space:]]|$)) ]] ||
+      [[ "$seg" =~ (shopify[[:space:]]+theme[[:space:]]+check|run[[:space:]]+check:theme([[:space:]]|$)) ]] ||
       [[ "$seg" =~ (biome[[:space:]]+check|(^|[[:space:]])eslint|ruff[[:space:]]+check)([[:space:]]+-[^[:space:]]+)*[[:space:]]+\.([[:space:]]|$) ]]; then
       checkonly=1
       continue
@@ -225,6 +322,7 @@ decide() {
     if ((any_other)); then echo "QUEUE long-check"; else echo "QUEUE check-only"; fi
     return
   fi
+  ((any_install)) && { echo "SKIP not-a-check"; return; }
   ((any_file)) && { echo "SKIP file-scoped"; return; }
   ((any_name)) && { echo "SKIP name-filtered"; return; }
   ((any_ro)) && { echo "SKIP read-only-tool"; return; }
@@ -238,7 +336,28 @@ reason="${verdict#* }"
 # Flatten tabs and newlines so one decision is always one four-field line.
 log_cmd="${cmd//$'\t'/ }"
 log_cmd="${log_cmd//$'\n'/ }"
-printf '%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$action" "$reason" "${log_cmd:0:200}" >>"$LOG" 2>/dev/null || true
+# Append and rotate under the same mutex, keeping concurrent writers out of
+# the snapshot/rename window. Without flock, append only; never replace a log
+# that another hook may be writing. Logging remains best-effort.
+write_log() {
+  printf '%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$action" "$reason" "${log_cmd:0:200}" >>"$LOG"
+}
+if command -v flock >/dev/null 2>&1; then
+  (
+    flock -x -w 1 8 || exit 0
+    write_log
+    log_size="$(stat -f%z "$LOG" 2>/dev/null || stat -c%s "$LOG" 2>/dev/null || echo 0)"
+    if [[ "$log_size" =~ ^[0-9]+$ ]] && ((log_size > 5242880)); then
+      if tail -n 20000 "$LOG" >"$LOG.rotating"; then
+        mv -f "$LOG.rotating" "$LOG" || rm -f "$LOG.rotating"
+      else
+        rm -f "$LOG.rotating"
+      fi
+    fi
+  ) 8>"$LOG.lock" 2>/dev/null || true
+else
+  write_log 2>/dev/null || true
+fi
 
 # Dry-run: observe only.
 [[ "${CI_QUEUE_HOOK_ENFORCE:-0}" != "1" ]] && exit 0

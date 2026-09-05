@@ -285,3 +285,150 @@ EOF
 @test "full-repo ruff check routes to the check lane" {
     [ "$(classify 'uv run ruff check .')" = "QUEUE check-only" ]
 }
+
+# --- fourth review round: redirections are not separators ---
+
+@test "typecheck with 2>&1 piped to tail routes to the check lane" {
+    [ "$(classify 'bun run typecheck 2>&1 | tail -5')" = "QUEUE check-only" ]
+}
+
+@test "tsc with both streams redirected routes to the check lane" {
+    [ "$(classify 'npx tsc --noEmit >/dev/null 2>&1')" = "QUEUE check-only" ]
+}
+
+@test "typecheck with a combined redirection routes to the check lane" {
+    [ "$(classify 'bun run typecheck &> out.log')" = "QUEUE check-only" ]
+}
+
+# --- fourth review round: browser downloads are not checks ---
+
+@test "playwright install is not queued" {
+    [ "$(classify 'bunx playwright install chromium')" = "SKIP not-a-check" ]
+}
+
+@test "playwright install-deps is not queued" {
+    [ "$(classify 'bunx playwright install-deps')" = "SKIP not-a-check" ]
+}
+
+@test "playwright test still queues" {
+    [ "$(classify 'bunx playwright test')" = "QUEUE long-check" ]
+}
+
+# --- fourth review round: polling loops must not hold the lock ---
+
+@test "until loop polling with sleep is skipped" {
+    [ "$(classify 'until ! kill -0 $(pgrep -f "tsc --noEmit" | head -1) 2>/dev/null; do sleep 5; done; echo done')" = "SKIP wait-loop" ]
+}
+
+# --- fourth review round: rails suites queue ---
+
+@test "bin/rails test queues" {
+    [ "$(classify 'bin/rails test')" = "QUEUE long-check" ]
+}
+
+@test "rails system tests queue" {
+    [ "$(classify 'bin/rails test:system')" = "QUEUE long-check" ]
+}
+
+@test "bundle exec rails test queues" {
+    [ "$(classify 'bundle exec rails test')" = "QUEUE long-check" ]
+}
+
+@test "rake test queues" {
+    [ "$(classify 'rake test')" = "QUEUE long-check" ]
+}
+
+@test "rails test:all queues" {
+    [ "$(classify 'rails test:all')" = "QUEUE long-check" ]
+}
+
+@test "single-file rails test is file-scoped" {
+    [ "$(classify 'bin/rails test test/models/donation_test.rb')" = "SKIP file-scoped" ]
+}
+
+# --- fourth review round: theme check gets the check lane ---
+
+@test "shopify theme check routes to the check lane" {
+    [ "$(classify 'shopify theme check')" = "QUEUE check-only" ]
+}
+
+@test "theme check via a package script routes to the check lane" {
+    [ "$(classify 'bun run check:theme')" = "QUEUE check-only" ]
+}
+
+@test "pgrep for a suite name is read-only" {
+    [ "$(classify "pgrep -fc 'vitest|jest|playwright'")" = "SKIP read-only-tool" ]
+}
+
+@test "ps listing piped through grep for a runner is read-only" {
+    [ "$(classify 'ps -axo pid,command | grep playwright')" = "SKIP read-only-tool" ]
+}
+
+@test "suite inside a sleeping loop still queues" {
+    [ "$(classify 'while true; do bun test; sleep 1; done')" = "QUEUE long-check" ]
+}
+
+@test "suite after a wait loop still queues" {
+    [ "$(classify 'until ! kill -0 1234; do sleep 1; done && bun run test')" = "QUEUE long-check" ]
+}
+
+@test "quoted loop text does not excuse a suite" {
+    [ "$(classify "printf 'while x; do sleep 1; done' > note.txt && bun test")" = "QUEUE long-check" ]
+}
+
+@test "versioned playwright install is not a check" {
+    [ "$(classify 'bunx playwright@1.55.0 install chromium')" = "SKIP not-a-check" ]
+}
+
+@test "newline polling loops skip the queue" {
+    [ "$(classify $'until ! pgrep -f playwright\ndo\n sleep 5\ndone')" = "SKIP wait-loop" ]
+}
+
+@test "checks in sleeping loop conditions queue" {
+    [ "$(classify 'while bun test; do sleep 1; done')" = "QUEUE long-check" ]
+    [ "$(classify 'until bun run typecheck; do sleep 1; done')" = "QUEUE check-only" ]
+    [ "$(classify 'until bun run typecheck; do sleep 1; done; bun test')" = "QUEUE long-check" ]
+    [ "$(classify 'until bun run typecheck; do sleep 1; done; bun run integration')" = "QUEUE long-check" ]
+    [ "$(classify 'until bun run typecheck; do sleep 1; done; echo finished')" = "QUEUE check-only" ]
+}
+
+@test "quoted shell installs do not mask subsequent checks" {
+    [ "$(classify "bash -c 'playwright install chromium && playwright test'")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'playwright install chromium && bun test'")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'playwright install chromium'")" = "SKIP not-a-check" ]
+    [ "$(classify "bash -c 'playwright install chromium && playwright test' _")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'bun \"\$1\"' _ test")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c '\$0 test' bun")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'playwright install chromium' _ && bun test")" = "QUEUE long-check" ]
+}
+
+@test "unknown nested shell commands keep a companion typecheck in the heavy lane" {
+    [ "$(classify "bash -c 'bun run integration' && bun run typecheck")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'echo hello' && bun run typecheck")" = "QUEUE check-only" ]
+}
+
+@test "busy logging lock does not block the hook decision" {
+    exec 8>"$LOG.lock"
+    flock -x 8
+    # Parent keeps the mutex until the hook returns, so an unbounded wait
+    # would deadlock. Bats' timeout bounds that failure.
+    jq -cn --arg c 'bun test' '{tool_input:{command:$c}}' |
+        CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=1 HOME="$FAKE_HOME" "$HOOK" 8>&- \
+        > "$BATS_TEST_TMPDIR/decision"
+    exec 8>&-
+    [ -s "$BATS_TEST_TMPDIR/decision" ]
+    [ ! -s "$LOG" ]
+}
+
+@test "concurrent hook writers retain each new record during rotation" {
+    awk 'BEGIN { for (i=0; i<60000; i++) printf "%0100d\n", i }' > "$LOG"
+    writers=()
+    for id in {1..12}; do
+        jq -cn --arg c "echo writer-$id" '{tool_input:{command:$c}}' |
+            CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=0 "$HOOK" &
+        writers+=($!)
+    done
+    for writer in "${writers[@]}"; do wait "$writer"; done
+    [ "$(grep -c 'echo writer-' "$LOG")" -eq 12 ]
+    [ "$(wc -l < "$LOG")" -lt 60000 ]
+}
