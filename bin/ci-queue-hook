@@ -248,6 +248,9 @@ decide() {
       if [[ "$rest" =~ [^[:space:]] ]]; then
         rest="$(decide "$rest")"
         [[ "$rest" == QUEUE* ]] && { echo "$rest"; return; }
+        if [[ "$condition_verdict" == 'QUEUE check-only' && "$rest" == 'SKIP not-heavy' ]]; then
+          echo 'QUEUE long-check'; return
+        fi
       fi
       [[ -z "$condition_verdict" ]] || { echo "$condition_verdict"; return; }
       echo "SKIP wait-loop"; return

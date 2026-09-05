@@ -388,6 +388,8 @@ EOF
     [ "$(classify 'while bun test; do sleep 1; done')" = "QUEUE long-check" ]
     [ "$(classify 'until bun run typecheck; do sleep 1; done')" = "QUEUE check-only" ]
     [ "$(classify 'until bun run typecheck; do sleep 1; done; bun test')" = "QUEUE long-check" ]
+    [ "$(classify 'until bun run typecheck; do sleep 1; done; bun run integration')" = "QUEUE long-check" ]
+    [ "$(classify 'until bun run typecheck; do sleep 1; done; echo finished')" = "QUEUE check-only" ]
 }
 
 @test "quoted shell installs do not mask subsequent checks" {
