@@ -192,7 +192,7 @@ shell_verdict() {
     elif [[ "$c" == "$quote" ]]; then
       # Resolving dynamic arguments would require evaluating shell code.
       # Treat non-read-only scripts using positional parameters as heavy.
-      if [[ "$script" =~ \$\{?[1-9@*] ]] && ! read_only_seg "$script"; then
+      if [[ "$script" =~ \$\{?[0-9@*] ]] && ! read_only_seg "$script"; then
         echo "QUEUE long-check"
       else
         decide "$script"
@@ -272,6 +272,7 @@ decide() {
         'QUEUE long-check') echo "$verdict"; return ;;
         'QUEUE check-only') checkonly=1 ;;
         'SKIP not-a-check') any_install=1 ;;
+        'SKIP not-heavy') any_other=1 ;;
       esac
       continue
     fi
@@ -340,7 +341,7 @@ write_log() {
 }
 if command -v flock >/dev/null 2>&1; then
   (
-    flock -x 8 || exit 0
+    flock -x -w 1 8 || exit 0
     write_log
     log_size="$(stat -f%z "$LOG" 2>/dev/null || stat -c%s "$LOG" 2>/dev/null || echo 0)"
     if [[ "$log_size" =~ ^[0-9]+$ ]] && ((log_size > 5242880)); then

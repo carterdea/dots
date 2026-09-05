@@ -396,7 +396,26 @@ EOF
     [ "$(classify "bash -c 'playwright install chromium'")" = "SKIP not-a-check" ]
     [ "$(classify "bash -c 'playwright install chromium && playwright test' _")" = "QUEUE long-check" ]
     [ "$(classify "bash -c 'bun \"\$1\"' _ test")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c '\$0 test' bun")" = "QUEUE long-check" ]
     [ "$(classify "bash -c 'playwright install chromium' _ && bun test")" = "QUEUE long-check" ]
+}
+
+@test "unknown nested shell commands keep a companion typecheck in the heavy lane" {
+    [ "$(classify "bash -c 'bun run integration' && bun run typecheck")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'echo hello' && bun run typecheck")" = "QUEUE check-only" ]
+}
+
+@test "busy logging lock does not block the hook decision" {
+    exec 8>"$LOG.lock"
+    flock -x 8
+    # Parent keeps the mutex until the hook returns, so an unbounded wait
+    # would deadlock. Bats' timeout bounds that failure.
+    jq -cn --arg c 'bun test' '{tool_input:{command:$c}}' |
+        CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=1 HOME="$FAKE_HOME" "$HOOK" 8>&- \
+        > "$BATS_TEST_TMPDIR/decision"
+    exec 8>&-
+    [ -s "$BATS_TEST_TMPDIR/decision" ]
+    [ ! -s "$LOG" ]
 }
 
 @test "concurrent hook writers retain each new record during rotation" {
