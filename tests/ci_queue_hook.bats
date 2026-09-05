@@ -394,4 +394,20 @@ EOF
     [ "$(classify "bash -c 'playwright install chromium && playwright test'")" = "QUEUE long-check" ]
     [ "$(classify "bash -c 'playwright install chromium && bun test'")" = "QUEUE long-check" ]
     [ "$(classify "bash -c 'playwright install chromium'")" = "SKIP not-a-check" ]
+    [ "$(classify "bash -c 'playwright install chromium && playwright test' _")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'bun \"\$1\"' _ test")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'playwright install chromium' _ && bun test")" = "QUEUE long-check" ]
+}
+
+@test "concurrent hook writers retain each new record during rotation" {
+    awk 'BEGIN { for (i=0; i<60000; i++) printf "%0100d\n", i }' > "$LOG"
+    writers=()
+    for id in {1..12}; do
+        jq -cn --arg c "echo writer-$id" '{tool_input:{command:$c}}' |
+            CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=0 "$HOOK" &
+        writers+=($!)
+    done
+    for writer in "${writers[@]}"; do wait "$writer"; done
+    [ "$(grep -c 'echo writer-' "$LOG")" -eq 12 ]
+    [ "$(wc -l < "$LOG")" -lt 60000 ]
 }
