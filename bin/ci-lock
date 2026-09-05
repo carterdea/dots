@@ -61,7 +61,14 @@ mkdir -p "$(dirname "$LOCK_FILE")"
 
 CI_LOCK_LOG="${CI_LOCK_LOG:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/ci-lock.log}"
 queued_at="$(date +%s)"
-deadline=$((queued_at + LOCK_TIMEOUT))
+if ! [[ "$LOCK_TIMEOUT" =~ ^([0-9]+([.][0-9]*)?|[.][0-9]+)$ ]]; then
+  echo "ci-lock: invalid timeout '$LOCK_TIMEOUT' (want nonnegative seconds)" >&2
+  exit 64
+fi
+# macOS date and Bash 3.2 lack subsecond clocks; system Perl supplies one.
+now_ms() { perl -MTime::HiRes=time -e 'printf "%.0f", time * 1000'; }
+timeout_ms="$(perl -e 'printf "%.0f", $ARGV[0] * 1000' "$LOCK_TIMEOUT")"
+deadline=$(($(now_ms) + timeout_ms))
 
 # Tabs and newlines in the command would add fields or records to the
 # tab-separated log; flatten them so one run is always one six-field line.
@@ -96,18 +103,18 @@ mkdir -p "$QUEUE_DIR"
 
 # Drops tickets whose owner is gone — a killed waiter must not wedge the
 # queue — and prints the oldest survivor. One directory listing and a few
-# `kill -0` per poll, so a waiter costs nothing while it waits. A ticket
-# older than the lane's timeout is stale even if its pid answers: no waiter
-# outlives its own deadline, so that pid has been reused by something else.
+# `kill -0` per poll. Each ticket carries its own expiry, so callers with
+# shorter timeouts cannot evict a live waiter with a longer budget.
+# Legacy empty tickets are removed only when their owner is gone.
 queue_head() {
-  local ticket head="" stamp now
-  now="$(date +%s)"
+  local ticket head="" expiry now
+  now="$(now_ms)"
   for ticket in "$QUEUE_DIR"/*; do
     [[ -e "$ticket" ]] || continue
-    stamp="${ticket##*/}"
+    expiry="$(cat "$ticket" 2>/dev/null)" || continue
     # 10# because the fields are zero-padded, and a leading zero reads as octal.
-    if ((now - 10#${stamp%%-*} <= LOCK_TIMEOUT + 60)) &&
-      kill -0 "$((10#${ticket##*-}))" 2>/dev/null; then
+    if kill -0 "$((10#${ticket##*-}))" 2>/dev/null &&
+      { [[ ! "$expiry" =~ ^[0-9]+$ ]] || ((now <= expiry)); }; then
       [[ -n "$head" ]] || head="$ticket"
     else
       rm -f "$ticket"
@@ -119,25 +126,28 @@ queue_head() {
 # Only the head of the queue contends for flock; everyone else polls. That
 # way arrival order decides who goes next, not the kernel's wakeup race.
 acquire() {
-  local remaining
-  # Fast path: no one queued and the lock is free, so take it without a
-  # ticket and without the "waiting in queue" noise.
-  if [[ -z "$(queue_head)" ]] && flock -n 9; then
+  local remaining interval wait_seconds
+  # Publish a complete ticket before contending, including on a free lock.
+  printf '%s\n' "$((deadline + 60000))" >"$QUEUE_DIR/.$$"
+  mv "$QUEUE_DIR/.$$" "$TICKET"
+  if [[ "$(queue_head)" == "$TICKET" ]] && flock -n 9; then
     return 0
   fi
-  : >"$TICKET"
   echo "ci-lock: another $LANE check is running; waiting in queue (max ${LOCK_TIMEOUT}s)..." >&2
   while :; do
-    remaining=$((deadline - $(date +%s)))
+    remaining=$((deadline - $(now_ms)))
     ((remaining > 0)) || return 1
+    interval=$remaining
+    ((interval <= 1000)) || interval=1000
+    printf -v wait_seconds '%d.%03d' "$((interval / 1000))" "$((interval % 1000))"
     if [[ "$(queue_head)" == "$TICKET" ]]; then
       # One second at a time rather than one blocking wait for the whole
       # budget: bash runs a trap only once the foreground command returns,
       # and a waiter that ignores Ctrl-C for half an hour — leaving its
       # ticket behind the whole time — is its own kind of wedge.
-      flock -w 1 9 && return 0
+      flock -w "$wait_seconds" 9 && return 0
     else
-      sleep 1
+      sleep "$wait_seconds"
     fi
   done
 }
@@ -150,7 +160,7 @@ exec 9>"$LOCK_FILE"
 # The ticket has to go even if the wait is cut short. The signal traps exit
 # rather than clean up directly so there is one removal path; they are
 # replaced with child-forwarding traps once the command is running.
-trap 'rm -f "$TICKET"' EXIT
+trap 'rm -f "$TICKET" "$QUEUE_DIR/.$$"' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
@@ -176,15 +186,26 @@ started_at="$(date +%s)"
 # that signals only this wrapper cannot leave the command running with the
 # lock already released. <&0 keeps stdin attached, which a backgrounded job
 # would otherwise lose — pre-push hooks read their refs from it.
-"$@" 9>&- <&0 &
-child=$!
-trap 'kill -TERM "$child" 2>/dev/null || true' TERM
-trap 'kill -HUP "$child" 2>/dev/null || true' HUP
+child=""
+pending_signal=""
+forward_signal() {
+  if [[ -n "$child" ]]; then
+    kill -"$1" "$child" 2>/dev/null || true
+  else
+    pending_signal="$1"
+  fi
+}
+trap 'forward_signal TERM' TERM
+trap 'forward_signal HUP' HUP
 # Ctrl-C is forwarded as TERM, not INT: POSIX has the shell set SIGINT to
 # ignore in an asynchronous job, and an ignored disposition survives exec, so
 # the command cannot be interrupted by the signal it was sent. Without this a
 # cancelled push keeps running its suite and keeps the queue behind it.
-trap 'kill -TERM "$child" 2>/dev/null || true' INT
+trap 'forward_signal TERM' INT
+
+"$@" 9>&- <&0 &
+child=$!
+[[ -z "$pending_signal" ]] || forward_signal "$pending_signal"
 
 set +e
 wait "$child"

@@ -90,11 +90,58 @@ setup() {
     [ -z "$(ls -A "$LOCK.q")" ]
 }
 
-@test "ci-lock prunes a ticket older than the lane timeout even if its pid is alive" {
+@test "ci-lock prunes an expired ticket even if its pid is alive" {
     mkdir -p "$LOCK.q"
     # A ticket stamped an hour ago, naming this test's own (live) shell.
-    printf '' > "$(printf '%s/%010d-%010d' "$LOCK.q" "$(( $(date +%s) - 3600 ))" "$$")"
+    printf '1\n' > "$(printf '%s/%010d-%010d' "$LOCK.q" "$(( $(date +%s) - 3600 ))" "$$")"
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=2 "$CI_LOCK" true
     [ "$status" -eq 0 ]
     [ -z "$(ls -A "$LOCK.q")" ]
+}
+
+@test "short fractional timeout preserves an older live ticket with a longer deadline" {
+    mkdir -p "$LOCK.q"
+    ticket="$(printf '%s/%010d-%010d' "$LOCK.q" "$(( $(date +%s) - 120 ))" "$$")"
+    printf '%s\n' "$(( ($(date +%s) + 1800) * 1000 ))" > "$ticket"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=0.2 "$CI_LOCK" true
+    [ "$status" -eq 1 ]
+    [[ "$output" == *'timed out after 0.2s'* ]]
+    [ -e "$ticket" ]
+    [ "$(awk -F'\t' '{print $5}' "$LOG")" = timeout ]
+}
+
+@test "zero timeout acquires a free lock and publishes a ticket first" {
+    mkdir -p "$BATS_TEST_TMPDIR/bin"
+    real_flock="$(command -v flock)"
+    # The shim observes ticket publication at the first acquisition attempt.
+    printf '#!/bin/bash\ncompgen -G "$CI_LOCK_FILE.q/*" >/dev/null || exit 70\nexec "%s" "$@"\n' \
+        "$real_flock" > "$BATS_TEST_TMPDIR/bin/flock"
+    chmod +x "$BATS_TEST_TMPDIR/bin/flock"
+    run env PATH="$BATS_TEST_TMPDIR/bin:$PATH" CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
+        CI_LOCK_TIMEOUT=0 "$CI_LOCK" true
+    [ "$status" -eq 0 ]
+    [ -z "$(ls -A "$LOCK.q")" ]
+}
+
+@test "fractional timeout waits for a contended lock" {
+    flock "$LOCK" sh -c 'touch "$1"; sleep 0.4' sh "$BATS_TEST_TMPDIR/ready" &
+    holder=$!
+    for attempt in {1..100}; do
+        [ ! -f "$BATS_TEST_TMPDIR/ready" ] || break
+        sleep 0.01
+    done
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=0.8 "$CI_LOCK" true
+    wait "$holder"
+    [ "$status" -eq 0 ]
+}
+
+@test "signal between child launch and PID assignment keeps the wrapper waiting" {
+    # DEBUG delivers TERM in the launch window without a timing race.
+    run env BASH_ENV="$DIR/fixtures/ci_lock_signal.bash" CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
+        "$CI_LOCK" sleep 1
+    # Bash may receive TERM before exec resets the child's inherited traps.
+    # Either way the wrapper must reap the child and record its exit.
+    [[ "$status" -eq 0 || "$status" -eq 143 ]]
+    [ "$(awk -F'\t' '{print $5}' "$LOG")" = "$status" ]
+    flock -n "$LOCK" true
 }
