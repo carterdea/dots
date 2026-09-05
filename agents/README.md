@@ -18,7 +18,6 @@ agents/
     ├── app-store-preflight-compliance/    # App Store submission readiness
     ├── asana-cli/                         # Drive Asana through the `asana` CLI
     ├── audit-ai-frontend/                # Audit AI-looking frontend implementations
-    ├── babysit-pr/                       # Watch a PR through review and CI until mergeable
     ├── baseline/                         # Install quality baseline (linter, hooks, dead-code)
     ├── claude-review/                    # Second opinion via Claude Code CLI
     ├── clean-coder/                      # Invoked when user swears or is upset
@@ -33,7 +32,7 @@ agents/
     ├── domain-model/                     # Grilling session that maintains CONTEXT.md + ADRs
     ├── emil-design-engineering/          # Design engineering principles
     ├── execute-plan/                     # Work through plan file task-by-task
-    ├── gh-address-pr-comments/           # Watch PR comments and fix valid feedback
+    ├── gh-address-pr-comments/           # Babysit PR review and CI, reply and resolve threads
     ├── gh-commit/                        # Conventional commit messages
     ├── gh-fix-ci/                        # Fix first failing CI check
     ├── gh-review-pr/                     # Review GitHub PR
@@ -141,9 +140,8 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/gh-ship` — Commit, push, and file a concise PR in one step
 - `/gh-commit` — Imperative conventional commit message
 - `/gh-review-pr` — Thorough PR review (correctness, tests, risk)
-- `/gh-address-pr-comments` — Watch PR comments and fix valid review feedback
+- `/gh-address-pr-comments` — Babysit PR review and CI, fix feedback, reply and resolve eligible threads
 - `/gh-fix-ci` — Debug and fix first failing CI check
-- `/babysit-pr` — Watch a PR through review and CI, responding to comments and failures
 - `/clean-worktrees` — Audit and clean agent worktrees and gone branches safely
 - `/trello-delivery` — Ship a Trello ticket end to end as a reviewable PR (non-Shopify web apps). Requires the `trello-cli` binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 

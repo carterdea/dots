@@ -34,6 +34,7 @@ query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
           body
           createdAt
           updatedAt
+          authorAssociation
           author { __typename login }
         }
       }
@@ -53,6 +54,7 @@ query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
           state
           body
           submittedAt
+          authorAssociation
           commit { oid }
           author { __typename login }
         }
@@ -79,17 +81,8 @@ query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
           startDiffSide
           originalLine
           originalStartLine
-          resolvedBy { __typename login }
-          comments(first: 100) {
-            pageInfo { hasNextPage endCursor }
-            nodes {
-              id
-              body
-              createdAt
-              updatedAt
-              author { __typename login }
-            }
-          }
+          viewerCanReply
+          viewerCanResolve
         }
       }
     }
@@ -101,13 +94,17 @@ THREAD_COMMENTS_QUERY = """\
 query($threadId: ID!, $cursor: String) {
   node(id: $threadId) {
     ... on PullRequestReviewThread {
+      isResolved
       comments(first: 100, after: $cursor) {
         pageInfo { hasNextPage endCursor }
         nodes {
           id
+          databaseId
+          pullRequestReview { state }
           body
           createdAt
           updatedAt
+          authorAssociation
           author { __typename login }
         }
       }
@@ -233,22 +230,29 @@ def fetch_connection(owner: str, repo: str, number: int, query: str, key: str) -
 
 
 def fetch_all_thread_comments(thread: dict[str, Any]) -> None:
-    comments = thread.get("comments") or {}
-    page_info = comments.get("pageInfo") or {}
-    if not page_info.get("hasNextPage"):
-        return
-
-    nodes = list(comments.get("nodes") or [])
-    cursor = page_info.get("endCursor")
-    while cursor:
+    nodes: list[dict[str, Any]] = []
+    cursor: str | None = None
+    while True:
         payload = gh_thread_comments(thread["id"], cursor)
         if payload.get("errors"):
-            raise RuntimeError(json.dumps(payload["errors"], indent=2))
-        connection = payload["data"]["node"]["comments"]
-        nodes.extend(connection.get("nodes") or [])
+            raise RuntimeError(json.dumps(payload["errors"]))
+        current = payload["data"]["node"]
+        if current is None:
+            raise RuntimeError(f"Thread unavailable: {thread['id']}")
+        if current["isResolved"]:
+            thread["isResolved"] = True
+            thread["comments"] = {"nodes": []}
+            return
+        connection = current["comments"]
+        nodes.extend(
+            comment for comment in connection.get("nodes") or []
+            if (comment.get("pullRequestReview") or {}).get("state") != "PENDING"
+        )
         page_info = connection["pageInfo"]
-        cursor = page_info["endCursor"] if page_info["hasNextPage"] else None
-    thread["comments"] = {"nodes": nodes}
+        if not page_info["hasNextPage"]:
+            thread["comments"] = {"nodes": nodes}
+            return
+        cursor = page_info["endCursor"]
 
 
 def fetch_pr_reactions(owner: str, repo: str, number: int) -> list[dict[str, Any]]:
@@ -272,13 +276,7 @@ def is_review_agent(author: dict[str, Any] | None) -> bool:
     typename = (author.get("__typename") or "").lower()
     if typename not in {"bot", "app"}:
         return False
-    return (
-        "codex" in login
-        or "openai" in login
-        or "chatgpt" in login
-        or "claude" in login
-        or "anthropic" in login
-    )
+    return login in {"chatgpt-codex-connector", "chatgpt-codex-connector[bot]", "claude", "claude[bot]"}
 
 
 def review_has_actionable_body(review: dict[str, Any]) -> bool:
@@ -351,7 +349,7 @@ def summarize_approval(
         review
         for review in reviews
         if is_review_agent(review.get("author"))
-        and (review.get("state") == "APPROVED" or review_has_actionable_body(review))
+        and review.get("state") != "PENDING"
     ]
     latest_active_feedback_at = latest_active_feedback_update(
         review_threads, conversation_comments, reviews
@@ -360,13 +358,13 @@ def summarize_approval(
         review
         for review in agent_reviews
         if review.get("state") == "APPROVED"
-        and (not head_ref_oid or (review.get("commit") or {}).get("oid") == head_ref_oid)
+        and (bool(head_ref_oid) and (review.get("commit") or {}).get("oid") == head_ref_oid)
         and (not latest_active_feedback_at or (review.get("submittedAt") or "") >= latest_active_feedback_at)
     ]
     latest_agent_review = max(agent_reviews, key=lambda review: review.get("submittedAt") or "", default=None)
     latest_agent_review_commit = (latest_agent_review.get("commit") or {}).get("oid") if latest_agent_review else None
     latest_agent_review_matches_head = bool(
-        latest_agent_review and (not head_ref_oid or latest_agent_review_commit == head_ref_oid)
+        latest_agent_review and (bool(head_ref_oid) and latest_agent_review_commit == head_ref_oid)
     )
     latest_agent_review_approves = bool(
         latest_agent_review
@@ -425,16 +423,24 @@ def fetch_all(owner: str, repo: str, number: int) -> dict[str, Any]:
         "repo": repo,
     }
     conversation_comments = fetch_connection(owner, repo, number, COMMENTS_QUERY, "comments")
-    reviews = fetch_connection(owner, repo, number, REVIEWS_QUERY, "reviews")
+    all_reviews = fetch_connection(owner, repo, number, REVIEWS_QUERY, "reviews")
+    pending_review_count = sum(review.get("state") == "PENDING" for review in all_reviews)
+    reviews = [review for review in all_reviews if review.get("state") != "PENDING"]
     review_threads = fetch_connection(owner, repo, number, THREADS_QUERY, "reviewThreads")
     for thread in review_threads:
-        fetch_all_thread_comments(thread)
+        if not thread["isResolved"]:
+            fetch_all_thread_comments(thread)
+    review_threads = [
+        thread for thread in review_threads
+        if not thread["isResolved"] and thread["comments"]["nodes"]
+    ]
     reactions = fetch_pr_reactions(owner, repo, number)
 
     return {
         "pull_request": pr_meta,
         "conversation_comments": conversation_comments,
         "reviews": reviews,
+        "pending_review_count": pending_review_count,
         "review_threads": review_threads,
         "pr_reactions": reactions,
         "approval": summarize_approval(
