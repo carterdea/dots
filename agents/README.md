@@ -32,7 +32,8 @@ agents/
     ├── domain-model/                     # Grilling session that maintains CONTEXT.md + ADRs
     ├── emil-design-engineering/          # Design engineering principles
     ├── execute-plan/                     # Work through plan file task-by-task
-    ├── gh-address-pr-comments/           # Babysit PR review, reply and resolve threads
+    ├── babysit-pr/                      # User-only wrapper for PR comments and CI fixes
+    ├── gh-address-pr-comments/           # Watch PR review, reply and resolve threads
     ├── gh-commit/                        # Conventional commit messages
     ├── gh-fix-ci/                        # Fix first failing CI check
     ├── gh-review-pr/                     # Review GitHub PR
@@ -140,7 +141,8 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/gh-ship` — Commit, push, and file a concise PR in one step
 - `/gh-commit` — Imperative conventional commit message
 - `/gh-review-pr` — Thorough PR review (correctness, tests, risk)
-- `/gh-address-pr-comments` — Babysit PR review, fix feedback, reply and resolve eligible threads
+- `/babysit-pr` — Run PR comment handling and CI fixes together, only when invoked
+- `/gh-address-pr-comments` — Watch PR review, fix feedback, reply and resolve eligible threads
 - `/gh-fix-ci` — Debug and fix first failing CI check
 - `/clean-worktrees` — Audit and clean agent worktrees and gone branches safely
 - `/trello-delivery` — Ship a Trello ticket end to end as a reviewable PR (non-Shopify web apps). Requires the `trello-cli` binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)

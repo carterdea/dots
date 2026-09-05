@@ -1,4 +1,4 @@
 interface:
   display_name: "Address PR Comments"
-  short_description: "Fix review feedback and babysit PR review."
-  default_prompt: "Use $gh-address-pr-comments to babysit my PR, fix valid feedback, reply with model attribution, resolve eligible addressed or superseded threads, and watch current-head review."
+  short_description: "Fix review feedback and resolve eligible threads."
+  default_prompt: "Use $gh-address-pr-comments to address my PR comments, fix valid feedback, reply with model attribution, resolve eligible addressed or superseded threads, and watch current-head review."

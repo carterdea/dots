@@ -1,6 +1,6 @@
 ---
 name: gh-address-pr-comments
-description: Address PR review feedback and babysit PR review until approval or sustained quiet. Use when asked to fix PR comments or babysit a PR already filed; gh-ship opens it.
+description: Address PR review feedback and watch for new comments until approval or sustained quiet. Use when asked to inspect or fix PR comments; gh-fix-ci handles failing checks.
 user-invocable: true
 ---
 
