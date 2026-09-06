@@ -208,6 +208,13 @@ shell_verdict() {
       script+="$c"
       escaped=0
     elif [[ "$c" == "$quote" ]]; then
+      local suffix="${tail:i+1}"
+      # Arguments and redirections expand in the outer shell before -c runs.
+      # shellcheck disable=SC2016 # detect literal shell substitutions
+      if [[ "$suffix" == *'$('* || "$suffix" == *'`'* || "$suffix" == *'<('* || "$suffix" == *'>('* ]]; then
+        echo "QUEUE long-check"
+        return 0
+      fi
       # Adjacent quoted/escaped fragments continue the same shell word.
       # We cannot classify a partial script as read-only.
       if [[ -n "${tail:i+1:1}" && ! "${tail:i+1:1}" =~ [[:space:]] ]]; then

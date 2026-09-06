@@ -449,6 +449,11 @@ EOF
     [ "$(classify 'playwright install "`bun test`"')" = "QUEUE long-check" ]
 }
 
+@test "shell suffix substitutions cannot hide checks" {
+    [ "$(classify 'bash -c '\''echo ok'\'' "$(bun test)"')" = "QUEUE long-check" ]
+    [ "$(classify 'bash -c '\''echo ok'\'' > >(bun test)')" = "QUEUE long-check" ]
+}
+
 @test "environment wrappers cannot use an inner install to hide checks" {
     [ "$(classify "env FOO=bar bash -c 'playwright install chromium && bun test'")" = "QUEUE long-check" ]
     [ "$(classify "FOO=bar bash -c 'playwright install chromium && bun test'")" = "QUEUE long-check" ]

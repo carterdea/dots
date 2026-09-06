@@ -131,7 +131,8 @@ queue_head() {
 acquire() {
   local remaining interval wait_seconds
   # Publish a complete ticket before contending, including on a free lock.
-  printf '%s\n' "$((deadline + 60000))" >"$QUEUE_DIR/.$$"
+  # One polling interval of grace covers publication/acquisition overhead.
+  printf '%s\n' "$((deadline + 1000))" >"$QUEUE_DIR/.$$"
   mv "$QUEUE_DIR/.$$" "$TICKET"
   if [[ "$(queue_head)" == "$TICKET" ]] && flock -n 9; then
     return 0

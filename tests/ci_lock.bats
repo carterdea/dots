@@ -122,6 +122,31 @@ setup() {
     [ -z "$(ls -A "$LOCK.q")" ]
 }
 
+@test "stopped expired waiter does not block the next caller" {
+    exec 8>"$LOCK"
+    flock -x 8
+    CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=0.2 \
+        "$CI_LOCK" true 8>&- >"$BATS_TEST_TMPDIR/stopped-output" 2>&1 &
+    stopped=$!
+    ready=0
+    for attempt in {1..100}; do
+        if grep -q 'waiting in queue' "$BATS_TEST_TMPDIR/stopped-output"; then
+            ready=1
+            break
+        fi
+        sleep 0.01
+    done
+    kill -STOP "$stopped"
+    # Let any already-launched flock probe expire before releasing the mutex.
+    sleep 0.3
+    exec 8>&-
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=4 "$CI_LOCK" true
+    kill -CONT "$stopped"
+    wait "$stopped" || true
+    [ "$ready" -eq 1 ]
+    [ "$status" -eq 0 ]
+}
+
 @test "ci-lock prunes an expired ticket even if its pid is alive" {
     mkdir -p "$LOCK.q"
     # A ticket stamped an hour ago, naming this test's own (live) shell.
