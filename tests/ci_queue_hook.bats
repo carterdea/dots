@@ -477,6 +477,23 @@ EOF
     [ "$(classify 'bash -i &')" = "SKIP watch-or-server" ]
     [ "$(classify 'bash -i; bun test')" = "SKIP watch-or-server" ]
     [ "$(classify 'bash -i && bun test')" = "SKIP watch-or-server" ]
+    [ "$(classify "bash -i <<< 'bun test'")" = "QUEUE long-check" ]
+    [ "$(classify 'bash -i checks.sh')" = "QUEUE long-check" ]
+}
+
+@test "dynamic tool arguments cannot add executable actions outside the queue" {
+    [ "$(classify "bash -c 'find \"\$@\"' _ . -exec sh -c 'bun test' \\;")" = "QUEUE long-check" ]
+}
+
+@test "rotation follows log symlinks without replacing them" {
+    target="$BATS_TEST_TMPDIR/target.log"
+    awk 'BEGIN { for (i=0; i<60000; i++) printf "%0100d\n", i }' > "$target"
+    ln -s "$target" "$LOG"
+    jq -cn --arg c 'echo newest' '{tool_input:{command:$c}}' |
+        CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=0 "$HOOK"
+    [ -L "$LOG" ]
+    [ "$(wc -c < "$target")" -le 2621440 ]
+    [[ "$(tail -1 "$target")" == *'echo newest' ]]
 }
 
 @test "dynamic wait-loop conditions cannot hide supplied checks" {

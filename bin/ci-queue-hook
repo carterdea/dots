@@ -16,6 +16,10 @@ set -uo pipefail
 
 LOG="${CI_QUEUE_HOOK_LOG:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/queue-hook.log}"
 mkdir -p "$(dirname "$LOG")" 2>/dev/null || true
+if [[ -L "$LOG" ]]; then
+  resolved_log="$(perl -MCwd=abs_path -e 'print abs_path($ARGV[0]) // ""' "$LOG" 2>/dev/null)"
+  [[ -z "$resolved_log" ]] || LOG="$resolved_log"
+fi
 
 payload="$(cat 2>/dev/null || true)"
 
@@ -190,7 +194,7 @@ all_read_only() {
 shell_verdict() {
   local prefix="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*c[a-zA-Z]*[[:space:]]+(--[[:space:]]+)?(['\"])(.*)"
   if ! [[ "$1" =~ $prefix ]]; then
-    if [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*i[a-zA-Z]*([[:space:]]|$) ]]; then
+    if [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*i[a-zA-Z]*[[:space:]]*$ ]]; then
       echo "SKIP watch-or-server"
       return 0
     fi
@@ -223,7 +227,7 @@ shell_verdict() {
       fi
       # Dynamic commands may consume positional parameters implicitly, e.g.
       # `for cmd; do $cmd; done`. Do not evaluate expansions to classify them.
-      if [[ "$script" == *'$'* || "$script" == *'`'* ]] && ! all_read_only "$script"; then
+      if [[ "$script" == *'$'* || "$script" == *'`'* ]]; then
         echo "QUEUE long-check"
       else
         decide "$script"
