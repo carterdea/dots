@@ -76,6 +76,7 @@ if ! queued_ms="$(now_ms 2>/dev/null)" ||
   exec "$@"
 fi
 deadline=$((queued_ms + timeout_ms))
+owner_start="$(LC_ALL=C ps -o lstart= -p "$$" 2>/dev/null)" || owner_start=""
 
 # Tabs and newlines in the command would add fields or records to the
 # tab-separated log; flatten them so one run is always one six-field line.
@@ -110,11 +111,16 @@ mkdir -p "$QUEUE_DIR"
 # shorter timeouts cannot evict a live waiter with a longer budget.
 # Legacy empty tickets are removed only when their owner is gone.
 queue_head() {
-  local ticket head="" expiry now ticket_boot clock pid process_state
+  local ticket head="" expiry now ticket_boot clock pid process_state ticket_start actual_start
   now="$(now_ms)"
   for ticket in "$QUEUE_DIR"/*; do
     [[ -e "$ticket" ]] || continue
     expiry="$(cat "$ticket" 2>/dev/null)" || continue
+    ticket_start=""
+    if [[ "$expiry" == *'|'* ]]; then
+      ticket_start="${expiry#*|}"
+      expiry="${expiry%%|*}"
+    fi
     clock=$now
     if [[ "$expiry" == *:* ]]; then
       ticket_boot="${expiry%%:*}"
@@ -130,6 +136,13 @@ queue_head() {
     # 10# because the fields are zero-padded, and a leading zero reads as octal.
     pid="$((10#${ticket##*-}))"
     process_state="$(ps -o stat= -p "$pid" 2>/dev/null)" || process_state=""
+    if [[ -n "$ticket_start" ]]; then
+      actual_start="$(LC_ALL=C ps -o lstart= -p "$pid" 2>/dev/null)" || actual_start=""
+      if [[ -n "$actual_start" && "$actual_start" != "$ticket_start" ]]; then
+        rm -f "$ticket"
+        continue
+      fi
+    fi
     if kill -0 "$pid" 2>/dev/null && [[ ! "$process_state" =~ Z ]] &&
       { [[ ! "$expiry" =~ ^[0-9]+$ ]] || ((clock <= expiry)); }; then
       [[ -n "$head" ]] || head="$ticket"
@@ -146,7 +159,7 @@ acquire() {
   local remaining interval wait_seconds
   # Publish a complete ticket before contending, including on a free lock.
   # One polling interval of grace covers publication/acquisition overhead.
-  printf '%s:%s\n' "$boot_id" "$((deadline + 1000))" >"$QUEUE_DIR/.$$"
+  printf '%s:%s|%s\n' "$boot_id" "$((deadline + 1000))" "$owner_start" >"$QUEUE_DIR/.$$"
   mv "$QUEUE_DIR/.$$" "$TICKET"
   if [[ "$(queue_head)" == "$TICKET" ]] && flock -n 9; then
     return 0

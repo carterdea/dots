@@ -233,7 +233,8 @@ shell_verdict() {
       local suffix="${tail:i+1}"
       # Arguments and redirections expand in the outer shell before -c runs.
       # shellcheck disable=SC2016 # detect literal shell substitutions
-      if [[ "$suffix" == *'$('* || "$suffix" == *'`'* || "$suffix" == *'<'* || "$suffix" == *'>('* ]]; then
+      if [[ "$suffix" == *'$('* || "$suffix" == *'`'* || "$suffix" == *'<('* || "$suffix" == *'>('* ]] ||
+        { [[ "$suffix" == *'<'* ]] && ! all_read_only "$script"; }; then
         echo "QUEUE long-check"
         return 0
       fi

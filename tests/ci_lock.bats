@@ -37,6 +37,15 @@ setup() {
     [ "$status" -eq 0 ]
 }
 
+@test "reused PID cannot keep an abandoned ticket alive" {
+    mkdir "$LOCK.q"
+    ticket="$(printf '%s/m%015d-%010d' "$LOCK.q" 1 "$$")"
+    printf 'unknown:999999999999999|different process start\n' > "$ticket"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=0.3 "$CI_LOCK" true
+    [ "$status" -eq 0 ]
+    [ ! -e "$ticket" ]
+}
+
 @test "queued invocation survives an in-place rewrite of its script" {
     script="$BATS_TEST_TMPDIR/ci-lock"
     cp "$CI_LOCK" "$script"

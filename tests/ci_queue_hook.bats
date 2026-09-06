@@ -450,6 +450,8 @@ EOF
 }
 
 @test "shell suffix substitutions cannot hide checks" {
+    [ "$(classify "bash -c 'echo ok' </dev/null")" = 'SKIP not-heavy' ]
+    [ "$(classify "bash -c 'cat' < input.txt")" = 'SKIP not-heavy' ]
     [ "$(classify 'bash -c '\''echo ok'\'' "$(bun test)"')" = "QUEUE long-check" ]
     [ "$(classify 'bash -c '\''echo ok'\'' > >(bun test)')" = "QUEUE long-check" ]
     [ "$(classify "bash -c 'source /dev/stdin' <<< 'bun test'")" = "QUEUE long-check" ]
