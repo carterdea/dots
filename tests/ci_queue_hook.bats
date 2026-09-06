@@ -479,6 +479,7 @@ EOF
 }
 
 @test "interactive shells never hold the heavy lane" {
+    [ "$(classify 'bash -i >/tmp/session.log')" = 'SKIP watch-or-server' ]
     [ "$(classify 'bash -i')" = "SKIP watch-or-server" ]
     [ "$(classify 'zsh -il')" = "SKIP watch-or-server" ]
     [ "$(classify "bash -ic 'bun test'")" = "QUEUE long-check" ]
@@ -520,6 +521,7 @@ EOF
 }
 
 @test "dynamic wait-loop conditions cannot hide supplied checks" {
+    [ "$(classify 'while kill -0 123; do sleep "$interval"; done')" = 'SKIP wait-loop' ]
     [ "$(classify 'while true; do echo "$status"; sleep 1; done')" = "SKIP wait-loop" ]
     [ "$(classify "bash -c 'until \"\$@\"; do sleep 1; done' _ bun test")" = "QUEUE long-check" ]
     [ "$(classify "bash -c 'while true; do \"\$@\"; sleep 1; done' _ bun test")" = "QUEUE long-check" ]

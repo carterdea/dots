@@ -190,7 +190,7 @@ read_only_seg() {
       return 0 ;;
     sed|grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|find|echo|printf|cd|pwd|gh) return 0 ;;
     # Process and disk inspectors: their patterns name suites (pgrep -f vitest).
-    ps|pgrep|lsof|stat|du|df|uptime|which) return 0 ;;
+    ps|pgrep|lsof|stat|du|df|uptime|which|sleep) return 0 ;;
     git)
       case "${tok[i + 1]:-}" in
         log|diff|show|status|branch|remote|ls-remote|ls-files|rev-parse|fetch|blame|describe) return 0 ;;
@@ -212,7 +212,10 @@ all_read_only() {
 shell_verdict() {
   local prefix="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*c[a-zA-Z]*[[:space:]]+(--[[:space:]]+)?(['\"])(.*)"
   if ! [[ "$1" =~ $prefix ]]; then
-    if [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*i[a-zA-Z]*[[:space:]]*$ ]]; then
+    local interactive="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[abd-zA-Z]+)[[:space:]]+)*-[abd-zA-Z]*i[abd-zA-Z]*([[:space:]]*([0-9]*>>?|&>>?)[[:space:]]*([^[:space:]<>]+|'[^']*'|\"[^\"]*\"))*[[:space:]]*$"
+    # Output redirection leaves stdin interactive; substitutions may run checks.
+    # shellcheck disable=SC2016
+    if [[ "$1" =~ $interactive && "$1" != *'$('* && "$1" != *'`'* && "$1" != *'>('* ]]; then
       echo "SKIP watch-or-server"
       return 0
     fi
