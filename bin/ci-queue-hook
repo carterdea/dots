@@ -117,7 +117,7 @@ file_scoped() {
   for w in "$@"; do
     t="${w#[\"\']}"
     t="${t%[\"\']}"
-    if [[ "$t" =~ ^[^-][^[:space:]]*\.(ts|tsx|js|jsx|py|rb|go)$ ]] &&
+    if [[ "$t" =~ ^[^-][^[:space:]]*\.((ts|tsx|js|jsx|py|go)|rb(:[0-9]+)?)$ ]] &&
       [[ "$t" != *[\*\?\[]* ]] &&
       ! consumes_value "$prev"; then
       return 0
@@ -183,6 +183,12 @@ read_only_seg() {
   done
   ((i >= ${#tok[@]})) && return 0
   first="${tok[i]##*/}"
+  if [[ "${2:-}" == data-only ]]; then
+    case "$first" in
+      echo|printf|cat|head|tail|ls|wc|uniq|pwd|sleep) ;;
+      *) return 1 ;;
+    esac
+  fi
   case "$first" in
     # awk can execute subprocesses from its program text.
     awk)
@@ -204,7 +210,7 @@ all_read_only() {
   local segment
   while IFS= read -r segment; do
     [[ "$segment" =~ [^[:space:]] ]] || continue
-    read_only_seg "$segment" || return 1
+    read_only_seg "$segment" "${2:-}" || return 1
   done < <(split_segments "$1")
 }
 
@@ -251,7 +257,7 @@ shell_verdict() {
       fi
       # Dynamic commands may consume positional parameters implicitly, e.g.
       # `for cmd; do $cmd; done`. Do not evaluate expansions to classify them.
-      if [[ "$script" == *'$'* || "$script" == *'`'* ]]; then
+      if [[ "$script" == *'$'* || "$script" == *'`'* ]] && ! all_read_only "$script" data-only; then
         echo "QUEUE long-check"
       else
         decide "$script"

@@ -358,6 +358,14 @@ EOF
 
 @test "single-file rails test is file-scoped" {
     [ "$(classify 'bin/rails test test/models/donation_test.rb')" = "SKIP file-scoped" ]
+    [ "$(classify 'bin/rails test test/models/donation_test.rb:6')" = "SKIP file-scoped" ]
+}
+
+@test "shell variable data does not acquire the heavy lane" {
+    [ "$(classify "bash -c 'printf \"%s\\n\" \"\$HOME\"'")" = "SKIP not-heavy" ]
+    [ "$(classify "bash -c 'cat \"\$FILE\"'")" = "SKIP not-heavy" ]
+    [ "$(classify "bash -c '\"\$@\"' _ bun test")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'sed \"\$@\"' _ -e e")" = "QUEUE long-check" ]
 }
 
 # --- fourth review round: theme check gets the check lane ---
