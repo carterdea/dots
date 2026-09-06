@@ -9,6 +9,38 @@ setup() {
     LOCK="$BATS_TEST_TMPDIR/test.lock"
 }
 
+@test "queued invocation survives an in-place rewrite of its script" {
+    script="$BATS_TEST_TMPDIR/ci-lock"
+    cp "$CI_LOCK" "$script"
+    exec 8>"$LOCK"
+    flock -x 8
+    CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=5 \
+        /bin/bash "$script" touch "$BATS_TEST_TMPDIR/ran" 8>&- \
+        >"$BATS_TEST_TMPDIR/output" 2>&1 &
+    waiter=$!
+
+    queued=0
+    for attempt in {1..100}; do
+        if grep -q 'waiting in queue' "$BATS_TEST_TMPDIR/output"; then
+            queued=1
+            break
+        fi
+        sleep 0.02
+    done
+    # Move the remaining program beyond any buffered source, changing the
+    # existing inode just as an editor does. An old reader must not run it.
+    awk 'BEGIN { for (i=0; i<32768; i++) print ""; print "exit 99" }' >"$script"
+    exec 8>&-
+    result=0
+    wait "$waiter" || result=$?
+
+    [ "$queued" -eq 1 ]
+    [ "$result" -eq 0 ]
+    [ -f "$BATS_TEST_TMPDIR/ran" ]
+    [ "$(awk -F'\t' '{print $5}' "$LOG")" = 0 ]
+    [ -z "$(ls -A "$LOCK.q")" ]
+}
+
 @test "ci-lock logs lane, wait, run, exit, and command" {
     CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_LANE=heavy "$CI_LOCK" true
     [ -f "$LOG" ]

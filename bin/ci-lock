@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Parse the whole program before running it: this file is symlinked into
+# PATH and may be rewritten while an invocation waits for the lock.
+{
 # Machine-wide semaphore for CI-style checks.
 # Usage: [CI_LOCK_LANE=<lane>] ci-lock <command> [args...]
 # Commands queue per lane: everything in a lane shares one lock across every
@@ -221,3 +224,4 @@ set -e
 log_run "$((started_at - queued_at))" "$(($(date +%s) - started_at))" "$status"
 
 exit "$status"
+}
