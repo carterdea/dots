@@ -1,8 +1,7 @@
 ---
 name: gh-fix-ci
-description: Watch a PR's CI checks and fix failures until every check is green
+description: Fix failing PR checks and watch CI until green. Use when asked to repair CI or when another skill needs CI diagnosis and fixes.
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Fix CI

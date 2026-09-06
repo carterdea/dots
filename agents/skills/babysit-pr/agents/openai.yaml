@@ -1,0 +1,7 @@
+interface:
+  display_name: "Babysit PR"
+  short_description: "Run PR comment handling and CI fixes together."
+  default_prompt: "Use $babysit-pr to address review feedback and fix CI on my PR."
+
+policy:
+  allow_implicit_invocation: false
