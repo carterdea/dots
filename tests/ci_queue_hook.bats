@@ -507,6 +507,9 @@ EOF
 }
 
 @test "interactive shells never hold the heavy lane" {
+    [ "$(classify 'bash -O extglob -i')" = 'SKIP watch-or-server' ]
+    [ "$(classify 'bash -o vi -i')" = 'SKIP watch-or-server' ]
+    [ "$(classify "bash -o vi -ic 'bun test'")" = 'QUEUE long-check' ]
     [ "$(classify 'bash -i >/tmp/session.log')" = 'SKIP watch-or-server' ]
     [ "$(classify 'bash -i')" = "SKIP watch-or-server" ]
     [ "$(classify 'zsh -il')" = "SKIP watch-or-server" ]
