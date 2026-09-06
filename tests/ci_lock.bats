@@ -125,19 +125,25 @@ setup() {
 @test "stopped expired waiter does not block the next caller" {
     exec 8>"$LOCK"
     flock -x 8
-    CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=0.2 \
+    BASH_ENV="$DIR/fixtures/ci_lock_stop.bash" CI_TEST_STOP_MARKER="$BATS_TEST_TMPDIR/stopped" \
+        CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=0.2 \
         "$CI_LOCK" true 8>&- >"$BATS_TEST_TMPDIR/stopped-output" 2>&1 &
     stopped=$!
     ready=0
     for attempt in {1..100}; do
-        if grep -q 'waiting in queue' "$BATS_TEST_TMPDIR/stopped-output"; then
+        if [ -f "$BATS_TEST_TMPDIR/stopped" ]; then
             ready=1
             break
         fi
         sleep 0.01
     done
-    kill -STOP "$stopped"
-    # Let any already-launched flock probe expire before releasing the mutex.
+    if [ "$ready" -ne 1 ]; then
+        kill -CONT "$stopped" 2>/dev/null || true
+        kill -TERM "$stopped" 2>/dev/null || true
+        wait "$stopped" || true
+        return 1
+    fi
+    # The waiter stops itself before its first timed probe.
     sleep 0.3
     exec 8>&-
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=4 "$CI_LOCK" true
