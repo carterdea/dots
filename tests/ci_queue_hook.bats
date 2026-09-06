@@ -368,6 +368,12 @@ EOF
     [ "$(classify "bash -c 'sed \"\$@\"' _ -e e")" = "QUEUE long-check" ]
 }
 
+@test "variable PID polling stays out of the heavy lane" {
+    [ "$(classify 'while kill -0 "$pid"; do sleep 1; done')" = "SKIP wait-loop" ]
+    [ "$(classify 'while kill -0 "$pid"; do sleep 1; done; bun test')" = "QUEUE long-check" ]
+    [ "$(classify 'while kill -0 "$(bun test)"; do sleep 1; done')" = "QUEUE long-check" ]
+}
+
 # --- fourth review round: theme check gets the check lane ---
 
 @test "shopify theme check routes to the check lane" {

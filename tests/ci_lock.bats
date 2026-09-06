@@ -37,6 +37,33 @@ setup() {
     [ "$status" -eq 0 ]
 }
 
+@test "symlinked queue directories cannot prune unrelated files" {
+    mkdir "$BATS_TEST_TMPDIR/unrelated"
+    touch "$BATS_TEST_TMPDIR/unrelated/important-999999"
+    ln -s "$BATS_TEST_TMPDIR/unrelated" "$LOCK.q"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" "$CI_LOCK" true
+    [ -f "$BATS_TEST_TMPDIR/unrelated/important-999999" ]
+    [ "$status" -ne 0 ]
+}
+
+@test "writable-by-others queue directories are rejected" {
+    mkdir "$LOCK.q"
+    chmod 777 "$LOCK.q"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" "$CI_LOCK" true
+    [ "$status" -ne 0 ]
+}
+
+@test "queue scans stop at the first live ticket" {
+    mkdir "$LOCK.q"
+    first="$(printf '%s/%010d-%010d' "$LOCK.q" 1 "$$")"
+    printf '%s\n' "$((($(date +%s) + 100) * 1000))" >"$first"
+    later="$LOCK.q/9999999999-0000999999"
+    touch "$later"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=0.1 "$CI_LOCK" true
+    [ "$status" -ne 0 ]
+    [ -f "$later" ]
+}
+
 @test "reused PID cannot keep an abandoned ticket alive" {
     mkdir "$LOCK.q"
     ticket="$(printf '%s/m%015d-%010d' "$LOCK.q" 1 "$$")"
@@ -183,7 +210,7 @@ setup() {
     # The waiter stops itself before its first timed probe.
     sleep 0.3
     exec 8>&-
-    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=4 "$CI_LOCK" true
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=0.2 "$CI_LOCK" true
     kill -CONT "$stopped"
     wait "$stopped" || true
     [ "$ready" -eq 1 ]

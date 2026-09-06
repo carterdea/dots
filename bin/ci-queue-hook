@@ -190,6 +190,9 @@ read_only_seg() {
     esac
   fi
   case "$first" in
+    kill)
+      [[ "${tok[i + 1]:-}" == -0 ]]
+      return ;;
     # awk can execute subprocesses from its program text.
     awk)
       [[ "$seg" =~ system[[:space:]]*\( ]] && return 1

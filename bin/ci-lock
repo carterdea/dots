@@ -103,18 +103,22 @@ QUEUE_DIR="$LOCK_FILE.q"
 # Old epoch-named tickets sort before new monotonic tickets during upgrades.
 # Millisecond ties use the PID; wall-clock corrections cannot reorder arrivals.
 TICKET="$(printf '%s/m%015d-%010d' "$QUEUE_DIR" "$queued_ms" "$$")"
-mkdir -p "$QUEUE_DIR"
+mkdir -m 700 "$QUEUE_DIR" 2>/dev/null || true
+if ! perl -MFcntl=:mode -e 'my @s = lstat $ARGV[0];
+    exit(!@s || !S_ISDIR($s[2]) || $s[4] != $< || ($s[2] & 0022));' "$QUEUE_DIR"; then
+  echo "ci-lock: unsafe queue directory: $QUEUE_DIR" >&2
+  exit 73
+fi
 
 # Drops tickets whose owner is gone — a killed waiter must not wedge the
-# queue — and prints the oldest survivor. One directory listing and a few
-# `kill -0` per poll. Each ticket carries its own expiry, so callers with
+# queue — and stops at the oldest survivor. Each ticket carries its own expiry, so callers with
 # shorter timeouts cannot evict a live waiter with a longer budget.
 # Legacy empty tickets are removed only when their owner is gone.
 queue_head() {
-  local ticket head="" expiry now ticket_boot clock pid process_state ticket_start actual_start
+  local ticket expiry now ticket_boot clock pid process_state ticket_start actual_start
   now="$(now_ms)"
   for ticket in "$QUEUE_DIR"/*; do
-    [[ -e "$ticket" ]] || continue
+    [[ -f "$ticket" && ! -L "$ticket" && "${ticket##*/}" =~ ^m?[0-9]+-[0-9]+$ ]] || continue
     expiry="$(cat "$ticket" 2>/dev/null)" || continue
     ticket_start=""
     if [[ "$expiry" == *'|'* ]]; then
@@ -144,13 +148,13 @@ queue_head() {
       fi
     fi
     if kill -0 "$pid" 2>/dev/null && [[ ! "$process_state" =~ Z ]] &&
-      { [[ ! "$expiry" =~ ^[0-9]+$ ]] || ((clock <= expiry)); }; then
-      [[ -n "$head" ]] || head="$ticket"
+      { [[ "$ticket" == "$TICKET" || ! "$expiry" =~ ^[0-9]+$ ]] || ((clock <= expiry)); }; then
+      printf '%s' "$ticket"
+      return
     else
       rm -f "$ticket"
     fi
   done
-  printf '%s' "$head"
 }
 
 # Only the head of the queue contends for flock; everyone else polls. That
@@ -158,8 +162,8 @@ queue_head() {
 acquire() {
   local remaining interval wait_seconds
   # Publish a complete ticket before contending, including on a free lock.
-  # One polling interval of grace covers publication/acquisition overhead.
-  printf '%s:%s|%s\n' "$boot_id" "$((deadline + 1000))" "$owner_start" >"$QUEUE_DIR/.$$"
+  # The owner's initial nonblocking attempt is allowed even with zero timeout.
+  printf '%s:%s|%s\n' "$boot_id" "$deadline" "$owner_start" >"$QUEUE_DIR/.$$"
   mv "$QUEUE_DIR/.$$" "$TICKET"
   if [[ "$(queue_head)" == "$TICKET" ]] && flock -n 9; then
     return 0
