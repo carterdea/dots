@@ -1,6 +1,6 @@
 ---
 name: gh-ship
-description: Commit, push, and file a concise pull request in one step, or file one for a branch already committed. Use when the user asks to ship or open a PR; `babysit-pr` takes it from there.
+description: Commit, push, and file a concise pull request in one step, or file one for a branch already committed. Use when the user asks to ship or open a PR.
 user-invocable: true
 ---
 
@@ -63,4 +63,4 @@ Open a real PR rather than a draft so review bots run:
 gh pr create --title "type(scope): why the change matters" --body "..."
 ```
 
-If Carter also asked to babysit it, continue with the `babysit-pr` skill.
+If Carter also invoked `babysit-pr`, continue with that skill. For a request to address review comments alone, use `gh-address-pr-comments`.
