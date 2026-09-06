@@ -178,8 +178,20 @@ read_only_seg() {
   esac
 }
 
+all_read_only() {
+  local segment
+  while IFS= read -r segment; do
+    [[ "$segment" =~ [^[:space:]] ]] || continue
+    read_only_seg "$segment" || return 1
+  done < <(split_segments "$1")
+}
+
 # A shell's quoted script is one argument; later tokens supply $0, $1, etc.
 shell_verdict() {
+  if [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*i[a-zA-Z]*([[:space:]]|$) ]]; then
+    echo "SKIP watch-or-server"
+    return 0
+  fi
   local prefix="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*c[a-zA-Z]*[[:space:]]+(--[[:space:]]+)?(['\"])(.*)"
   if ! [[ "$1" =~ $prefix ]]; then
     # Opaque shell invocations can execute arbitrary checks. In particular,
@@ -202,9 +214,9 @@ shell_verdict() {
         echo "QUEUE long-check"
         return 0
       fi
-      # Resolving dynamic arguments would require evaluating shell code.
-      # Treat non-read-only scripts using positional parameters as heavy.
-      if [[ "$script" =~ \$\{?[0-9@*] ]] && ! read_only_seg "$script"; then
+      # Dynamic commands may consume positional parameters implicitly, e.g.
+      # `for cmd; do $cmd; done`. Do not evaluate expansions to classify them.
+      if [[ "$script" == *'$'* || "$script" == *'`'* ]] && ! all_read_only "$script"; then
         echo "QUEUE long-check"
       else
         decide "$script"
@@ -220,6 +232,9 @@ shell_verdict() {
 
 decide() {
   local cmd="$1"
+
+  # Interpret loop syntax only after ruling out quoted read-only arguments.
+  if all_read_only "$cmd"; then echo "SKIP read-only-tool"; return; fi
 
   # 1. Never queue anything that does not exit on its own. A watch or server
   #    holding the machine-wide lock would block every project until timeout.
@@ -284,6 +299,7 @@ decide() {
     fi
     if verdict="$(shell_verdict "$seg")"; then
       case "$verdict" in
+        'SKIP watch-or-server') echo "$verdict"; return ;;
         'QUEUE long-check') echo "$verdict"; return ;;
         'QUEUE check-only') checkonly=1 ;;
         'SKIP not-a-check') any_install=1 ;;

@@ -455,6 +455,24 @@ EOF
     [ "$(classify "command bash -c 'playwright install chromium && bun test'")" = "QUEUE long-check" ]
 }
 
+@test "implicit shell positional loops queue" {
+    [ "$(classify "bash -c 'for cmd; do \$cmd; done' _ 'bun test'")" = "QUEUE long-check" ]
+}
+
+@test "shell-wrapped process polling remains outside the queue" {
+    [ "$(classify "bash -c 'until ! kill -0 \$(pgrep -f playwright); do sleep 1; done'")" = "SKIP wait-loop" ]
+}
+
+@test "interactive shells never hold the heavy lane" {
+    [ "$(classify 'bash -i')" = "SKIP watch-or-server" ]
+    [ "$(classify 'zsh -il')" = "SKIP watch-or-server" ]
+}
+
+@test "quoted search loops are data but subsequent checks still queue" {
+    [ "$(classify "rg -n 'while bun test; do sleep 1; done' scripts")" = "SKIP read-only-tool" ]
+    [ "$(classify "rg -n 'while bun test; do sleep 1; done' scripts; bun test")" = "QUEUE long-check" ]
+}
+
 @test "rotation bounds bytes while retaining complete Unicode records" {
     awk 'BEGIN { for (i=0; i<20000; i++) { for (j=0; j<200; j++) printf "界"; print "" } }' > "$LOG"
     jq -cn --arg c 'echo newest' '{tool_input:{command:$c}}' |
