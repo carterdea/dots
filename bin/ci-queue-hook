@@ -180,9 +180,15 @@ read_only_seg() {
 
 # A shell's quoted script is one argument; later tokens supply $0, $1, etc.
 shell_verdict() {
-  local prefix="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+-[a-z]*c[[:space:]]+(['\"])(.*)"
-  [[ "$1" =~ $prefix ]] || return 1
-  local quote="${BASH_REMATCH[3]}" tail="${BASH_REMATCH[4]}"
+  local prefix="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*c[a-zA-Z]*[[:space:]]+(--[[:space:]]+)?(['\"])(.*)"
+  if ! [[ "$1" =~ $prefix ]]; then
+    # Opaque shell invocations can execute arbitrary checks. In particular,
+    # options taking values must not fall through to the install exemption.
+    [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]] ]] || return 1
+    echo "QUEUE long-check"
+    return 0
+  fi
+  local quote="${BASH_REMATCH[6]}" tail="${BASH_REMATCH[7]}"
   local script="" c i escaped=0
   for ((i=0; i<${#tail}; i++)); do
     c="${tail:i:1}"
@@ -190,6 +196,12 @@ shell_verdict() {
       script+="$c"
       escaped=0
     elif [[ "$c" == "$quote" ]]; then
+      # Adjacent quoted/escaped fragments continue the same shell word.
+      # We cannot classify a partial script as read-only.
+      if [[ -n "${tail:i+1:1}" && ! "${tail:i+1:1}" =~ [[:space:]] ]]; then
+        echo "QUEUE long-check"
+        return 0
+      fi
       # Resolving dynamic arguments would require evaluating shell code.
       # Treat non-read-only scripts using positional parameters as heavy.
       if [[ "$script" =~ \$\{?[0-9@*] ]] && ! read_only_seg "$script"; then
@@ -289,7 +301,9 @@ decide() {
     fi
     # Downloading browsers is a fetch, not a check: minutes of network in
     # the exclusive lane, and nothing else can run meanwhile.
-    if [[ "$seg" =~ playwright(@[^[:space:]]+)?[[:space:]]+install(-deps)?([[:space:]]|$) ]]; then
+    # shellcheck disable=SC2016 # detect literal shell substitutions
+    if [[ "$seg" =~ playwright(@[^[:space:]]+)?[[:space:]]+install(-deps)?([[:space:]]|$) ]] &&
+      [[ "$seg" != *'$('* && "$seg" != *'`'* && "$seg" != *'<('* && "$seg" != *'>('* ]]; then
       any_install=1
       continue
     fi
@@ -348,7 +362,8 @@ if command -v flock >/dev/null 2>&1; then
     write_log
     log_size="$(stat -f%z "$LOG" 2>/dev/null || stat -c%s "$LOG" 2>/dev/null || echo 0)"
     if [[ "$log_size" =~ ^[0-9]+$ ]] && ((log_size > 5242880)); then
-      if tail -n 20000 "$LOG" >"$LOG.rotating"; then
+      # Keep at most 2.5 MiB, dropping the first potentially partial record.
+      if tail -c 2621440 "$LOG" | LC_ALL=C sed '1d' >"$LOG.rotating"; then
         mv -f "$LOG.rotating" "$LOG" || rm -f "$LOG.rotating"
       else
         rm -f "$LOG.rotating"

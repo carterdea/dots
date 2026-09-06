@@ -432,3 +432,28 @@ EOF
     [ "$(grep -c 'echo writer-' "$LOG")" -eq 12 ]
     [ "$(wc -l < "$LOG")" -lt 60000 ]
 }
+
+@test "concatenated shell script fragments cannot hide checks" {
+    [ "$(classify "bash -c 'echo '\\''ok'\\''; bun test'")" = "QUEUE long-check" ]
+}
+
+@test "shell options before command strings cannot hide checks" {
+    [ "$(classify "bash --noprofile -c 'playwright install chromium && bun test'")" = "QUEUE long-check" ]
+    [ "$(classify "bash --noprofile -c 'playwright install chromium'")" = "SKIP not-a-check" ]
+    [ "$(classify "bash -o pipefail -c 'playwright install chromium && bun test'")" = "QUEUE long-check" ]
+}
+
+@test "install substitutions cannot hide executable checks" {
+    [ "$(classify 'playwright install "$(bun test)"')" = "QUEUE long-check" ]
+    [ "$(classify 'playwright install <(bun test)')" = "QUEUE long-check" ]
+    [ "$(classify 'playwright install "`bun test`"')" = "QUEUE long-check" ]
+}
+
+@test "rotation bounds bytes while retaining complete Unicode records" {
+    awk 'BEGIN { for (i=0; i<20000; i++) { for (j=0; j<200; j++) printf "界"; print "" } }' > "$LOG"
+    jq -cn --arg c 'echo newest' '{tool_input:{command:$c}}' |
+        CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=0 "$HOOK"
+    [ "$(wc -c < "$LOG")" -le 2621440 ]
+    [ "$(head -1 "$LOG" | wc -c)" -eq 601 ]
+    [[ "$(tail -1 "$LOG")" == *'echo newest' ]]
+}
