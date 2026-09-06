@@ -33,6 +33,12 @@ gh pr checks NUMBER --repo OWNER/REPO --json name,bucket,state,workflow,link
 # when the failing check links to a GitHub Actions run
 gh run view <run-id> --repo OWNER/REPO --log-failed
 ```
+If other jobs are still running or run-level logs are unavailable, fetch the failed job directly instead of waiting for the whole workflow:
+```bash
+gh api --paginate 'repos/OWNER/REPO/actions/runs/RUN_ID/jobs?filter=latest&per_page=100' --jq '.jobs[] | select(.conclusion=="failure") | {id, name, head_sha}'
+gh api repos/OWNER/REPO/actions/jobs/JOB_ID/logs
+```
+Select the job matching the failing check and inspected head. If its logs are also unavailable, report the run/job and access or availability blocker; do not infer a cause from missing logs.
 
 4. Fix
 - Prefer minimal, correct changes; scope each fix to a single failure cause
