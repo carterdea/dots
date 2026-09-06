@@ -8,6 +8,8 @@ user-invocable: true
 
 Default to watch mode. A request to inspect or summarize is read-only; a request for one pass ends after one cycle. Manual selection applies only when requested.
 
+When called in single-pass mode, handle available feedback and return without sleeping, polling, invoking CI repair, or merging. The caller owns scheduling and completion. Preserve thread tracking across calls. Loop mode and shipping permission are separate: watch mode ships by default; single-pass mode ships when the user or calling workflow requests it. Read-only requests never ship.
+
 ## Start
 
 1. Use the named PR, otherwise `gh pr view --json number,url,state,headRefName`. If lookup fails, use `gh pr list --head "$(git branch --show-current)" --state open --json number,url`. Ask if there are zero or multiple matches; never silently select the first.
@@ -20,10 +22,14 @@ Proceed only with an unambiguous PR and current-head evidence. Closed or merged 
 
 1. Read every unresolved thread, including older threads on untouched lines. The helper lists thread metadata first, fetches comment bodies only for unresolved threads, and omits resolved threads and pending review comments from output. Outdated threads remain visible for verification. Top-level comments and submitted review bodies have no thread resolution state and are returned separately.
 2. Triage all feedback using the rules below. Track thread id, comment ids and update timestamps, head SHA, verdict, reply id, and resolution in session state. New replies, edits, reopened threads, or a new head require reconsideration. Skip unchanged handled items without repeating their bodies in chat.
-3. Apply every valid in-scope fix. Run the narrowest relevant checks. In watch mode, commit and push only after they pass. For one pass, leave changes unstaged unless shipping was requested; threads whose fixes remain local stay unresolved.
+3. Apply every valid in-scope fix. Run the narrowest relevant checks. If shipping is authorized, commit and push only after they pass; otherwise leave changes unstaged. Threads whose fixes remain local stay unresolved.
 4. Reply and resolve eligible threads using [references/thread-replies.md](references/thread-replies.md). A fixed thread is complete only after its fix is pushed, the reply names that commit, and GitHub confirms resolution. Dismissed or superseded findings need a code-backed explanation. Duplicate threads still need individual closure referencing the canonical fix.
 5. Inspect current-head checks. Report failed checks and route CI diagnosis, reruns, and repairs to [gh-fix-ci](../gh-fix-ci/SKILL.md). This skill validates its own review fixes but does not repair CI failures. Recheck the base branch when mergeability changes; rebase only when needed, validate again, and use `--force-with-lease` if publishing a rebase. A changed head resets approval and quiet time. If another PR supersedes this one, report it and stop; closing needs authorization.
-6. Evaluate the stop conditions, then wait five minutes and repeat. Use interruptible waits or waits of at most 60 seconds. Stay quiet about unchanged polls unless the user requested updates.
+6. In single-pass mode, return the pass result below. Otherwise evaluate the stop conditions, then wait five minutes and repeat. Use interruptible waits or waits of at most 60 seconds. Stay quiet about unchanged polls unless the user requested updates.
+
+## Pass result
+
+Return the PR, inspected and resulting head SHAs, whether feedback changed or a fix was pushed, unresolved actionable items, pending review count, approval for the inspected head, and any blocker. Preserve handled-thread state for the next call without repeating comment bodies. Approval inspected before a push is stale; report it as such rather than approving the resulting head.
 
 ## Triage
 
