@@ -296,7 +296,7 @@ decide() {
   # 3. Judge each pipeline segment on its own. A file argument scopes only
   #    the segment it appears in, and a read-only lead-in never excuses a
   #    suite running after && — one heavy segment queues the whole command.
-  local seg any_file=0 any_name=0 any_ro=0 checkonly=0 any_install=0 any_other=0
+  local seg after_segment any_interactive=0 any_file=0 any_name=0 any_ro=0 checkonly=0 any_install=0 any_other=0
   while IFS= read -r seg; do
     [[ "$seg" =~ [^[:space:]] ]] || continue
     if read_only_seg "$seg"; then
@@ -305,7 +305,13 @@ decide() {
     fi
     if verdict="$(shell_verdict "$seg")"; then
       case "$verdict" in
-        'SKIP watch-or-server') echo "$verdict"; return ;;
+        'SKIP watch-or-server')
+          after_segment="${cmd#*"$seg"}"
+          if [[ "${after_segment:0:1}" == '&' && "${after_segment:1:1}" != '&' ]]; then
+            any_interactive=1
+          else
+            echo "$verdict"; return
+          fi ;;
         'QUEUE long-check') echo "$verdict"; return ;;
         'QUEUE check-only') checkonly=1 ;;
         'SKIP not-a-check') any_install=1 ;;
@@ -358,6 +364,7 @@ decide() {
     if ((any_other)); then echo "QUEUE long-check"; else echo "QUEUE check-only"; fi
     return
   fi
+  ((any_interactive)) && { echo "SKIP watch-or-server"; return; }
   ((any_install)) && { echo "SKIP not-a-check"; return; }
   ((any_file)) && { echo "SKIP file-scoped"; return; }
   ((any_name)) && { echo "SKIP name-filtered"; return; }

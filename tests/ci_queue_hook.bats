@@ -468,6 +468,10 @@ EOF
     [ "$(classify 'zsh -il')" = "SKIP watch-or-server" ]
     [ "$(classify "bash -ic 'bun test'")" = "QUEUE long-check" ]
     [ "$(classify "bash -i -c 'bun test'")" = "QUEUE long-check" ]
+    [ "$(classify 'bash -i & bun test')" = "QUEUE long-check" ]
+    [ "$(classify 'bash -i &')" = "SKIP watch-or-server" ]
+    [ "$(classify 'bash -i; bun test')" = "SKIP watch-or-server" ]
+    [ "$(classify 'bash -i && bun test')" = "SKIP watch-or-server" ]
 }
 
 @test "dynamic wait-loop conditions cannot hide supplied checks" {
