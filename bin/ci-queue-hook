@@ -17,13 +17,17 @@ set -uo pipefail
 LOG="${CI_QUEUE_HOOK_LOG:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/queue-hook.log}"
 mkdir -p "$(dirname "$LOG")" 2>/dev/null || true
 stream_log=0
-case "$LOG" in
-  /dev/stdout|/dev/stderr|/dev/null|/dev/fd/*|/proc/self/fd/*) stream_log=1 ;;
-esac
-if (( ! stream_log )) && [[ -L "$LOG" ]]; then
-  resolved_log="$(perl -MCwd=abs_path -e 'print abs_path($ARGV[0]) // ""' "$LOG" 2>/dev/null)"
-  [[ -z "$resolved_log" ]] || LOG="$resolved_log"
-fi
+for ((log_hops=0; log_hops<40; log_hops++)); do
+  case "$LOG" in
+    /dev/stdout|/dev/stderr|/dev/null|/dev/fd/*|/proc/self/fd/*) stream_log=1; break ;;
+  esac
+  [[ -L "$LOG" ]] || break
+  resolved_log="$(readlink "$LOG" 2>/dev/null)" || break
+  case "$resolved_log" in
+    /*) LOG="$resolved_log" ;;
+    *) LOG="$(dirname "$LOG")/$resolved_log" ;;
+  esac
+done
 
 payload="$(cat 2>/dev/null || true)"
 
@@ -40,7 +44,7 @@ fi
 # quotes, so a PR title or grep pattern containing a separator stays one
 # argument instead of becoming a phantom command.
 split_segments() {
-  local s="$1" out="" c="" q="" esc=0 i
+  local s="$1" out="" c="" q="" esc=0 i mode="${2:-segments}"
   for ((i = 0; i < ${#s}; i++)); do
     c="${s:i:1}"
     if ((esc)); then
@@ -70,12 +74,22 @@ split_segments() {
         if [[ "${out: -1}" == '>' || "${out: -1}" == '<' || "${s:i+1:1}" == '>' ]]; then
           out+="$c"
         else
+          if [[ "$mode" == background ]]; then
+            [[ "${s:i+1:1}" != '&' ]]
+            return
+          fi
           out+=$'\n'
         fi ;;
-      '|' | ';') out+=$'\n' ;;
+      '|')
+        [[ "$mode" != background || "${s:i+1:1}" != '|' ]] || return 1
+        out+=$'\n' ;;
+      ';' | $'\n')
+        [[ "$mode" != background ]] || return 1
+        out+=$'\n' ;;
       *) out+="$c" ;;
     esac
   done
+  [[ "$mode" != background ]] || return 1
   printf '%s\n' "$out"
 }
 
@@ -264,11 +278,16 @@ decide() {
   #     on their own, so a suite inside `while true; do bun test; ...` or
   #     after `...; done && bun test` still queues.
   local wait_loop=$'(while|until)[[:space:]]([^;\n]*)[;\n][[:space:]]*do[[:space:]](.*)done'
-  local loop body rest condition verdict substitution condition_verdict=""
+  local loop body body_segment rest condition verdict substitution condition_verdict=""
   if [[ "$cmd" =~ $wait_loop ]]; then
     loop="${BASH_REMATCH[0]}"
     condition="${BASH_REMATCH[2]}"
     body="${BASH_REMATCH[3]}"
+    while IFS= read -r body_segment; do
+      if [[ "$body_segment" == *'$'* ]] && ! read_only_seg "$body_segment"; then
+        echo 'QUEUE long-check'; return
+      fi
+    done < <(split_segments "$body")
     if [[ "$body" == *sleep* && "$(decide "$body")" != QUEUE* ]]; then
       # Inspect substitutions before removing their output from the condition.
       # A pgrep pattern names a runner without executing it.
@@ -322,7 +341,7 @@ decide() {
       case "$verdict" in
         'SKIP watch-or-server')
           after_segment="${cmd#*"$seg"}"
-          if [[ "${after_segment:0:1}" == '&' && "${after_segment:1:1}" != '&' ]]; then
+          if split_segments "$after_segment" background; then
             any_interactive=1
           else
             echo "$verdict"; return

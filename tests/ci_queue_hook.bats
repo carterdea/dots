@@ -518,7 +518,20 @@ EOF
 }
 
 @test "dynamic wait-loop conditions cannot hide supplied checks" {
+    [ "$(classify 'while true; do echo "$status"; sleep 1; done')" = "SKIP wait-loop" ]
     [ "$(classify "bash -c 'until \"\$@\"; do sleep 1; done' _ bun test")" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'while true; do \"\$@\"; sleep 1; done' _ bun test")" = "QUEUE long-check" ]
+}
+
+@test "background interactive pipelines do not hide checks" {
+    [ "$(classify 'bash -i | cat & bun test')" = 'QUEUE long-check' ]
+}
+
+@test "symlinked standard-stream logging emits the decision" {
+    ln -s /dev/stderr "$BATS_TEST_TMPDIR/stream"
+    jq -cn --arg c 'echo linked-stream' '{tool_input:{command:$c}}' |
+        CI_QUEUE_HOOK_LOG="$BATS_TEST_TMPDIR/stream" CI_QUEUE_HOOK_ENFORCE=0 "$HOOK" 2>"$LOG"
+    [[ "$(cat "$LOG")" == *'echo linked-stream' ]]
 }
 
 @test "quoted search loops are data but subsequent checks still queue" {

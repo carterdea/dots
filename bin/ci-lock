@@ -63,7 +63,6 @@ fi
 mkdir -p "$(dirname "$LOCK_FILE")"
 
 CI_LOCK_LOG="${CI_LOCK_LOG:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/ci-lock.log}"
-queued_at="$(date +%s)"
 if ! [[ "$LOCK_TIMEOUT" =~ ^([0-9]+([.][0-9]*)?|[.][0-9]+)$ ]]; then
   echo "ci-lock: invalid timeout '$LOCK_TIMEOUT' (want nonnegative seconds)" >&2
   exit 64
@@ -71,8 +70,11 @@ fi
 # macOS date and Bash 3.2 lack subsecond clocks; system Perl supplies one.
 now_ms() { perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f", clock_gettime(CLOCK_MONOTONIC) * 1000'; }
 boot_id="$(sysctl -n kern.bootsessionuuid 2>/dev/null || cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo unknown)"
-timeout_ms="$(perl -e 'printf "%.0f", $ARGV[0] * 1000' "$LOCK_TIMEOUT")"
-queued_ms="$(now_ms)"
+if ! queued_ms="$(now_ms 2>/dev/null)" ||
+  ! timeout_ms="$(perl -e 'printf "%.0f", $ARGV[0] * 1000' "$LOCK_TIMEOUT" 2>/dev/null)"; then
+  echo "ci-lock: monotonic clock unavailable; running without the queue" >&2
+  exec "$@"
+fi
 deadline=$((queued_ms + timeout_ms))
 
 # Tabs and newlines in the command would add fields or records to the
@@ -97,13 +99,9 @@ log_run() {
 # flock on $LOCK_FILE stays the actual mutex — an older ci-lock that knows
 # nothing about tickets is still mutually excluded with a new one.
 QUEUE_DIR="$LOCK_FILE.q"
-# Ticket names sort lexically in arrival order: zero-padded epoch seconds,
-# then zero-padded pid to make the name unique. Sub-second arrival times
-# would need a helper process (no %N on macOS date, no EPOCHREALTIME on
-# bash 3.2) on every invocation, which is not worth it: same-second ties fall
-# back to pid order, which is arbitrary but bounds unfairness to one second.
-# The goal is bounding starvation, not perfect ordering.
-TICKET="$(printf '%s/%010d-%010d' "$QUEUE_DIR" "$queued_at" "$$")"
+# Old epoch-named tickets sort before new monotonic tickets during upgrades.
+# Millisecond ties use the PID; wall-clock corrections cannot reorder arrivals.
+TICKET="$(printf '%s/m%015d-%010d' "$QUEUE_DIR" "$queued_ms" "$$")"
 mkdir -p "$QUEUE_DIR"
 
 # Drops tickets whose owner is gone — a killed waiter must not wedge the
@@ -112,7 +110,7 @@ mkdir -p "$QUEUE_DIR"
 # shorter timeouts cannot evict a live waiter with a longer budget.
 # Legacy empty tickets are removed only when their owner is gone.
 queue_head() {
-  local ticket head="" expiry now ticket_boot clock
+  local ticket head="" expiry now ticket_boot clock pid process_state
   now="$(now_ms)"
   for ticket in "$QUEUE_DIR"/*; do
     [[ -e "$ticket" ]] || continue
@@ -130,7 +128,9 @@ queue_head() {
       clock=$(($(date +%s) * 1000))
     fi
     # 10# because the fields are zero-padded, and a leading zero reads as octal.
-    if kill -0 "$((10#${ticket##*-}))" 2>/dev/null &&
+    pid="$((10#${ticket##*-}))"
+    process_state="$(ps -o stat= -p "$pid" 2>/dev/null)" || process_state=""
+    if kill -0 "$pid" 2>/dev/null && [[ ! "$process_state" =~ Z ]] &&
       { [[ ! "$expiry" =~ ^[0-9]+$ ]] || ((clock <= expiry)); }; then
       [[ -n "$head" ]] || head="$ticket"
     else

@@ -9,6 +9,34 @@ setup() {
     LOCK="$BATS_TEST_TMPDIR/test.lock"
 }
 
+@test "unavailable clock helper does not prevent the check" {
+    mkdir "$BATS_TEST_TMPDIR/shims"
+    cp "$DIR/fixtures/unavailable-perl.bash" "$BATS_TEST_TMPDIR/shims/perl"
+    chmod +x "$BATS_TEST_TMPDIR/shims/perl"
+    run env PATH="$BATS_TEST_TMPDIR/shims:$PATH" CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
+        "$CI_LOCK" touch "$BATS_TEST_TMPDIR/ran"
+    [ "$status" -eq 0 ]
+    [ -f "$BATS_TEST_TMPDIR/ran" ]
+}
+
+@test "zombie ticket owners do not block the queue" {
+    perl -e 'my $pid = fork; die $! unless defined $pid; exit 0 unless $pid;
+        open my $f, ">", $ARGV[0] or die $!; print $f $pid; close $f;
+        sleep 10; waitpid $pid, 0;' "$BATS_TEST_TMPDIR/zombie" &
+    supervisor=$!
+    for attempt in {1..100}; do
+        [ ! -f "$BATS_TEST_TMPDIR/zombie" ] || break
+        sleep 0.01
+    done
+    zombie="$(cat "$BATS_TEST_TMPDIR/zombie")"
+    mkdir "$LOCK.q"
+    printf '%s\n' "$((($(date +%s) + 100) * 1000))" >"$(printf '%s/%010d-%010d' "$LOCK.q" 1 "$zombie")"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=0.3 "$CI_LOCK" true
+    kill "$supervisor" 2>/dev/null || true
+    wait "$supervisor" 2>/dev/null || true
+    [ "$status" -eq 0 ]
+}
+
 @test "queued invocation survives an in-place rewrite of its script" {
     script="$BATS_TEST_TMPDIR/ci-lock"
     cp "$CI_LOCK" "$script"
