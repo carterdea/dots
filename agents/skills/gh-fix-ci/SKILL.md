@@ -14,14 +14,14 @@ Use `gh pr checks` as the source of truth — it includes every PR-attached chec
 
 ## Steps
 
-1. Use the caller's PR and repository when supplied; otherwise resolve the current branch's PR. Confirm the head SHA and work on that PR branch, preserving unrelated changes.
+1. Use the caller's PR and repository when supplied; otherwise resolve the current branch's PR with `gh pr view --json number,url`. Carry the resolved repository through all PR and run commands, including reruns. Confirm the head SHA and work on that PR branch in a checkout of the target repository, preserving unrelated changes.
 ```bash
-gh pr view --json number,url,headRefName
+gh pr view NUMBER --repo OWNER/REPO --json number,url,headRefName,headRefOid
 ```
 
 2. Inspect the current check set
 ```bash
-gh pr checks --json name,bucket,state,workflow,link
+gh pr checks NUMBER --repo OWNER/REPO --json name,bucket,state,workflow,link
 ```
 - Handle an available failure before waiting for other checks.
 - If only pending checks remain, return pending in single-pass mode. In standalone mode, wait interruptibly or in intervals of at most 60 seconds, then inspect again.
@@ -31,7 +31,7 @@ gh pr checks --json name,bucket,state,workflow,link
 3. Diagnose the first failing check. Open its logs and focus on the root error
 ```bash
 # when the failing check links to a GitHub Actions run
-gh run view <run-id> --log-failed
+gh run view <run-id> --repo OWNER/REPO --log-failed
 ```
 
 4. Fix
@@ -45,7 +45,7 @@ gh run view <run-id> --log-failed
 
 6. In standalone mode, re-check the full set on the current head; a push invalidates the old check results.
 ```bash
-gh pr checks --json name,bucket,state,workflow,link
+gh pr checks NUMBER --repo OWNER/REPO --json name,bucket,state,workflow,link
 ```
 - Still failing: return to step 3 for the next failure
 - All green: report and stop
