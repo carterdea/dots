@@ -466,6 +466,12 @@ EOF
 @test "interactive shells never hold the heavy lane" {
     [ "$(classify 'bash -i')" = "SKIP watch-or-server" ]
     [ "$(classify 'zsh -il')" = "SKIP watch-or-server" ]
+    [ "$(classify "bash -ic 'bun test'")" = "QUEUE long-check" ]
+    [ "$(classify "bash -i -c 'bun test'")" = "QUEUE long-check" ]
+}
+
+@test "dynamic wait-loop conditions cannot hide supplied checks" {
+    [ "$(classify "bash -c 'until \"\$@\"; do sleep 1; done' _ bun test")" = "QUEUE long-check" ]
 }
 
 @test "quoted search loops are data but subsequent checks still queue" {
@@ -475,9 +481,11 @@ EOF
 
 @test "rotation bounds bytes while retaining complete Unicode records" {
     awk 'BEGIN { for (i=0; i<20000; i++) { for (j=0; j<200; j++) printf "界"; print "" } }' > "$LOG"
+    chmod 600 "$LOG"
     jq -cn --arg c 'echo newest' '{tool_input:{command:$c}}' |
         CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=0 "$HOOK"
     [ "$(wc -c < "$LOG")" -le 2621440 ]
     [ "$(head -1 "$LOG" | wc -c)" -eq 601 ]
     [[ "$(tail -1 "$LOG")" == *'echo newest' ]]
+    [ "$(stat -f%Lp "$LOG" 2>/dev/null || stat -c%a "$LOG")" = 600 ]
 }

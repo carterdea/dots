@@ -188,12 +188,12 @@ all_read_only() {
 
 # A shell's quoted script is one argument; later tokens supply $0, $1, etc.
 shell_verdict() {
-  if [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*i[a-zA-Z]*([[:space:]]|$) ]]; then
-    echo "SKIP watch-or-server"
-    return 0
-  fi
   local prefix="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*c[a-zA-Z]*[[:space:]]+(--[[:space:]]+)?(['\"])(.*)"
   if ! [[ "$1" =~ $prefix ]]; then
+    if [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*i[a-zA-Z]*([[:space:]]|$) ]]; then
+      echo "SKIP watch-or-server"
+      return 0
+    fi
     # Opaque shell invocations can execute arbitrary checks. In particular,
     # options taking values must not fall through to the install exemption.
     [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]] ]] || return 1
@@ -260,6 +260,9 @@ decide() {
       substitution='\$\(([^()]*)\)'
       while [[ "$condition" =~ $substitution ]]; do
         local expansion="${BASH_REMATCH[0]}" inner="${BASH_REMATCH[1]}"
+        if [[ "$inner" == *'$'* ]] && ! all_read_only "$inner"; then
+          echo 'QUEUE long-check'; return
+        fi
         verdict="$(decide "$inner")"
         [[ "$verdict" == 'QUEUE long-check' ]] && { echo "$verdict"; return; }
         [[ "$verdict" != QUEUE* ]] || condition_verdict="$verdict"
@@ -267,6 +270,9 @@ decide() {
       done
       condition="${condition#"${condition%%[![:space:]]*}"}"
       condition="${condition#!}"
+      if [[ "$condition" == *'$'* ]] && ! all_read_only "$condition"; then
+        echo 'QUEUE long-check'; return
+      fi
       verdict="$(decide "$condition")"
       [[ "$verdict" == 'QUEUE long-check' ]] && { echo "$verdict"; return; }
       [[ "$verdict" != QUEUE* ]] || condition_verdict="$verdict"
@@ -378,11 +384,12 @@ if command -v flock >/dev/null 2>&1; then
     write_log
     log_size="$(stat -f%z "$LOG" 2>/dev/null || stat -c%s "$LOG" 2>/dev/null || echo 0)"
     if [[ "$log_size" =~ ^[0-9]+$ ]] && ((log_size > 5242880)); then
+      # mktemp creates a private file even under a permissive caller umask.
+      rotating="$(mktemp "$LOG.rotating.XXXXXX")" || exit 0
+      trap 'rm -f "$rotating"' EXIT
       # Keep at most 2.5 MiB, dropping the first potentially partial record.
-      if tail -c 2621440 "$LOG" | LC_ALL=C sed '1d' >"$LOG.rotating"; then
-        mv -f "$LOG.rotating" "$LOG" || rm -f "$LOG.rotating"
-      else
-        rm -f "$LOG.rotating"
+      if tail -c 2621440 "$LOG" | LC_ALL=C sed '1d' >"$rotating"; then
+        mv -f "$rotating" "$LOG"
       fi
     fi
   ) 8>"$LOG.lock" 2>/dev/null || true
