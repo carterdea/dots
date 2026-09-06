@@ -13,8 +13,8 @@ When called in single-pass mode, handle available feedback and return without sl
 ## Start
 
 1. Use the named PR, otherwise `gh pr view --json number,url,state,headRefName`. If lookup fails, use `gh pr list --head "$(git branch --show-current)" --state open --json number,url`. Ask if there are zero or multiple matches; never silently select the first.
-2. Confirm `gh auth status`, the PR's base repository, head SHA, and open state. Before edits, inspect `git status --short` and use the PR head branch. Preserve unrelated changes; use an existing suitable checkout or an isolated worktree if switching would disturb them.
-3. Resolve `SKILL_DIR` to this skill's directory. Run `uv run "$SKILL_DIR/scripts/fetch_comments.py" --repo OWNER/REPO --pr NUMBER`. Read checks with `gh pr checks NUMBER` and state with `gh pr view NUMBER --json state,headRefOid,mergeable,reviewDecision,statusCheckRollup`.
+2. Confirm `gh auth status`, the PR's base repository, head SHA, and open state. Carry that repository as `--repo OWNER/REPO` through every subsequent `gh pr` command. Before edits, inspect `git status --short` and use the PR head branch in a checkout of the target repository. Preserve unrelated changes; use an existing suitable checkout or an isolated worktree if switching would disturb them.
+3. Resolve `SKILL_DIR` to this skill's directory. Run `uv run "$SKILL_DIR/scripts/fetch_comments.py" --repo OWNER/REPO --pr NUMBER`. Read checks with `gh pr checks NUMBER --repo OWNER/REPO` and state with `gh pr view NUMBER --repo OWNER/REPO --json state,headRefOid,mergeable,reviewDecision,statusCheckRollup`.
 
 Proceed only with an unambiguous PR and current-head evidence. Closed or merged PRs end the run.
 
@@ -45,7 +45,7 @@ Ask only for ambiguity, conflicting requirements, destructive changes, or produc
 
 Evaluate approval only after triage and closure, never before reading outstanding feedback.
 
-- Approved current head, checks green, no pending review, known mergeability, and no unresolved actionable feedback: report ready. Merge only when the user has authorized it and repository gates pass; pin the merge to the inspected head with `gh pr merge --match-head-commit SHA` and an allowed merge method. Approval alone is not permission to merge.
+- Approved current head, checks green, no pending review, known mergeability, and no unresolved actionable feedback: report ready. Merge only when the user has authorized it and repository gates pass; pin the merge to the inspected head with `gh pr merge NUMBER --repo OWNER/REPO --match-head-commit SHA` and an allowed merge method. Approval alone is not permission to merge.
 - Otherwise stop after four clean polls, each separated by five minutes, spanning at least 20 minutes since the last push, fix, or new feedback. A clean poll requires no pending review and no unresolved actionable feedback. CI status does not extend the comment watch; report failed or pending checks at handoff. The initial fetch starts the clock; it does not count as five elapsed minutes. Reset on new feedback, edits, pushes, or failed local validation of a review fix.
 - Stop on merge, closure, supersession, authentication/rate-limit blockers, failed local validation of a review fix, or a required user decision. For one pass, stop after the cycle and report anything pending.
 
