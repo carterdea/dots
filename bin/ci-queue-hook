@@ -212,8 +212,10 @@ all_read_only() {
 shell_verdict() {
   local prefix="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*c[a-zA-Z]*[[:space:]]+(--[[:space:]]+)?(['\"])(.*)"
   if ! [[ "$1" =~ $prefix ]]; then
-    local interactive="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[abd-zA-Z]+)[[:space:]]+)*-[abd-zA-Z]*i[abd-zA-Z]*([[:space:]]*([0-9]*>>?|&>>?)[[:space:]]*([^[:space:]<>]+|'[^']*'|\"[^\"]*\"))*[[:space:]]*$"
-    # Output redirection leaves stdin interactive; substitutions may run checks.
+    local output_redirect="([0-9]*>>?|&>>?)[[:space:]]*([^[:space:]<>]+|'[^']*'|\"[^\"]*\")"
+    local terminal_redirect="0?<([[:space:]]*/dev/tty|&[[:space:]]*0)"
+    local interactive="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[abd-zA-Z]+)[[:space:]]+)*-[abd-zA-Z]*i[abd-zA-Z]*([[:space:]]*($output_redirect|$terminal_redirect))*[[:space:]]*$"
+    # Preserve terminal input, but reject finite script input and substitutions.
     # shellcheck disable=SC2016
     if [[ "$1" =~ $interactive && "$1" != *'$('* && "$1" != *'`'* && "$1" != *'>('* ]]; then
       echo "SKIP watch-or-server"
@@ -403,7 +405,10 @@ decide() {
     return
   fi
   ((any_interactive)) && { echo "SKIP watch-or-server"; return; }
-  ((any_install)) && { echo "SKIP not-a-check"; return; }
+  if ((any_install)); then
+    if ((any_other)); then echo "QUEUE long-check"; else echo "SKIP not-a-check"; fi
+    return
+  fi
   ((any_file)) && { echo "SKIP file-scoped"; return; }
   ((any_name)) && { echo "SKIP name-filtered"; return; }
   ((any_ro)) && { echo "SKIP read-only-tool"; return; }

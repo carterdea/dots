@@ -306,6 +306,20 @@ EOF
     [ "$(classify 'bunx playwright install chromium')" = "SKIP not-a-check" ]
 }
 
+@test "playwright installs do not exempt unknown companion commands" {
+    [ "$(classify 'playwright install chromium && npm test')" = "QUEUE long-check" ]
+    [ "$(classify 'playwright install chromium && yarn test')" = "QUEUE long-check" ]
+    [ "$(classify 'playwright install chromium && custom-check')" = "QUEUE long-check" ]
+    [ "$(classify 'playwright install chromium && echo done')" = "SKIP not-a-check" ]
+}
+
+@test "interactive shells preserve terminal input redirects" {
+    [ "$(classify 'bash -i <&0')" = "SKIP watch-or-server" ]
+    [ "$(classify 'bash -i </dev/tty')" = "SKIP watch-or-server" ]
+    [ "$(classify 'bash -i 0<&0 >/tmp/session.log')" = "SKIP watch-or-server" ]
+    [ "$(classify 'bash -i <script.sh')" = "QUEUE long-check" ]
+}
+
 @test "playwright install-deps is not queued" {
     [ "$(classify 'bunx playwright install-deps')" = "SKIP not-a-check" ]
 }
