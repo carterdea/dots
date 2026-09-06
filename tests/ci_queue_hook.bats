@@ -449,6 +449,12 @@ EOF
     [ "$(classify 'playwright install "`bun test`"')" = "QUEUE long-check" ]
 }
 
+@test "environment wrappers cannot use an inner install to hide checks" {
+    [ "$(classify "env FOO=bar bash -c 'playwright install chromium && bun test'")" = "QUEUE long-check" ]
+    [ "$(classify "FOO=bar bash -c 'playwright install chromium && bun test'")" = "QUEUE long-check" ]
+    [ "$(classify "command bash -c 'playwright install chromium && bun test'")" = "QUEUE long-check" ]
+}
+
 @test "rotation bounds bytes while retaining complete Unicode records" {
     awk 'BEGIN { for (i=0; i<20000; i++) { for (j=0; j<200; j++) printf "界"; print "" } }' > "$LOG"
     jq -cn --arg c 'echo newest' '{tool_input:{command:$c}}' |

@@ -299,10 +299,10 @@ decide() {
       any_file=1
       continue
     fi
-    # Downloading browsers is a fetch, not a check: minutes of network in
-    # the exclusive lane, and nothing else can run meanwhile.
+    # Exempt only recognized top-level installs. An install inside an opaque
+    # wrapper says nothing about what else that wrapper executes.
     # shellcheck disable=SC2016 # detect literal shell substitutions
-    if [[ "$seg" =~ playwright(@[^[:space:]]+)?[[:space:]]+install(-deps)?([[:space:]]|$) ]] &&
+    if [[ "$seg" =~ ^[[:space:]]*((bunx|npx)[[:space:]]+|(pnpm|bun)[[:space:]]+(exec|dlx|x)[[:space:]]+)?playwright(@[^[:space:]]+)?[[:space:]]+install(-deps)?([[:space:]]|$) ]] &&
       [[ "$seg" != *'$('* && "$seg" != *'`'* && "$seg" != *'<('* && "$seg" != *'>('* ]]; then
       any_install=1
       continue
