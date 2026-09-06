@@ -488,12 +488,25 @@ EOF
 @test "rotation follows log symlinks without replacing them" {
     target="$BATS_TEST_TMPDIR/target.log"
     awk 'BEGIN { for (i=0; i<60000; i++) printf "%0100d\n", i }' > "$target"
+    chmod 660 "$target"
+    inode="$(stat -f%i "$target" 2>/dev/null || stat -c%i "$target")"
     ln -s "$target" "$LOG"
     jq -cn --arg c 'echo newest' '{tool_input:{command:$c}}' |
         CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=0 "$HOOK"
     [ -L "$LOG" ]
     [ "$(wc -c < "$target")" -le 2621440 ]
     [[ "$(tail -1 "$target")" == *'echo newest' ]]
+    [ "$(stat -f%Lp "$target" 2>/dev/null || stat -c%a "$target")" = 660 ]
+    [ "$(stat -f%i "$target" 2>/dev/null || stat -c%i "$target")" = "$inode" ]
+}
+
+@test "standard-stream logging emits the decision" {
+    jq -cn --arg c 'echo stream-record' '{tool_input:{command:$c}}' |
+        CI_QUEUE_HOOK_LOG=/dev/stderr CI_QUEUE_HOOK_ENFORCE=0 "$HOOK" 2>"$LOG"
+    [[ "$(cat "$LOG")" == *'echo stream-record' ]]
+    jq -cn --arg c 'echo stdout-record' '{tool_input:{command:$c}}' |
+        CI_QUEUE_HOOK_LOG=/dev/stdout CI_QUEUE_HOOK_ENFORCE=0 "$HOOK" >"$LOG"
+    [[ "$(cat "$LOG")" == *'echo stdout-record' ]]
 }
 
 @test "dynamic wait-loop conditions cannot hide supplied checks" {

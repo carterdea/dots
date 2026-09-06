@@ -16,7 +16,11 @@ set -uo pipefail
 
 LOG="${CI_QUEUE_HOOK_LOG:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/queue-hook.log}"
 mkdir -p "$(dirname "$LOG")" 2>/dev/null || true
-if [[ -L "$LOG" ]]; then
+stream_log=0
+case "$LOG" in
+  /dev/stdout|/dev/stderr|/dev/null|/dev/fd/*|/proc/self/fd/*) stream_log=1 ;;
+esac
+if (( ! stream_log )) && [[ -L "$LOG" ]]; then
   resolved_log="$(perl -MCwd=abs_path -e 'print abs_path($ARGV[0]) // ""' "$LOG" 2>/dev/null)"
   [[ -z "$resolved_log" ]] || LOG="$resolved_log"
 fi
@@ -391,12 +395,14 @@ reason="${verdict#* }"
 log_cmd="${cmd//$'\t'/ }"
 log_cmd="${log_cmd//$'\n'/ }"
 # Append and rotate under the same mutex, keeping concurrent writers out of
-# the snapshot/rename window. Without flock, append only; never replace a log
+# the snapshot/rewrite window. Without flock, append only; never rotate a log
 # that another hook may be writing. Logging remains best-effort.
 write_log() {
   printf '%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$action" "$reason" "${log_cmd:0:200}" >>"$LOG"
 }
-if command -v flock >/dev/null 2>&1; then
+if ((stream_log)); then
+  write_log || true
+elif command -v flock >/dev/null 2>&1; then
   (
     flock -x -w 1 8 || exit 0
     write_log
@@ -407,7 +413,8 @@ if command -v flock >/dev/null 2>&1; then
       trap 'rm -f "$rotating"' EXIT
       # Keep at most 2.5 MiB, dropping the first potentially partial record.
       if tail -c 2621440 "$LOG" | LC_ALL=C sed '1d' >"$rotating"; then
-        mv -f "$rotating" "$LOG"
+        # Keep ownership, permissions, ACLs, and hard links on the log inode.
+        cat "$rotating" >"$LOG"
       fi
     fi
   ) 8>"$LOG.lock" 2>/dev/null || true
