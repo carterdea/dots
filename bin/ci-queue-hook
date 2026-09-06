@@ -219,7 +219,7 @@ shell_verdict() {
       local suffix="${tail:i+1}"
       # Arguments and redirections expand in the outer shell before -c runs.
       # shellcheck disable=SC2016 # detect literal shell substitutions
-      if [[ "$suffix" == *'$('* || "$suffix" == *'`'* || "$suffix" == *'<('* || "$suffix" == *'>('* ]]; then
+      if [[ "$suffix" == *'$('* || "$suffix" == *'`'* || "$suffix" == *'<'* || "$suffix" == *'>('* ]]; then
         echo "QUEUE long-check"
         return 0
       fi
@@ -402,7 +402,8 @@ write_log() {
 }
 if ((stream_log)); then
   write_log || true
-elif command -v flock >/dev/null 2>&1; then
+elif command -v flock >/dev/null 2>&1 &&
+  [[ ! -L "$LOG.lock" && ( ! -e "$LOG.lock" || -f "$LOG.lock" ) ]]; then
   (
     flock -x -w 1 8 || exit 0
     write_log
@@ -417,7 +418,7 @@ elif command -v flock >/dev/null 2>&1; then
         cat "$rotating" >"$LOG"
       fi
     fi
-  ) 8>"$LOG.lock" 2>/dev/null || true
+  ) 8>>"$LOG.lock" 2>/dev/null || true
 else
   write_log 2>/dev/null || true
 fi

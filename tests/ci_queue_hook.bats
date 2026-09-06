@@ -452,6 +452,14 @@ EOF
 @test "shell suffix substitutions cannot hide checks" {
     [ "$(classify 'bash -c '\''echo ok'\'' "$(bun test)"')" = "QUEUE long-check" ]
     [ "$(classify 'bash -c '\''echo ok'\'' > >(bun test)')" = "QUEUE long-check" ]
+    [ "$(classify "bash -c 'source /dev/stdin' <<< 'bun test'")" = "QUEUE long-check" ]
+}
+
+@test "symlinked logging mutex cannot truncate another file" {
+    printf '%s\n' 'keep this data' > "$BATS_TEST_TMPDIR/victim"
+    ln -s "$BATS_TEST_TMPDIR/victim" "$LOG.lock"
+    classify 'echo hello' >/dev/null
+    [ "$(cat "$BATS_TEST_TMPDIR/victim")" = 'keep this data' ]
 }
 
 @test "environment wrappers cannot use an inner install to hide checks" {

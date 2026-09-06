@@ -192,6 +192,23 @@ setup() {
     [ "$status" -eq 0 ]
 }
 
+@test "wall clock jumps do not expire queued callers" {
+    mkdir "$BATS_TEST_TMPDIR/shims"
+    cp "$DIR/fixtures/clock-jump-perl.bash" "$BATS_TEST_TMPDIR/shims/perl"
+    chmod +x "$BATS_TEST_TMPDIR/shims/perl"
+    flock "$LOCK" sh -c 'touch "$1"; sleep 0.5' sh "$BATS_TEST_TMPDIR/ready" &
+    holder=$!
+    for attempt in {1..100}; do
+        [ ! -f "$BATS_TEST_TMPDIR/ready" ] || break
+        sleep 0.01
+    done
+    run env PATH="$BATS_TEST_TMPDIR/shims:$PATH" CI_TEST_REAL_PERL="$(command -v perl)" \
+        CI_TEST_CLOCK_MARKER="$BATS_TEST_TMPDIR/clock" \
+        CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=2 "$CI_LOCK" true
+    wait "$holder"
+    [ "$status" -eq 0 ]
+}
+
 @test "signal between child launch and PID assignment keeps the wrapper waiting" {
     # DEBUG delivers TERM in the launch window without a timing race.
     run env BASH_ENV="$DIR/fixtures/ci_lock_signal.bash" CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \

@@ -69,9 +69,11 @@ if ! [[ "$LOCK_TIMEOUT" =~ ^([0-9]+([.][0-9]*)?|[.][0-9]+)$ ]]; then
   exit 64
 fi
 # macOS date and Bash 3.2 lack subsecond clocks; system Perl supplies one.
-now_ms() { perl -MTime::HiRes=time -e 'printf "%.0f", time * 1000'; }
+now_ms() { perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f", clock_gettime(CLOCK_MONOTONIC) * 1000'; }
+boot_id="$(sysctl -n kern.bootsessionuuid 2>/dev/null || cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo unknown)"
 timeout_ms="$(perl -e 'printf "%.0f", $ARGV[0] * 1000' "$LOCK_TIMEOUT")"
-deadline=$(($(now_ms) + timeout_ms))
+queued_ms="$(now_ms)"
+deadline=$((queued_ms + timeout_ms))
 
 # Tabs and newlines in the command would add fields or records to the
 # tab-separated log; flatten them so one run is always one six-field line.
@@ -110,14 +112,26 @@ mkdir -p "$QUEUE_DIR"
 # shorter timeouts cannot evict a live waiter with a longer budget.
 # Legacy empty tickets are removed only when their owner is gone.
 queue_head() {
-  local ticket head="" expiry now
+  local ticket head="" expiry now ticket_boot clock
   now="$(now_ms)"
   for ticket in "$QUEUE_DIR"/*; do
     [[ -e "$ticket" ]] || continue
     expiry="$(cat "$ticket" 2>/dev/null)" || continue
+    clock=$now
+    if [[ "$expiry" == *:* ]]; then
+      ticket_boot="${expiry%%:*}"
+      expiry="${expiry#*:}"
+      if [[ "$boot_id" != unknown && "$ticket_boot" != unknown && "$ticket_boot" != "$boot_id" ]]; then
+        rm -f "$ticket"
+        continue
+      fi
+    else
+      # Numeric tickets from older versions use epoch milliseconds.
+      clock=$(($(date +%s) * 1000))
+    fi
     # 10# because the fields are zero-padded, and a leading zero reads as octal.
     if kill -0 "$((10#${ticket##*-}))" 2>/dev/null &&
-      { [[ ! "$expiry" =~ ^[0-9]+$ ]] || ((now <= expiry)); }; then
+      { [[ ! "$expiry" =~ ^[0-9]+$ ]] || ((clock <= expiry)); }; then
       [[ -n "$head" ]] || head="$ticket"
     else
       rm -f "$ticket"
@@ -132,7 +146,7 @@ acquire() {
   local remaining interval wait_seconds
   # Publish a complete ticket before contending, including on a free lock.
   # One polling interval of grace covers publication/acquisition overhead.
-  printf '%s\n' "$((deadline + 1000))" >"$QUEUE_DIR/.$$"
+  printf '%s:%s\n' "$boot_id" "$((deadline + 1000))" >"$QUEUE_DIR/.$$"
   mv "$QUEUE_DIR/.$$" "$TICKET"
   if [[ "$(queue_head)" == "$TICKET" ]] && flock -n 9; then
     return 0
@@ -171,7 +185,7 @@ trap 'exit 129' HUP
 
 if ! acquire; then
   echo "ci-lock: timed out after ${LOCK_TIMEOUT}s waiting for $LOCK_FILE" >&2
-  log_run "$(($(date +%s) - queued_at))" 0 timeout
+  log_run "$((($(now_ms) - queued_ms) / 1000))" 0 timeout
   exit 1
 fi
 # The queue holds waiters only: leaving the ticket in place would make the
@@ -179,7 +193,7 @@ fi
 rm -f "$TICKET"
 
 export "$HELD_VAR=$LOCK_FILE:$$"
-started_at="$(date +%s)"
+started_ms="$(now_ms)"
 
 # 9>&- closes the lock descriptor for the command and everything it spawns.
 # Without it, a check that leaves a background process behind (a test server,
@@ -222,7 +236,7 @@ while ((status > 128)) && kill -0 "$child" 2>/dev/null; do
 done
 set -e
 
-log_run "$((started_at - queued_at))" "$(($(date +%s) - started_at))" "$status"
+log_run "$(((started_ms - queued_ms) / 1000))" "$((($(now_ms) - started_ms) / 1000))" "$status"
 
 exit "$status"
 }
