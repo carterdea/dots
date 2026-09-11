@@ -47,7 +47,7 @@ Select the job matching the failing check and inspected head. If its logs are al
 - If a failure looks flaky, retry once and note the flake evidence. Return immediately in single-pass mode; in standalone mode, recheck the rerun without making a code change.
 - If that retry also fails, report a blocker instead of retrying again. Keep the run/job identity in session state across passes.
 
-5. Verify locally with the narrowest command that covers the failure, then commit and push when authorized. If validation fails, keep changes local and report the blocker. If a no-push request leaves the fix local, return with that limitation. In single-pass mode, return after the fix or rerun request; do not wait for its remote result.
+5. Verify locally with the narrowest command that covers the failure. If validation fails, diagnose the cause, repair in-scope implementation, test, or fixture failures, and rerun the failing check and relevant suite until green. When intended behavior makes a test stale, update its setup or selection so it still exercises the intended case and retains the behavior assertion. Never delete or skip tests, weaken assertions, or add mocks just to make validation pass. Continue the CI repair flow after validation is green; keep changes local and stop only for a genuine external blocker, missing authority for an out-of-scope repair, or a product/API decision that cannot be inferred. Then commit and push when authorized. If a no-push request leaves the fix local, return with that limitation. In single-pass mode, return after the fix or rerun request; do not wait for its remote result.
 
 6. In standalone mode, re-check the full set on the current head; a push invalidates the old check results.
 ```bash
