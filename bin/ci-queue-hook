@@ -172,6 +172,15 @@ strip_heredocs() {
 read_only_seg() {
   local seg="$1" first i
   local -a tok
+  # A substitution runs a command; it is read-only only if that command is.
+  # Innermost first, so nested substitutions are judged from the inside out.
+  local substitution='\$\(([^()]*)\)' expansion
+  while [[ "$seg" =~ $substitution ]]; do
+    # Saved first: the recursive check runs its own matches.
+    expansion="${BASH_REMATCH[0]}"
+    all_read_only "${BASH_REMATCH[1]}" || return 1
+    seg="${seg/"$expansion"/_}"
+  done
   # shellcheck disable=SC2016 # literal $( is the point: no expansion wanted
   [[ "$seg" == *'$('* || "$seg" == *'`'* ]] && return 1
   [[ "$seg" == *'<('* || "$seg" == *'>('* ]] && return 1
@@ -209,6 +218,18 @@ read_only_seg() {
   esac
 }
 
+# True when a segment's command word is the queue itself, after any env
+# assignments or an `env` prefix.
+runs_queue() {
+  local i=0
+  local -a tok
+  read -ra tok <<<"$1"
+  while ((i < ${#tok[@]})) && [[ "${tok[i]}" == env || "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; do
+    i=$((i + 1))
+  done
+  [[ "${tok[i]:-}" =~ ^([^[:space:]]*/)?(ci-lock|lefthook|lefthook-ci-lock)$ ]]
+}
+
 all_read_only() {
   local segment
   while IFS= read -r segment; do
@@ -234,6 +255,8 @@ shell_verdict() {
     # Opaque shell invocations can execute arbitrary checks. In particular,
     # options taking values must not fall through to the install exemption.
     [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]] ]] || return 1
+    # Except those that execute nothing: a syntax check or a version query.
+    [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+(-n|--version|--help)([[:space:]]|$) ]] && return 1
     echo "QUEUE long-check"
     return 0
   fi
@@ -340,17 +363,20 @@ decide() {
     fi
   fi
 
-  # 2. Already queued, or is the queue itself.
-  if [[ "$cmd" =~ (ci-lock|lefthook) ]]; then echo "SKIP already-queued"; return; fi
-
   # 3. Judge each pipeline segment on its own. A file argument scopes only
   #    the segment it appears in, and a read-only lead-in never excuses a
   #    suite running after && — one heavy segment queues the whole command.
-  local seg after_segment any_interactive=0 any_file=0 any_name=0 any_ro=0 checkonly=0 any_install=0 any_other=0
+  local seg after_segment any_queued=0 any_interactive=0 any_file=0 any_name=0 any_ro=0 checkonly=0 any_install=0 any_other=0
   while IFS= read -r seg; do
     [[ "$seg" =~ [^[:space:]] ]] || continue
     if read_only_seg "$seg"; then
       any_ro=1
+      continue
+    fi
+    # Already queued: the segment runs ci-lock or lefthook itself. Merely
+    # naming one (cat lefthook.yml) does not count.
+    if runs_queue "$seg"; then
+      any_queued=1
       continue
     fi
     if verdict="$(shell_verdict "$seg")"; then
@@ -419,6 +445,7 @@ decide() {
     if ((any_other)); then echo "QUEUE long-check"; else echo "SKIP not-a-check"; fi
     return
   fi
+  ((any_queued)) && { echo "SKIP already-queued"; return; }
   ((any_file)) && { echo "SKIP file-scoped"; return; }
   ((any_name)) && { echo "SKIP name-filtered"; return; }
   ((any_ro)) && { echo "SKIP read-only-tool"; return; }
@@ -443,7 +470,7 @@ if ((stream_log)); then
 elif command -v flock >/dev/null 2>&1 &&
   [[ ! -L "$LOG.lock" && ( ! -e "$LOG.lock" || -f "$LOG.lock" ) ]]; then
   (
-    flock -x -w 1 8 || exit 0
+    flock -x -w 5 8 || exit 0
     write_log
     log_size="$(stat -f%z "$LOG" 2>/dev/null || stat -c%s "$LOG" 2>/dev/null || echo 0)"
     if [[ "$log_size" =~ ^[0-9]+$ ]] && ((log_size > 5242880)); then

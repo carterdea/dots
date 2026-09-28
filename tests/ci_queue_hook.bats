@@ -584,3 +584,44 @@ EOF
     [[ "$(tail -1 "$LOG")" == *'echo newest' ]]
     [ "$(stat -f%Lp "$LOG" 2>/dev/null || stat -c%a "$LOG")" = 600 ]
 }
+
+# --- only running ci-lock or lefthook counts as already queued ---
+
+@test "mentioning lefthook does not excuse a suite" {
+    [ "$(classify 'cat lefthook.yml && bun run test')" = "QUEUE long-check" ]
+}
+
+@test "listing the ci-lock binary is read-only" {
+    [ "$(classify 'ls -la ~/.local/bin/ci-lock ~/.local/state/ci-lock/')" = "SKIP read-only-tool" ]
+}
+
+@test "self-wrapped private lane is already queued" {
+    [ "$(classify "CI_LOCK_FILE=/tmp/x-heavy.lock ~/.local/bin/ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
+}
+
+@test "lefthook run is already queued" {
+    [ "$(classify 'lefthook run pre-push')" = "SKIP already-queued" ]
+}
+
+# --- read-only substitutions stay read-only ---
+
+@test "while-read loop formatting ps output is not queued" {
+    [ "$(classify 'ps -Ao ppid,stat | awk "{print \$1}" | while read n p; do echo "$n <- $(ps -o comm= -p $p)"; done')" != "QUEUE long-check" ]
+}
+
+@test "echo of a read-only substitution is read-only" {
+    [ "$(classify 'echo "$(git rev-parse HEAD)"')" = "SKIP read-only-tool" ]
+}
+
+@test "echo of a suite substitution still queues" {
+    [ "$(classify 'echo "$(bun run test)"')" = "QUEUE long-check" ]
+}
+
+@test "shell syntax check and version queries are not queued" {
+    [ "$(classify 'bash -n scripts/pre-push-checks.sh')" = "SKIP not-heavy" ]
+    [[ "$(classify 'bash --version | head -1')" == SKIP* ]]
+}
+
+@test "running a script through bash still queues" {
+    [ "$(classify 'bash scripts/pre-push-checks.sh')" = "QUEUE long-check" ]
+}
