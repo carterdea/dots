@@ -227,6 +227,8 @@ runs_queue() {
   local -a tok
   read -ra tok <<<"$1"
   while ((i < ${#tok[@]})); do
+    # A split string's opening quote rides on its first word.
+    [[ -z "$modifier" ]] || tok[i]="${tok[i]#[\"\']}"
     case "${tok[i]}" in
       env | command | exec) modifier="${tok[i]}" ;;
       # env -S splits its value into the command itself, so parsing
@@ -247,9 +249,7 @@ runs_queue() {
     esac
     i=$((i + 1))
   done
-  local word="${tok[i]:-}"
-  word="${word#[\"\']}"
-  [[ "$word" =~ ^([^[:space:]]*/)?(ci-lock|lefthook|lefthook-ci-lock)$ ]]
+  [[ "${tok[i]:-}" =~ ^([^[:space:]]*/)?(ci-lock|lefthook|lefthook-ci-lock)$ ]]
 }
 
 all_read_only() {
@@ -268,11 +268,15 @@ shell_verdict() {
   # outer shell runs a substitution before the inner one ever starts.
   local noexec_opts='^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)(([[:space:]]+[-+][a-zA-Z]+)+)([[:space:]]|$)'
   if [[ "$1" =~ $noexec_opts ]]; then
-    local opts="${BASH_REMATCH[3]}"
+    local opts="${BASH_REMATCH[3]}" outer="$1" quoted="'[^']*'"
+    # Single-quoted text is the inner script's; only the rest expands here.
+    while [[ "$outer" =~ $quoted ]]; do
+      outer="${outer/"${BASH_REMATCH[0]}"/_}"
+    done
     # shellcheck disable=SC2016 # detect literal shell substitutions
     if [[ "$opts" =~ [[:space:]]-[a-zA-Z]*n && ! "$opts" =~ [[:space:]][+] &&
-      ! "$opts" =~ [[:space:]]-[a-zA-Z]*i && "$1" != *'$('* && "$1" != *'`'* &&
-      "$1" != *'<('* && "$1" != *'>('* ]]; then
+      ! "$opts" =~ [[:space:]]-[a-zA-Z]*i && "$outer" != *'$('* && "$outer" != *'`'* &&
+      "$outer" != *'<('* && "$outer" != *'>('* ]]; then
       echo "SKIP not-heavy"
       return 0
     fi
@@ -541,26 +545,19 @@ lane=""
 [[ "$reason" == "check-only" ]] && lane="CI_LOCK_LANE=check "
 # A command that starts in another directory (cd <dir> && suite) runs that
 # directory's suite; tell ci-lock so its per-repository lock names the right
-# repository rather than the caller's. The operand is passed verbatim, so the
-# shell expands it exactly as it expands it for cd: quotes, ~, $HOME, escaped
-# spaces. Anything that would execute (command substitution) is left out.
+# repository rather than the caller's. Rather than re-implementing cd (quotes,
+# ~, CDPATH, options, a bare cd), the rewrite runs the same cd in a bash
+# subshell, as the wrapped bash -c will, and passes the directory it lands
+# in. Arguments that would execute something (substitutions) are left out.
 repo_dir=""
 cd_word=$'("([^"\\\\]|\\\\.)*"|\'[^\']*\'|\\\\.|[^[:space:];&|<>()"\'\\\\])+'
-cd_lead="^[[:space:]]*cd[[:space:]]+((-[LPe@]+|--)[[:space:]]+)*($cd_word)[[:space:]]*(&&|[|][|]|;|"$'\n'")"
-# shellcheck disable=SC2016 # $HOME and $OLDPWD are expanded by the shell
-if [[ "$cmd" =~ ^[[:space:]]*cd[[:space:]]*(\&\&|[|][|]|;|$'\n') ]]; then
-  # A bare cd goes home.
-  repo_dir='CI_LOCK_REPO_DIR="$HOME" '
-elif [[ "$cmd" =~ $cd_lead ]]; then
-  repo_dir="${BASH_REMATCH[3]}"
+cd_lead="^[[:space:]]*cd(([[:space:]]+$cd_word)*)[[:space:]]*(&&|[|][|]|;|"$'\n'")"
+if [[ "$cmd" =~ $cd_lead ]]; then
+  cd_args="${BASH_REMATCH[1]}"
   # shellcheck disable=SC2016 # detect literal shell substitutions
-  if [[ "$repo_dir" == *'$('* || "$repo_dir" == *'`'* ]]; then
-    repo_dir=""
-  elif [[ "$repo_dir" == - ]]; then
-    # cd - returns to the previous directory.
-    repo_dir='CI_LOCK_REPO_DIR="$OLDPWD" '
-  else
-    repo_dir="CI_LOCK_REPO_DIR=$repo_dir "
+  if [[ "$cd_args" != *'$('* && "$cd_args" != *'`'* ]]; then
+    probe="$(printf '%s' "cd$cd_args >/dev/null 2>&1 && pwd -P" | jq -Rrs '@sh')"
+    repo_dir="CI_LOCK_REPO_DIR=\"\$(bash -c $probe)\" "
   fi
 fi
 wrapped="$lane$repo_dir$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"

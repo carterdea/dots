@@ -634,7 +634,6 @@ EOF
 
 # Runs the enforce-mode rewrite of $1 against a stub ci-lock and prints the
 # CI_LOCK_REPO_DIR it receives after the shell's own expansion.
-# PRELUDE, if set, runs first in the same shell (e.g. to set OLDPWD).
 repo_dir_seen() {
     local stub="$BATS_TEST_TMPDIR/stub" wrapped
     mkdir -p "$stub/.local/bin"
@@ -643,15 +642,42 @@ repo_dir_seen() {
     wrapped="$(jq -cn --arg c "$1" '{tool_input:{command:$c}}' |
         HOME="$stub" CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=1 "$HOOK" |
         jq -r '.hookSpecificOutput.updatedInput.command')"
-    HOME="$stub" bash -c "${PRELUDE:-}$wrapped"
+    HOME="$stub" bash -c "$wrapped"
 }
 
-@test "leading cd target reaches ci-lock with the shell's expansion" {
+
+# Physical path of a directory, as ci-lock receives it.
+phys() { (cd "$1" && pwd -P); }
+
+@test "leading cd resolves its target the way cd does" {
     stub="$BATS_TEST_TMPDIR/stub"
-    [ "$(repo_dir_seen 'cd ~/proj && bun run test')" = "$stub/proj" ]
-    [ "$(repo_dir_seen 'cd "$HOME/my proj" && bun run test')" = "$stub/my proj" ]
-    [ "$(repo_dir_seen 'cd my\ proj && bun run test')" = "my proj" ]
-    [ "$(repo_dir_seen "cd '~/proj'; bun run test")" = "~/proj" ]
+    mkdir -p "$stub/proj" "$stub/my proj" "$BATS_TEST_TMPDIR/my proj" "$BATS_TEST_TMPDIR/~/proj"
+    cd "$BATS_TEST_TMPDIR"
+    [ "$(repo_dir_seen 'cd ~/proj && bun run test')" = "$(phys "$stub/proj")" ]
+    [ "$(repo_dir_seen 'cd "$HOME/my proj" && bun run test')" = "$(phys "$stub/my proj")" ]
+    [ "$(repo_dir_seen 'cd my\ proj && bun run test')" = "$(phys "$BATS_TEST_TMPDIR/my proj")" ]
+    [ "$(repo_dir_seen "cd '~/proj'; bun run test")" = "$(phys "$BATS_TEST_TMPDIR/~/proj")" ]
+}
+
+@test "leading cd options, a bare cd, and || guards resolve too" {
+    stub="$BATS_TEST_TMPDIR/stub"
+    mkdir -p "$stub/proj" "$BATS_TEST_TMPDIR/my proj"
+    cd "$BATS_TEST_TMPDIR"
+    [ "$(repo_dir_seen 'cd -P ~/proj && bun run test')" = "$(phys "$stub/proj")" ]
+    [ "$(repo_dir_seen 'cd -- my\ proj && bun run test')" = "$(phys "$BATS_TEST_TMPDIR/my proj")" ]
+    [ "$(repo_dir_seen 'cd && bun run test')" = "$(phys "$stub")" ]
+    [ "$(repo_dir_seen 'cd ~/proj || exit; bun run test')" = "$(phys "$stub/proj")" ]
+}
+
+@test "leading cd follows CDPATH like the wrapped shell will" {
+    mkdir -p "$BATS_TEST_TMPDIR/src/project" "$BATS_TEST_TMPDIR/elsewhere"
+    cd "$BATS_TEST_TMPDIR/elsewhere"
+    [ "$(CDPATH="$BATS_TEST_TMPDIR/src" repo_dir_seen 'cd project && bun run test')" = "$(phys "$BATS_TEST_TMPDIR/src/project")" ]
+}
+
+@test "a cd that fails passes no directory" {
+    cd "$BATS_TEST_TMPDIR"
+    [ "$(repo_dir_seen 'cd does-not-exist; bun run test')" = "" ]
 }
 
 @test "no repository is passed without a plain leading cd" {
@@ -664,11 +690,6 @@ repo_dir_seen() {
     [ "$(classify "exec -a queued ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
 }
 
-@test "leading cd options still pass the target" {
-    stub="$BATS_TEST_TMPDIR/stub"
-    [ "$(repo_dir_seen 'cd -P ~/proj && bun run test')" = "$stub/proj" ]
-    [ "$(repo_dir_seen 'cd -- my\ proj && bun run test')" = "my proj" ]
-}
 
 @test "a quoted paren inside a substitution cannot hide a suite" {
     [ "$(classify "printf '%s\n' \"\$(echo \"done)\"; bun test)\"")" = "QUEUE long-check" ]
@@ -679,20 +700,11 @@ repo_dir_seen() {
     [ "$(classify "bash -nc 'bun test'")" = "SKIP not-heavy" ]
 }
 
-@test "bare cd and cd - pass home and the previous directory" {
-    stub="$BATS_TEST_TMPDIR/stub"
-    [ "$(repo_dir_seen 'cd && bun run test')" = "$stub" ]
-    [ "$(PRELUDE="cd '$BATS_TEST_TMPDIR'; cd /; " repo_dir_seen 'cd - && bun run test')" = "$BATS_TEST_TMPDIR" ]
-}
 
 @test "env options that take a value do not hide ci-lock" {
     [ "$(classify "CI_LOCK_FILE=/tmp/p env -P /usr/bin ~/.local/bin/ci-lock bash -c 'bun test'")" = "SKIP already-queued" ]
 }
 
-@test "a guarded leading cd passes its target" {
-    stub="$BATS_TEST_TMPDIR/stub"
-    [ "$(repo_dir_seen 'cd ~/proj || exit; bun run test')" = "$stub/proj" ]
-}
 
 @test "ci-lock inside env -S is already queued" {
     [ "$(classify "CI_LOCK_FILE=/tmp/p env -S 'ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
@@ -703,4 +715,12 @@ repo_dir_seen() {
     [ "$(classify "bash -n +n -c 'bun test'")" = "QUEUE long-check" ]
     [ "$(classify "bash -nic 'bun test'")" = "QUEUE long-check" ]
     [ "$(classify 'bash -n -c "$(bun test)"')" = "QUEUE long-check" ]
+}
+
+@test "a substitution inside the single-quoted script keeps the no-exec exemption" {
+    [ "$(classify "bash -n -c 'echo \"\$(bun test)\"'")" = "SKIP not-heavy" ]
+}
+
+@test "an assignment inside env -S does not hide ci-lock" {
+    [ "$(classify "env -S 'CI_LOCK_FILE=/tmp/private ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
 }

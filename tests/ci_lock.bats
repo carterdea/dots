@@ -443,6 +443,22 @@ teardown() {
     [ "$status" -eq 0 ]
 }
 
+@test "a nested repository wait honors a fractional timeout" {
+    make_repo "$BATS_TEST_TMPDIR/a-repo"
+    make_repo "$BATS_TEST_TMPDIR/b-repo"
+    state="$BATS_TEST_TMPDIR/state"
+    (cd "$BATS_TEST_TMPDIR/b-repo" && exec env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null \
+        "$CI_LOCK" sh -c "touch '$BATS_TEST_TMPDIR/b'; sleep 10") &
+    holders+=($!)
+    await "$BATS_TEST_TMPDIR/b"
+    (cd "$BATS_TEST_TMPDIR/a-repo" && exec env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null \
+        "$CI_LOCK" sh -c "cd '$BATS_TEST_TMPDIR/b-repo'; s=\$(perl -MTime::HiRes=time -e 'print time'); CI_LOCK_TIMEOUT=0.2 '$CI_LOCK' true; perl -MTime::HiRes=time -e 'printf \"%.2f\", time - \$ARGV[0]' \$s >'$BATS_TEST_TMPDIR/elapsed'") &
+    holders+=($!)
+    await "$BATS_TEST_TMPDIR/elapsed"
+    elapsed="$(cat "$BATS_TEST_TMPDIR/elapsed")"
+    perl -e 'exit($ARGV[0] < 0.8 ? 0 : 1)' "$elapsed"
+}
+
 @test "an oversized slot count is rejected" {
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=99999999999999999999 "$CI_LOCK" true
     [ "$status" -eq 64 ]

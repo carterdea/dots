@@ -239,6 +239,9 @@ OWNER_LOCK="$LOCK_FILE.owner"
 slot0_owned() {
   ( exec 7>"$OWNER_LOCK" && ! flock -n 7 )
 }
+slot0_held() {
+  ( exec 7>"$LOCK_FILE" && ! flock -n 7 )
+}
 
 # Takes the repo lock (if any) and then any free slot, all nonblocking. On
 # failure nothing stays held, so the queue head never sits on half a claim.
@@ -252,6 +255,11 @@ try_slots() {
     ((slot == 0)) || slot0_owned || break
     exec 9>"$(slot_file "$slot")"
     if flock -n 9; then
+      # Re-check once the slot is ours: slot 0 may have changed hands to an
+      # older ci-lock between the check above and this claim.
+      if ((slot > 0)) && slot0_held && ! slot0_owned; then
+        break
+      fi
       if ((slot == 0 && (SLOTS > 1 || SHARED_LANE))); then
         exec 6>"$OWNER_LOCK"
         flock -n 6 || true
@@ -322,10 +330,14 @@ trap 'exit 129' HUP
 # waiting behind others while holding a slot they need could deadlock. It
 # only waits for its repository lock.
 acquire_repo() {
+  local remaining interval
   exec 8>"$REPO_LOCK"
   until flock -n 8; do
-    (($(now_ms) < deadline)) || return 1
-    sleep 1
+    remaining=$((deadline - $(now_ms)))
+    ((remaining > 0)) || return 1
+    interval=$remaining
+    ((interval <= 1000)) || interval=1000
+    sleep "$(printf '%d.%03d' "$((interval / 1000))" "$((interval % 1000))")"
   done
 }
 
