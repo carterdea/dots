@@ -87,23 +87,28 @@ NESTED=0
 HELD_REPOS=""
 SLOT_HOLDER=$$
 if [[ "${!HELD_VAR:-}" == "$LOCK_FILE:"* ]]; then
+  held_list="${!HELD_VAR#"$LOCK_FILE:"}"
+  held_list="${held_list%:*}"
+  repo_held=0
+  # Keep only entries whose holder is still alive; each vouches for its own
+  # lock, independent of whether the slot holder is still around.
+  IFS='|' read -ra held_entries <<<"$held_list"
+  for entry in ${held_entries[@]+"${held_entries[@]}"}; do
+    kill -0 "${entry##*@}" 2>/dev/null || continue
+    HELD_REPOS="${HELD_REPOS:+$HELD_REPOS|}$entry"
+    [[ "${entry%@*}" != "$REPO_LOCK" ]] || repo_held=1
+  done
   holder="${!HELD_VAR##*:}"
   if kill -0 "$holder" 2>/dev/null; then
-    held_list="${!HELD_VAR#"$LOCK_FILE:"}"
-    held_list="${held_list%:*}"
-    repo_held=0
-    # Keep only entries whose holder is still alive.
-    IFS='|' read -ra held_entries <<<"$held_list"
-    for entry in ${held_entries[@]+"${held_entries[@]}"}; do
-      kill -0 "${entry##*@}" 2>/dev/null || continue
-      HELD_REPOS="${HELD_REPOS:+$HELD_REPOS|}$entry"
-      [[ "${entry%@*}" != "$REPO_LOCK" ]] || repo_held=1
-    done
     if [[ -z "$REPO_LOCK" ]] || ((repo_held)); then
       exec "$@"
     fi
     NESTED=1
     SLOT_HOLDER=$holder
+  elif ((repo_held)); then
+    # The slot is gone but a live ancestor still holds this repository's
+    # lock: take a new slot only, or this would wait on its own ancestor.
+    REPO_LOCK=""
   fi
 fi
 

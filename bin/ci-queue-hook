@@ -220,6 +220,35 @@ read_only_seg() {
   esac
 }
 
+# Skips the words before a command that do not change which command runs:
+# assignments (NAME=value) and, unless $2 is "assignments", the modifiers
+# env/command/exec with their options. Sets PREFIX_RAW to the skipped text
+# and PREFIX_REST to what follows, both verbatim.
+strip_prefix() {
+  local s="$1" modifier=0 m
+  local assign="^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=(\"[^\"]*\"|'[^']*'|[^[:space:]\"'])*[[:space:]]+"
+  local mod='^[[:space:]]*(env|command|exec)[[:space:]]+'
+  # Options that take a value: env -u NAME / -P PATH / -C DIR, exec -a NAME.
+  local valopt='^[[:space:]]*(-u|--unset|-P|-C|--chdir|-a)[[:space:]]+[^[:space:]]+[[:space:]]+'
+  local opt='^[[:space:]]*-[A-Za-z-]+[[:space:]]+'
+  PREFIX_RAW=""
+  while :; do
+    if [[ "$s" =~ $assign ]]; then
+      :
+    elif [[ "${2:-}" != assignments && "$s" =~ $mod ]]; then
+      modifier=1
+    elif ((modifier)) && [[ "$s" =~ $valopt || "$s" =~ $opt ]]; then
+      :
+    else
+      break
+    fi
+    m="${BASH_REMATCH[0]}"
+    PREFIX_RAW+="$m"
+    s="${s:${#m}}"
+  done
+  PREFIX_REST="$s"
+}
+
 # Splits a command into shell words, NUL-terminated, honoring quotes and
 # backslashes the way the shell would, without expanding anything.
 shell_words() {
@@ -303,12 +332,10 @@ shell_verdict() {
   # option may turn it back off, an interactive shell (-i) ignores it, or the
   # outer shell runs a substitution before the inner one ever starts.
   local noexec_opts='^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)(([[:space:]]+[-+][a-zA-Z]+)+)([[:space:]]|$)'
-  # Leading assignments and modifiers (NODE_ENV=test bash -n, env bash -n)
-  # do not change what the shell does with -n.
-  local head="$1" lead="^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=(\"[^\"]*\"|'[^']*'|[^[:space:]\"'])*|env|command|exec)[[:space:]]+"
-  while [[ "$head" =~ $lead ]]; do
-    head="${head:${#BASH_REMATCH[0]}}"
-  done
+  # Leading assignments and modifiers (NODE_ENV=test bash -n, env -u X
+  # bash -n) do not change what the shell does with -n.
+  strip_prefix "$1"
+  local head="$PREFIX_REST"
   if [[ "$head" =~ $noexec_opts ]]; then
     local opts="${BASH_REMATCH[3]}" outer="$1" quoted="'[^']*'"
     # Single-quoted text is the inner script's; only the rest expands here.
@@ -552,8 +579,14 @@ if ((stream_log)); then
   write_log || true
 elif command -v flock >/dev/null 2>&1 &&
   [[ ! -L "$LOG.lock" && ( ! -e "$LOG.lock" || -f "$LOG.lock" ) ]]; then
-  (
-    flock -x -w 5 8 || exit 0
+  # Writes and rotates under the mutex, waiting up to $1 seconds for it;
+  # exits 75 when the wait runs out.
+  log_locked() {
+    if (($1 == 0)); then
+      flock -x -n 8 || exit 75
+    else
+      flock -x -w "$1" 8 || exit 75
+    fi
     write_log
     log_size="$(stat -f%z "$LOG" 2>/dev/null || stat -c%s "$LOG" 2>/dev/null || echo 0)"
     if [[ "$log_size" =~ ^[0-9]+$ ]] && ((log_size > 5242880)); then
@@ -566,7 +599,14 @@ elif command -v flock >/dev/null 2>&1 &&
         cat "$rotating" >"$LOG"
       fi
     fi
-  ) 8>>"$LOG.lock" 2>/dev/null || true
+  }
+  # Logging is best-effort and must not delay the command: when the mutex is
+  # busy, a detached writer waits for it instead, with every stream closed so
+  # nothing waits on it.
+  ( log_locked 0 ) 8>>"$LOG.lock" 2>/dev/null
+  if (($? == 75)); then
+    ( log_locked 5 ) 8>>"$LOG.lock" </dev/null >/dev/null 2>&1 &
+  fi
 else
   write_log 2>/dev/null || true
 fi
@@ -594,7 +634,10 @@ lane=""
 repo_dir=""
 cd_word=$'("([^"\\\\]|\\\\.)*"|\'[^\']*\'|\\\\.|[^[:space:];&|<>()"\'\\\\])+'
 cd_redirect="[0-9]*[<>]{1,2}&?[[:space:]]*$cd_word"
-if [[ "$cmd" =~ ^[[:space:]]*cd(([[:space:];&|].*)?)$ ]]; then
+# Assignments before cd (CDPATH=... cd project) change where it lands, so
+# they are carried into the probe.
+strip_prefix "$cmd" assignments
+if [[ "$PREFIX_REST" =~ ^[[:space:]]*cd(([[:space:];&|].*)?)$ ]]; then
   # Words become the probe's cd arguments; redirections are dropped so the
   # probe never opens or truncates the files they name.
   cd_rest="${BASH_REMATCH[1]}"
@@ -609,9 +652,10 @@ if [[ "$cmd" =~ ^[[:space:]]*cd(([[:space:];&|].*)?)$ ]]; then
       break
     fi
   done
+  cd_probe="${PREFIX_RAW}cd$cd_args"
   # shellcheck disable=SC2016 # detect literal shell substitutions
-  if [[ "$cd_rest" =~ ^[[:space:]]*(\&\&|[|][|]|;|$'\n') && "$cd_args" != *'$('* && "$cd_args" != *'`'* ]]; then
-    probe="$(printf '%s' "cd$cd_args >/dev/null 2>&1 && pwd -P" | jq -Rrs '@sh')"
+  if [[ "$cd_rest" =~ ^[[:space:]]*(\&\&|[|][|]|;|$'\n') && "$cd_probe" != *'$('* && "$cd_probe" != *'`'* ]]; then
+    probe="$(printf '%s' "$cd_probe >/dev/null 2>&1 && pwd -P" | jq -Rrs '@sh')"
     repo_dir="CI_LOCK_REPO_DIR=\"\$(bash -c $probe)\" "
   fi
 fi

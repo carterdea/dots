@@ -457,6 +457,12 @@ EOF
         writers+=($!)
     done
     for writer in "${writers[@]}"; do wait "$writer"; done
+    # Writers that found the mutex busy log from a detached process; give
+    # them time to land.
+    for _ in {1..100}; do
+        [ "$(grep -c 'echo writer-' "$LOG")" -lt 12 ] || break
+        sleep 0.1
+    done
     [ "$(grep -c 'echo writer-' "$LOG")" -eq 12 ]
     [ "$(wc -l < "$LOG")" -lt 60000 ]
 }
@@ -741,4 +747,34 @@ phys() { (cd "$1" && pwd -P); }
 @test "no-exec shells behind assignments or modifiers are not queued" {
     [ "$(classify "NODE_ENV=test bash -n -c 'bun test'")" = "SKIP not-heavy" ]
     [ "$(classify "env bash -n -c 'bun test'")" = "SKIP not-heavy" ]
+}
+
+@test "an assignment before cd is carried into the probe" {
+    mkdir -p "$BATS_TEST_TMPDIR/src/project" "$BATS_TEST_TMPDIR/elsewhere" "$BATS_TEST_TMPDIR/other-home"
+    cd "$BATS_TEST_TMPDIR/elsewhere"
+    [ "$(repo_dir_seen "CDPATH='$BATS_TEST_TMPDIR/src' cd project && bun run test")" = "$(phys "$BATS_TEST_TMPDIR/src/project")" ]
+    [ "$(repo_dir_seen "HOME='$BATS_TEST_TMPDIR/other-home' cd && bun run test")" = "$(phys "$BATS_TEST_TMPDIR/other-home")" ]
+}
+
+@test "no-exec shells behind modifier options are not queued" {
+    [ "$(classify "env -u FOO bash -n -c 'bun test'")" = "SKIP not-heavy" ]
+    [ "$(classify "command -p bash -n -c 'bun test'")" = "SKIP not-heavy" ]
+}
+
+@test "a busy log mutex does not delay the hook, and the record still lands" {
+    : >"$LOG"
+    flock "$LOG.lock" sleep 2 &
+    locker=$!
+    sleep 0.3
+    start=$(perl -MTime::HiRes=time -e 'print time')
+    jq -cn --arg c 'echo busy-log' '{tool_input:{command:$c}}' |
+        CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=0 "$HOOK"
+    elapsed=$(perl -MTime::HiRes=time -e 'printf "%.2f", time - $ARGV[0]' "$start")
+    perl -e 'exit($ARGV[0] < 1 ? 0 : 1)' "$elapsed"
+    wait "$locker"
+    for _ in {1..50}; do
+        ! grep -q 'echo busy-log' "$LOG" || break
+        sleep 0.1
+    done
+    grep -q 'echo busy-log' "$LOG"
 }
