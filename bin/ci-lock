@@ -40,7 +40,9 @@ fi
 # The shared heavy lane runs two checks at once: one machine has the cores for
 # it, and a single slot left suites waiting hours on busy days. A private lock
 # file (CI_LOCK_FILE) stays a plain mutex unless it asks for more.
-if [[ "$LANE" == "heavy" && -z "${CI_LOCK_FILE:-}" ]]; then
+SHARED_LANE=0
+[[ "$LANE" != "heavy" || -n "${CI_LOCK_FILE:-}" ]] || SHARED_LANE=1
+if ((SHARED_LANE)); then
   SLOTS="${CI_LOCK_SLOTS:-2}"
 else
   SLOTS="${CI_LOCK_SLOTS:-1}"
@@ -204,8 +206,10 @@ slot_file() {
 # Two slots must not go to the same repository: worktrees of one project share
 # fixed ports and test databases, and running two of its suites at once trades
 # queue time for flakes. fd 8 holds a per-repo lock beside the slot on fd 9.
+# Every caller of the shared heavy lane takes it, whatever its slot count, so
+# a single-slot caller in slot 0 still excludes its repository from slot 1.
 REPO_LOCK=""
-if ((SLOTS > 1)); then
+if ((SLOTS > 1 || SHARED_LANE)); then
   # The directory the command runs in, which the queue hook passes when the
   # command starts with `cd <dir> &&`. Inherited GIT_* variables would name
   # the caller's repository instead, so they are dropped for this lookup only.
@@ -236,7 +240,7 @@ try_slots() {
     ((slot == 0)) || slot0_owned || break
     exec 9>"$(slot_file "$slot")"
     if flock -n 9; then
-      if ((slot == 0 && SLOTS > 1)); then
+      if ((slot == 0 && (SLOTS > 1 || SHARED_LANE))); then
         exec 6>"$OWNER_LOCK"
         flock -n 6 || true
       fi
@@ -274,11 +278,12 @@ acquire() {
       # budget: bash runs a trap only once the foreground command returns,
       # and a waiter that ignores Ctrl-C for half an hour — leaving its
       # ticket behind the whole time — is its own kind of wedge.
-      if ((SLOTS == 1)); then
+      if ((SLOTS == 1)) && [[ -z "$REPO_LOCK" ]]; then
         exec 9>"$LOCK_FILE"
         flock -w "$wait_seconds" 9 && return 0
       else
-        # No single descriptor to block on across slots; poll them briefly.
+        # No single descriptor to block on across slots, or a repository
+        # lock to take alongside the slot; poll them briefly.
         try_slots && return 0
         ((interval <= 250)) || wait_seconds=0.250
         sleep "$wait_seconds"

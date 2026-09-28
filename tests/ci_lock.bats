@@ -394,6 +394,29 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
+@test "a single-slot caller of the shared lane still takes its repository lock" {
+    make_repo "$BATS_TEST_TMPDIR/a-repo"
+    make_repo "$BATS_TEST_TMPDIR/b-repo"
+    state="$BATS_TEST_TMPDIR/state"
+    shared() {
+        (cd "$1" && exec env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null \
+            "$CI_LOCK" sh -c "touch '$2'; sleep 10") &
+    }
+    # B takes slot 0, A takes slot 1, then B finishes and frees slot 0.
+    shared "$BATS_TEST_TMPDIR/b-repo" "$BATS_TEST_TMPDIR/b"
+    b_holder=$!
+    await "$BATS_TEST_TMPDIR/b"
+    shared "$BATS_TEST_TMPDIR/a-repo" "$BATS_TEST_TMPDIR/a"
+    holders+=($!)
+    await "$BATS_TEST_TMPDIR/a"
+    kill "$b_holder"
+    wait "$b_holder" 2>/dev/null || true
+    # A single-slot caller from A's repository now finds slot 0 free.
+    cd "$BATS_TEST_TMPDIR/a-repo"
+    run env XDG_STATE_HOME="$state" CI_LOCK_LOG="$LOG" CI_LOCK_SLOTS=1 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 1 ]
+}
+
 @test "an oversized slot count is rejected" {
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=99999999999999999999 "$CI_LOCK" true
     [ "$status" -eq 64 ]

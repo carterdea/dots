@@ -174,7 +174,9 @@ read_only_seg() {
   local -a tok
   # A substitution runs a command; it is read-only only if that command is.
   # Innermost first, so nested substitutions are judged from the inside out.
-  local substitution='\$\(([^()]*)\)' expansion
+  # Quotes or escapes inside make the closing paren ambiguous to a regex, so
+  # such substitutions are never judged read-only.
+  local substitution=$'\\$\\(([^()"\'\\\\`]*)\\)' expansion
   while [[ "$seg" =~ $substitution ]]; do
     # Saved first: the recursive check runs its own matches.
     expansion="${BASH_REMATCH[0]}"
@@ -250,6 +252,12 @@ all_read_only() {
 
 # A shell's quoted script is one argument; later tokens supply $0, $1, etc.
 shell_verdict() {
+  # No-exec mode (-n, alone or in a cluster like -nc) reads commands without
+  # running them, so even an inline script is inert.
+  if [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)([[:space:]]+-[a-zA-Z]+)*[[:space:]]+-[a-zA-Z]*n[a-zA-Z]*([[:space:]]|$) ]]; then
+    echo "SKIP not-heavy"
+    return 0
+  fi
   local prefix="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*c[a-zA-Z]*[[:space:]]+(--[[:space:]]+)?(['\"])(.*)"
   if ! [[ "$1" =~ $prefix ]]; then
     local output_redirect="([0-9]*>>?|&>>?)[[:space:]]*([^[:space:]<>]+|'[^']*'|\"[^\"]*\")"
@@ -265,8 +273,8 @@ shell_verdict() {
     # Opaque shell invocations can execute arbitrary checks. In particular,
     # options taking values must not fall through to the install exemption.
     [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]] ]] || return 1
-    # Except those that execute nothing: a syntax check or a version query.
-    [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+(-n|--version|--help)([[:space:]]|$) ]] && return 1
+    # Except a version or help query, which executes nothing.
+    [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+(--version|--help)([[:space:]]|$) ]] && return 1
     echo "QUEUE long-check"
     return 0
   fi
@@ -519,9 +527,9 @@ lane=""
 # spaces. Anything that would execute (command substitution) is left out.
 repo_dir=""
 cd_word=$'("([^"\\\\]|\\\\.)*"|\'[^\']*\'|\\\\.|[^[:space:];&|<>()"\'\\\\])+'
-cd_lead="^[[:space:]]*cd[[:space:]]+($cd_word)[[:space:]]*(&&|;|"$'\n'")"
+cd_lead="^[[:space:]]*cd[[:space:]]+((-[LPe@]+|--)[[:space:]]+)*($cd_word)[[:space:]]*(&&|;|"$'\n'")"
 if [[ "$cmd" =~ $cd_lead ]]; then
-  repo_dir="${BASH_REMATCH[1]}"
+  repo_dir="${BASH_REMATCH[3]}"
   # shellcheck disable=SC2016 # detect literal shell substitutions
   if [[ "$repo_dir" == *'$('* || "$repo_dir" == *'`'* ]]; then
     repo_dir=""

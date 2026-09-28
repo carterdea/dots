@@ -662,3 +662,18 @@ repo_dir_seen() {
     [ "$(classify "CI_LOCK_FILE=/tmp/p command -p ~/.local/bin/ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
     [ "$(classify "exec -a queued ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
 }
+
+@test "leading cd options still pass the target" {
+    stub="$BATS_TEST_TMPDIR/stub"
+    [ "$(repo_dir_seen 'cd -P ~/proj && bun run test')" = "$stub/proj" ]
+    [ "$(repo_dir_seen 'cd -- my\ proj && bun run test')" = "my proj" ]
+}
+
+@test "a quoted paren inside a substitution cannot hide a suite" {
+    [ "$(classify "printf '%s\n' \"\$(echo \"done)\"; bun test)\"")" = "QUEUE long-check" ]
+}
+
+@test "no-exec shells with an inline script are not queued" {
+    [ "$(classify "bash -n -c 'bun test'")" = "SKIP not-heavy" ]
+    [ "$(classify "bash -nc 'bun test'")" = "SKIP not-heavy" ]
+}
