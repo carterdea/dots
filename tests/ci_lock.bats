@@ -289,3 +289,44 @@ setup() {
     [ "$(awk -F'\t' '{print $5}' "$LOG")" = "$status" ]
     flock -n "$LOCK" true
 }
+
+# --- heavy-lane slots ---
+
+@test "two slots let a second check run beside the first" {
+    cd "$BATS_TEST_TMPDIR"
+    CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 "$CI_LOCK" sleep 5 &
+    holder=$!
+    sleep 0.5
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    kill "$holder" 2>/dev/null || true
+    wait "$holder" 2>/dev/null || true
+    [ "$status" -eq 0 ]
+}
+
+@test "a third check waits while both slots are busy" {
+    cd "$BATS_TEST_TMPDIR"
+    for _ in 1 2; do
+        CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 "$CI_LOCK" sleep 5 &
+        holders+=($!)
+        sleep 0.5
+    done
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    kill "${holders[@]}" 2>/dev/null || true
+    wait "${holders[@]}" 2>/dev/null || true
+    [ "$status" -eq 1 ]
+}
+
+@test "two checks from one repository never share the slots" {
+    repo="$BATS_TEST_TMPDIR/repo"
+    git init -q "$repo"
+    git -C "$repo" commit -q --allow-empty -m init
+    git -C "$repo" worktree add -q "$BATS_TEST_TMPDIR/wt" 2>/dev/null
+    (cd "$repo" && exec env CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 "$CI_LOCK" sleep 5) &
+    holder=$!
+    sleep 0.5
+    cd "$BATS_TEST_TMPDIR/wt"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    kill "$holder" 2>/dev/null || true
+    wait "$holder" 2>/dev/null || true
+    [ "$status" -eq 1 ]
+}
