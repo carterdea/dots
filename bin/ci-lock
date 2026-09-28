@@ -216,6 +216,14 @@ if ((SLOTS > 1)); then
   fi
 fi
 
+# A slot-0 holder from this version also holds the owner lock (fd 6). Slot 0
+# held without it means an older ci-lock is running, one that took no
+# repository lock, so a second slot could run its repository twice.
+OWNER_LOCK="$LOCK_FILE.owner"
+slot0_owned() {
+  ( exec 7>"$OWNER_LOCK" && ! flock -n 7 )
+}
+
 # Takes the repo lock (if any) and then any free slot, all nonblocking. On
 # failure nothing stays held, so the queue head never sits on half a claim.
 try_slots() {
@@ -225,8 +233,15 @@ try_slots() {
     flock -n 8 || { exec 8>&-; return 1; }
   fi
   for ((slot = 0; slot < SLOTS; slot++)); do
+    ((slot == 0)) || slot0_owned || break
     exec 9>"$(slot_file "$slot")"
-    flock -n 9 && return 0
+    if flock -n 9; then
+      if ((slot == 0 && SLOTS > 1)); then
+        exec 6>"$OWNER_LOCK"
+        flock -n 6 || true
+      fi
+      return 0
+    fi
   done
   exec 9>&-
   [[ -z "$REPO_LOCK" ]] || exec 8>&-
@@ -298,7 +313,7 @@ rm -f "$TICKET" "$REPO_NOTE"
 export "$HELD_VAR=$LOCK_FILE:$$"
 started_ms="$(now_ms)"
 
-# 8>&- 9>&- close the lock descriptors for the command and everything it spawns.
+# 6>&- 8>&- 9>&- close the lock descriptors for the command and everything it spawns.
 # Without it, a check that leaves a background process behind (a test server,
 # a container) hands that process the lock, and it keeps holding it long
 # after the check itself has exited.
@@ -324,7 +339,7 @@ trap 'forward_signal HUP' HUP
 # cancelled push keeps running its suite and keeps the queue behind it.
 trap 'forward_signal TERM' INT
 
-"$@" 8>&- 9>&- <&0 &
+"$@" 6>&- 8>&- 9>&- <&0 &
 child=$!
 [[ -z "$pending_signal" ]] || forward_signal "$pending_signal"
 

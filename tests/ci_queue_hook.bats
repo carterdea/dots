@@ -632,12 +632,33 @@ EOF
     [ "$(classify "env -u CI_LOCK_HELD_HEAVY CI_LOCK_LANE=fast ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
 }
 
-@test "enforce mode passes a leading cd target as the repository" {
-    out="$(enforce 'cd ~/Sites/rezio-app && bun run test')"
-    [[ "$out" == *"CI_LOCK_REPO_DIR='$FAKE_HOME/Sites/rezio-app' "*'ci-lock bash -c'* ]]
+# Runs the enforce-mode rewrite of $1 against a stub ci-lock and prints the
+# CI_LOCK_REPO_DIR it receives after the shell's own expansion.
+repo_dir_seen() {
+    local stub="$BATS_TEST_TMPDIR/stub" wrapped
+    mkdir -p "$stub/.local/bin"
+    printf '#!/bin/sh\nprintf "%%s" "${CI_LOCK_REPO_DIR-<unset>}"\n' >"$stub/.local/bin/ci-lock"
+    chmod +x "$stub/.local/bin/ci-lock"
+    wrapped="$(jq -cn --arg c "$1" '{tool_input:{command:$c}}' |
+        HOME="$stub" CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=1 "$HOOK" |
+        jq -r '.hookSpecificOutput.updatedInput.command')"
+    HOME="$stub" bash -c "$wrapped"
 }
 
-@test "enforce mode passes no repository without a leading cd" {
-    out="$(enforce 'bun run test')"
-    [[ "$out" != *CI_LOCK_REPO_DIR* ]]
+@test "leading cd target reaches ci-lock with the shell's expansion" {
+    stub="$BATS_TEST_TMPDIR/stub"
+    [ "$(repo_dir_seen 'cd ~/proj && bun run test')" = "$stub/proj" ]
+    [ "$(repo_dir_seen 'cd "$HOME/my proj" && bun run test')" = "$stub/my proj" ]
+    [ "$(repo_dir_seen 'cd my\ proj && bun run test')" = "my proj" ]
+    [ "$(repo_dir_seen "cd '~/proj'; bun run test")" = "~/proj" ]
+}
+
+@test "no repository is passed without a plain leading cd" {
+    [ "$(repo_dir_seen 'bun run test')" = "<unset>" ]
+    [ "$(repo_dir_seen 'cd "$(git rev-parse --show-toplevel)" && bun run test')" = "<unset>" ]
+}
+
+@test "ci-lock behind command or exec options is already queued" {
+    [ "$(classify "CI_LOCK_FILE=/tmp/p command -p ~/.local/bin/ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
+    [ "$(classify "exec -a queued ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
 }

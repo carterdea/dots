@@ -7,6 +7,8 @@ setup() {
     CI_LOCK="$(dirname "$DIR")/bin/ci-lock"
     LOG="$BATS_TEST_TMPDIR/ci-lock.log"
     LOCK="$BATS_TEST_TMPDIR/test.lock"
+    # Run from a git hook, these would redirect the fixture repositories.
+    unset GIT_DIR GIT_COMMON_DIR GIT_WORK_TREE GIT_INDEX_FILE
 }
 
 @test "unavailable clock helper does not prevent the check" {
@@ -379,6 +381,17 @@ teardown() {
     cd "$BATS_TEST_TMPDIR/b-repo"
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=2 "$CI_LOCK" true
     [ "$status" -eq 0 ]
+}
+
+@test "a legacy slot-0 holder keeps the second slot closed" {
+    # A plain flock on slot 0 stands in for an older ci-lock: it holds the
+    # slot but no owner or repository lock.
+    flock "$LOCK" sh -c "touch '$BATS_TEST_TMPDIR/legacy'; sleep 10" &
+    holders+=($!)
+    await "$BATS_TEST_TMPDIR/legacy"
+    cd "$BATS_TEST_TMPDIR"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 1 ]
 }
 
 @test "an oversized slot count is rejected" {

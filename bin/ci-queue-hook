@@ -219,19 +219,19 @@ read_only_seg() {
 }
 
 # True when a segment's command word is the queue itself, after any env
-# assignments and command modifiers (env and its options, command, exec).
+# assignments and command modifiers (env, command, exec) with their options.
 runs_queue() {
-  local i=0 in_env=0
+  local i=0 modifier=""
   local -a tok
   read -ra tok <<<"$1"
   while ((i < ${#tok[@]})); do
     case "${tok[i]}" in
-      env) in_env=1 ;;
-      command | exec) in_env=0 ;;
-      -u | --unset)
-        ((in_env)) || break
+      env | command | exec) modifier="${tok[i]}" ;;
+      # Options that take a value: env -u NAME, exec -a NAME.
+      -u | --unset | -a)
+        [[ -n "$modifier" ]] || break
         i=$((i + 1)) ;;
-      -*) ((in_env)) || break ;;
+      -*) [[ -n "$modifier" ]] || break ;;
       *=*) [[ "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || break ;;
       *) break ;;
     esac
@@ -514,15 +514,20 @@ lane=""
 [[ "$reason" == "check-only" ]] && lane="CI_LOCK_LANE=check "
 # A command that starts in another directory (cd <dir> && suite) runs that
 # directory's suite; tell ci-lock so its per-repository lock names the right
-# repository rather than the caller's.
+# repository rather than the caller's. The operand is passed verbatim, so the
+# shell expands it exactly as it expands it for cd: quotes, ~, $HOME, escaped
+# spaces. Anything that would execute (command substitution) is left out.
 repo_dir=""
-cd_lead=$'^[[:space:]]*cd[[:space:]]+("[^"$]+"|\'[^\']+\'|[^[:space:];&|"\'$`]+)[[:space:]]*(&&|;|\n)'
+cd_word=$'("([^"\\\\]|\\\\.)*"|\'[^\']*\'|\\\\.|[^[:space:];&|<>()"\'\\\\])+'
+cd_lead="^[[:space:]]*cd[[:space:]]+($cd_word)[[:space:]]*(&&|;|"$'\n'")"
 if [[ "$cmd" =~ $cd_lead ]]; then
   repo_dir="${BASH_REMATCH[1]}"
-  repo_dir="${repo_dir#[\"\']}"
-  repo_dir="${repo_dir%[\"\']}"
-  [[ "$repo_dir" != "~"* ]] || repo_dir="$HOME${repo_dir#\~}"
-  repo_dir="CI_LOCK_REPO_DIR=$(printf '%s' "$repo_dir" | jq -Rrs '@sh') "
+  # shellcheck disable=SC2016 # detect literal shell substitutions
+  if [[ "$repo_dir" == *'$('* || "$repo_dir" == *'`'* ]]; then
+    repo_dir=""
+  else
+    repo_dir="CI_LOCK_REPO_DIR=$repo_dir "
+  fi
 fi
 wrapped="$lane$repo_dir$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"
 
