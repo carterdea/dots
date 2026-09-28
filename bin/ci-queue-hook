@@ -221,9 +221,8 @@ read_only_seg() {
 }
 
 # Skips the words before a command that do not change which command runs:
-# assignments (NAME=value) and, unless $2 is "assignments", the modifiers
-# env/command/exec with their options. Sets PREFIX_RAW to the skipped text
-# and PREFIX_REST to what follows, both verbatim.
+# assignments (NAME=value) and the modifiers env/command/exec with their
+# options. Sets PREFIX_REST to what follows, verbatim.
 strip_prefix() {
   local s="$1" modifier=0 m
   local assign="^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=(\"[^\"]*\"|'[^']*'|[^[:space:]\"'])*[[:space:]]+"
@@ -231,11 +230,10 @@ strip_prefix() {
   # Options that take a value: env -u NAME / -P PATH / -C DIR, exec -a NAME.
   local valopt='^[[:space:]]*(-u|--unset|-P|-C|--chdir|-a)[[:space:]]+[^[:space:]]+[[:space:]]+'
   local opt='^[[:space:]]*-[A-Za-z-]+[[:space:]]+'
-  PREFIX_RAW=""
   while :; do
     if [[ "$s" =~ $assign ]]; then
       :
-    elif [[ "${2:-}" != assignments && "$s" =~ $mod ]]; then
+    elif [[ "$s" =~ $mod ]]; then
       modifier=1
     elif ((modifier)) && [[ "$s" =~ $valopt || "$s" =~ $opt ]]; then
       :
@@ -243,7 +241,6 @@ strip_prefix() {
       break
     fi
     m="${BASH_REMATCH[0]}"
-    PREFIX_RAW+="$m"
     s="${s:${#m}}"
   done
   PREFIX_REST="$s"
@@ -625,41 +622,7 @@ command -v jq >/dev/null 2>&1 || exit 0
 # first simple command, and the suite after `&&` would run unlocked.
 lane=""
 [[ "$reason" == "check-only" ]] && lane="CI_LOCK_LANE=check "
-# A command that starts in another directory (cd <dir> && suite) runs that
-# directory's suite; tell ci-lock so its per-repository lock names the right
-# repository rather than the caller's. Rather than re-implementing cd (quotes,
-# ~, CDPATH, options, a bare cd), the rewrite runs the same cd in a bash
-# subshell, as the wrapped bash -c will, and passes the directory it lands
-# in. Arguments that would execute something (substitutions) are left out.
-repo_dir=""
-cd_word=$'("([^"\\\\]|\\\\.)*"|\'[^\']*\'|\\\\.|[^[:space:];&|<>()"\'\\\\])+'
-cd_redirect="[0-9]*[<>]{1,2}&?[[:space:]]*$cd_word"
-# Assignments before cd (CDPATH=... cd project) change where it lands, so
-# they are carried into the probe.
-strip_prefix "$cmd" assignments
-if [[ "$PREFIX_REST" =~ ^[[:space:]]*cd(([[:space:];&|].*)?)$ ]]; then
-  # Words become the probe's cd arguments; redirections are dropped so the
-  # probe never opens or truncates the files they name.
-  cd_rest="${BASH_REMATCH[1]}"
-  cd_args=""
-  while :; do
-    if [[ "$cd_rest" =~ ^[[:space:]]+($cd_redirect) ]]; then
-      cd_rest="${cd_rest:${#BASH_REMATCH[0]}}"
-    elif [[ "$cd_rest" =~ ^[[:space:]]+($cd_word) ]]; then
-      cd_args+=" ${BASH_REMATCH[1]}"
-      cd_rest="${cd_rest:${#BASH_REMATCH[0]}}"
-    else
-      break
-    fi
-  done
-  cd_probe="${PREFIX_RAW}cd$cd_args"
-  # shellcheck disable=SC2016 # detect literal shell substitutions
-  if [[ "$cd_rest" =~ ^[[:space:]]*(\&\&|[|][|]|;|$'\n') && "$cd_probe" != *'$('* && "$cd_probe" != *'`'* ]]; then
-    probe="$(printf '%s' "$cd_probe >/dev/null 2>&1 && pwd -P" | jq -Rrs '@sh')"
-    repo_dir="CI_LOCK_REPO_DIR=\"\$(bash -c $probe)\" "
-  fi
-fi
-wrapped="$lane$repo_dir$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"
+wrapped="$lane$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"
 
 # Codex accepts updatedInput only alongside permissionDecision:"allow".
 # Claude Code gets updatedInput without a decision so the rewritten command

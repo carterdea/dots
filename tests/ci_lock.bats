@@ -346,15 +346,6 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
-@test "the repository lock follows CI_LOCK_REPO_DIR, not the caller's directory" {
-    make_repo "$BATS_TEST_TMPDIR/repo"
-    hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR/repo"
-    cd "$BATS_TEST_TMPDIR"
-    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 \
-        CI_LOCK_REPO_DIR="$BATS_TEST_TMPDIR/repo" "$CI_LOCK" true
-    [ "$status" -eq 1 ]
-}
-
 @test "inherited GIT_DIR does not pick the repository lock" {
     make_repo "$BATS_TEST_TMPDIR/repo"
     make_repo "$BATS_TEST_TMPDIR/other"
@@ -417,7 +408,7 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
-@test "a nested run in another repository waits for that repository's lock" {
+@test "a nested run in another repository fails fast while that repository is busy" {
     make_repo "$BATS_TEST_TMPDIR/a-repo"
     make_repo "$BATS_TEST_TMPDIR/b-repo"
     state="$BATS_TEST_TMPDIR/state"
@@ -428,7 +419,7 @@ teardown() {
     await "$BATS_TEST_TMPDIR/b"
     # A's check takes slot 1, then re-enters ci-lock from inside B.
     (cd "$BATS_TEST_TMPDIR/a-repo" && exec env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null \
-        "$CI_LOCK" sh -c "cd '$BATS_TEST_TMPDIR/b-repo' && CI_LOCK_TIMEOUT=1 '$CI_LOCK' true; echo \$? >'$BATS_TEST_TMPDIR/nested'") &
+        "$CI_LOCK" sh -c "cd '$BATS_TEST_TMPDIR/b-repo' && '$CI_LOCK' true; echo \$? >'$BATS_TEST_TMPDIR/nested'") &
     holders+=($!)
     await "$BATS_TEST_TMPDIR/nested"
     [ "$(cat "$BATS_TEST_TMPDIR/nested")" = "1" ]
@@ -441,22 +432,6 @@ teardown() {
     run env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null CI_LOCK_TIMEOUT=1 \
         "$CI_LOCK" sh -c "'$CI_LOCK' true"
     [ "$status" -eq 0 ]
-}
-
-@test "a nested repository wait honors a fractional timeout" {
-    make_repo "$BATS_TEST_TMPDIR/a-repo"
-    make_repo "$BATS_TEST_TMPDIR/b-repo"
-    state="$BATS_TEST_TMPDIR/state"
-    (cd "$BATS_TEST_TMPDIR/b-repo" && exec env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null \
-        "$CI_LOCK" sh -c "touch '$BATS_TEST_TMPDIR/b'; sleep 10") &
-    holders+=($!)
-    await "$BATS_TEST_TMPDIR/b"
-    (cd "$BATS_TEST_TMPDIR/a-repo" && exec env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null \
-        "$CI_LOCK" sh -c "cd '$BATS_TEST_TMPDIR/b-repo'; s=\$(perl -MTime::HiRes=time -e 'print time'); CI_LOCK_TIMEOUT=0.2 '$CI_LOCK' true; perl -MTime::HiRes=time -e 'printf \"%.2f\", time - \$ARGV[0]' \$s >'$BATS_TEST_TMPDIR/elapsed'") &
-    holders+=($!)
-    await "$BATS_TEST_TMPDIR/elapsed"
-    elapsed="$(cat "$BATS_TEST_TMPDIR/elapsed")"
-    perl -e 'exit($ARGV[0] < 0.8 ? 0 : 1)' "$elapsed"
 }
 
 @test "a backgrounded nested wrapper does not vouch for an exited ancestor's repository" {

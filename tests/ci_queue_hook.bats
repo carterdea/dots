@@ -638,58 +638,8 @@ EOF
     [ "$(classify "env -u CI_LOCK_HELD_HEAVY CI_LOCK_LANE=fast ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
 }
 
-# Runs the enforce-mode rewrite of $1 against a stub ci-lock and prints the
-# CI_LOCK_REPO_DIR it receives after the shell's own expansion.
-repo_dir_seen() {
-    local stub="$BATS_TEST_TMPDIR/stub" wrapped
-    mkdir -p "$stub/.local/bin"
-    printf '#!/bin/sh\nprintf "%%s" "${CI_LOCK_REPO_DIR-<unset>}"\n' >"$stub/.local/bin/ci-lock"
-    chmod +x "$stub/.local/bin/ci-lock"
-    wrapped="$(jq -cn --arg c "$1" '{tool_input:{command:$c}}' |
-        HOME="$stub" CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=1 "$HOOK" |
-        jq -r '.hookSpecificOutput.updatedInput.command')"
-    HOME="$stub" bash -c "$wrapped"
-}
 
 
-# Physical path of a directory, as ci-lock receives it.
-phys() { (cd "$1" && pwd -P); }
-
-@test "leading cd resolves its target the way cd does" {
-    stub="$BATS_TEST_TMPDIR/stub"
-    mkdir -p "$stub/proj" "$stub/my proj" "$BATS_TEST_TMPDIR/my proj" "$BATS_TEST_TMPDIR/~/proj"
-    cd "$BATS_TEST_TMPDIR"
-    [ "$(repo_dir_seen 'cd ~/proj && bun run test')" = "$(phys "$stub/proj")" ]
-    [ "$(repo_dir_seen 'cd "$HOME/my proj" && bun run test')" = "$(phys "$stub/my proj")" ]
-    [ "$(repo_dir_seen 'cd my\ proj && bun run test')" = "$(phys "$BATS_TEST_TMPDIR/my proj")" ]
-    [ "$(repo_dir_seen "cd '~/proj'; bun run test")" = "$(phys "$BATS_TEST_TMPDIR/~/proj")" ]
-}
-
-@test "leading cd options, a bare cd, and || guards resolve too" {
-    stub="$BATS_TEST_TMPDIR/stub"
-    mkdir -p "$stub/proj" "$BATS_TEST_TMPDIR/my proj"
-    cd "$BATS_TEST_TMPDIR"
-    [ "$(repo_dir_seen 'cd -P ~/proj && bun run test')" = "$(phys "$stub/proj")" ]
-    [ "$(repo_dir_seen 'cd -- my\ proj && bun run test')" = "$(phys "$BATS_TEST_TMPDIR/my proj")" ]
-    [ "$(repo_dir_seen 'cd && bun run test')" = "$(phys "$stub")" ]
-    [ "$(repo_dir_seen 'cd ~/proj || exit; bun run test')" = "$(phys "$stub/proj")" ]
-}
-
-@test "leading cd follows CDPATH like the wrapped shell will" {
-    mkdir -p "$BATS_TEST_TMPDIR/src/project" "$BATS_TEST_TMPDIR/elsewhere"
-    cd "$BATS_TEST_TMPDIR/elsewhere"
-    [ "$(CDPATH="$BATS_TEST_TMPDIR/src" repo_dir_seen 'cd project && bun run test')" = "$(phys "$BATS_TEST_TMPDIR/src/project")" ]
-}
-
-@test "a cd that fails passes no directory" {
-    cd "$BATS_TEST_TMPDIR"
-    [ "$(repo_dir_seen 'cd does-not-exist; bun run test')" = "" ]
-}
-
-@test "no repository is passed without a plain leading cd" {
-    [ "$(repo_dir_seen 'bun run test')" = "<unset>" ]
-    [ "$(repo_dir_seen 'cd "$(git rev-parse --show-toplevel)" && bun run test')" = "<unset>" ]
-}
 
 @test "ci-lock behind command or exec options is already queued" {
     [ "$(classify "CI_LOCK_FILE=/tmp/p command -p ~/.local/bin/ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
@@ -731,15 +681,6 @@ phys() { (cd "$1" && pwd -P); }
     [ "$(classify "env -S 'CI_LOCK_FILE=/tmp/private ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
 }
 
-@test "a redirected leading cd resolves, and the probe opens no files" {
-    stub="$BATS_TEST_TMPDIR/stub"
-    mkdir -p "$stub/proj"
-    cd "$BATS_TEST_TMPDIR"
-    [ "$(repo_dir_seen 'cd ~/proj 2>/dev/null && bun run test')" = "$(phys "$stub/proj")" ]
-    [ "$(repo_dir_seen 'cd ~/proj >cd.log 2>&1 && bun run test')" = "$(phys "$stub/proj")" ]
-    [ ! -e "$BATS_TEST_TMPDIR/cd.log" ]
-}
-
 @test "quoted assignments with spaces do not hide ci-lock" {
     [ "$(classify "LABEL='nightly run' CI_LOCK_FILE=/tmp/private ci-lock bash -c 'bun test'")" = "SKIP already-queued" ]
 }
@@ -747,13 +688,6 @@ phys() { (cd "$1" && pwd -P); }
 @test "no-exec shells behind assignments or modifiers are not queued" {
     [ "$(classify "NODE_ENV=test bash -n -c 'bun test'")" = "SKIP not-heavy" ]
     [ "$(classify "env bash -n -c 'bun test'")" = "SKIP not-heavy" ]
-}
-
-@test "an assignment before cd is carried into the probe" {
-    mkdir -p "$BATS_TEST_TMPDIR/src/project" "$BATS_TEST_TMPDIR/elsewhere" "$BATS_TEST_TMPDIR/other-home"
-    cd "$BATS_TEST_TMPDIR/elsewhere"
-    [ "$(repo_dir_seen "CDPATH='$BATS_TEST_TMPDIR/src' cd project && bun run test")" = "$(phys "$BATS_TEST_TMPDIR/src/project")" ]
-    [ "$(repo_dir_seen "HOME='$BATS_TEST_TMPDIR/other-home' cd && bun run test")" = "$(phys "$BATS_TEST_TMPDIR/other-home")" ]
 }
 
 @test "no-exec shells behind modifier options are not queued" {
@@ -777,4 +711,10 @@ phys() { (cd "$1" && pwd -P); }
         sleep 0.1
     done
     grep -q 'echo busy-log' "$LOG"
+}
+
+@test "enforce mode wraps without predicting the directory" {
+    out="$(enforce 'cd ~/Sites/rezio-app && bun run test')"
+    [[ "$out" == *'ci-lock bash -c'* ]]
+    [[ "$out" != *CI_LOCK_REPO_DIR* ]]
 }
