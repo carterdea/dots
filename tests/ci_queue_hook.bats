@@ -724,3 +724,21 @@ phys() { (cd "$1" && pwd -P); }
 @test "an assignment inside env -S does not hide ci-lock" {
     [ "$(classify "env -S 'CI_LOCK_FILE=/tmp/private ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
 }
+
+@test "a redirected leading cd resolves, and the probe opens no files" {
+    stub="$BATS_TEST_TMPDIR/stub"
+    mkdir -p "$stub/proj"
+    cd "$BATS_TEST_TMPDIR"
+    [ "$(repo_dir_seen 'cd ~/proj 2>/dev/null && bun run test')" = "$(phys "$stub/proj")" ]
+    [ "$(repo_dir_seen 'cd ~/proj >cd.log 2>&1 && bun run test')" = "$(phys "$stub/proj")" ]
+    [ ! -e "$BATS_TEST_TMPDIR/cd.log" ]
+}
+
+@test "quoted assignments with spaces do not hide ci-lock" {
+    [ "$(classify "LABEL='nightly run' CI_LOCK_FILE=/tmp/private ci-lock bash -c 'bun test'")" = "SKIP already-queued" ]
+}
+
+@test "no-exec shells behind assignments or modifiers are not queued" {
+    [ "$(classify "NODE_ENV=test bash -n -c 'bun test'")" = "SKIP not-heavy" ]
+    [ "$(classify "env bash -n -c 'bun test'")" = "SKIP not-heavy" ]
+}

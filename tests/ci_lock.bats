@@ -459,6 +459,26 @@ teardown() {
     perl -e 'exit($ARGV[0] < 0.8 ? 0 : 1)' "$elapsed"
 }
 
+@test "a backgrounded nested wrapper does not vouch for an exited ancestor's repository" {
+    make_repo "$BATS_TEST_TMPDIR/a-repo"
+    make_repo "$BATS_TEST_TMPDIR/b-repo"
+    state="$BATS_TEST_TMPDIR/state"
+    # A's check backgrounds a nested run in B, then exits once it has started,
+    # releasing A's lock.
+    # The nested B wrapper later re-enters ci-lock from A.
+    (cd "$BATS_TEST_TMPDIR/a-repo" && exec env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null \
+        "$CI_LOCK" sh -c "cd '$BATS_TEST_TMPDIR/b-repo' && '$CI_LOCK' sh -c 'sleep 1; cd \"$BATS_TEST_TMPDIR/a-repo\" && touch \"$BATS_TEST_TMPDIR/inside\"; while [ ! -e \"$BATS_TEST_TMPDIR/go\" ]; do sleep 0.05; done; CI_LOCK_TIMEOUT=1 \"$CI_LOCK\" true; echo \$? >\"$BATS_TEST_TMPDIR/nested\"' & sleep 0.5") &
+    await "$BATS_TEST_TMPDIR/inside"
+    # A normal check in A now holds A's lock.
+    (cd "$BATS_TEST_TMPDIR/a-repo" && exec env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null \
+        "$CI_LOCK" sh -c "touch '$BATS_TEST_TMPDIR/a2'; sleep 10") &
+    holders+=($!)
+    await "$BATS_TEST_TMPDIR/a2"
+    touch "$BATS_TEST_TMPDIR/go"
+    await "$BATS_TEST_TMPDIR/nested"
+    [ "$(cat "$BATS_TEST_TMPDIR/nested")" = "1" ]
+}
+
 @test "an oversized slot count is rejected" {
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=99999999999999999999 "$CI_LOCK" true
     [ "$status" -eq 64 ]

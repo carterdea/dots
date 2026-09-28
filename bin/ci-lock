@@ -77,19 +77,33 @@ unset CI_LOCK_REPO_DIR
 # and keep the variable in its environment; reusing the lock then would mean
 # not holding one at all.
 HELD_VAR="CI_LOCK_HELD_$(printf '%s' "${LANE//-/_}" | tr '[:lower:]' '[:upper:]')"
-# The marker is "<lock file>:<repo locks held, |-separated>:<holder pid>".
-# Re-entering for a repository the chain already holds reuses everything; a
+# The marker is "<lock file>:<repo lock@pid|...>:<slot holder pid>". Each
+# repository lock is listed with the pid that holds it, since a backgrounded
+# nested wrapper can outlive its ancestors and must not vouch for their locks.
+# Re-entering for a repository whose holder is alive reuses everything; a
 # nested run in another repository keeps the ancestor's slot but still takes
 # that repository's lock (NESTED), so it never runs beside that repo's check.
 NESTED=0
 HELD_REPOS=""
+SLOT_HOLDER=$$
 if [[ "${!HELD_VAR:-}" == "$LOCK_FILE:"* ]]; then
   holder="${!HELD_VAR##*:}"
   if kill -0 "$holder" 2>/dev/null; then
-    HELD_REPOS="${!HELD_VAR#"$LOCK_FILE:"}"
-    HELD_REPOS="${HELD_REPOS%:*}"
-    [[ -n "$REPO_LOCK" && "|$HELD_REPOS|" != *"|$REPO_LOCK|"* ]] || exec "$@"
+    held_list="${!HELD_VAR#"$LOCK_FILE:"}"
+    held_list="${held_list%:*}"
+    repo_held=0
+    # Keep only entries whose holder is still alive.
+    IFS='|' read -ra held_entries <<<"$held_list"
+    for entry in ${held_entries[@]+"${held_entries[@]}"}; do
+      kill -0 "${entry##*@}" 2>/dev/null || continue
+      HELD_REPOS="${HELD_REPOS:+$HELD_REPOS|}$entry"
+      [[ "${entry%@*}" != "$REPO_LOCK" ]] || repo_held=1
+    done
+    if [[ -z "$REPO_LOCK" ]] || ((repo_held)); then
+      exec "$@"
+    fi
     NESTED=1
+    SLOT_HOLDER=$holder
   fi
 fi
 
@@ -356,7 +370,10 @@ fi
 # next arrival think it is not head and never block on flock.
 rm -f "$TICKET" "$REPO_NOTE"
 
-export "$HELD_VAR=$LOCK_FILE:${HELD_REPOS:+$HELD_REPOS|}$REPO_LOCK:$$"
+repo_entry=""
+[[ -z "$REPO_LOCK" ]] || repo_entry="$REPO_LOCK@$$"
+held_marker="${HELD_REPOS:+$HELD_REPOS|}$repo_entry"
+export "$HELD_VAR=$LOCK_FILE:${held_marker%|}:$SLOT_HOLDER"
 started_ms="$(now_ms)"
 
 # 6>&- 8>&- 9>&- close the lock descriptors for the command and everything it spawns.
