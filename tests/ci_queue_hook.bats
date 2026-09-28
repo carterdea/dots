@@ -688,3 +688,19 @@ repo_dir_seen() {
 @test "env options that take a value do not hide ci-lock" {
     [ "$(classify "CI_LOCK_FILE=/tmp/p env -P /usr/bin ~/.local/bin/ci-lock bash -c 'bun test'")" = "SKIP already-queued" ]
 }
+
+@test "a guarded leading cd passes its target" {
+    stub="$BATS_TEST_TMPDIR/stub"
+    [ "$(repo_dir_seen 'cd ~/proj || exit; bun run test')" = "$stub/proj" ]
+}
+
+@test "ci-lock inside env -S is already queued" {
+    [ "$(classify "CI_LOCK_FILE=/tmp/p env -S 'ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
+    [ "$(classify "env --split-string='ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
+}
+
+@test "no-exec exemption does not cover +n, interactive, or substitutions" {
+    [ "$(classify "bash -n +n -c 'bun test'")" = "QUEUE long-check" ]
+    [ "$(classify "bash -nic 'bun test'")" = "QUEUE long-check" ]
+    [ "$(classify 'bash -n -c "$(bun test)"')" = "QUEUE long-check" ]
+}

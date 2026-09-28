@@ -229,9 +229,16 @@ runs_queue() {
   while ((i < ${#tok[@]})); do
     case "${tok[i]}" in
       env | command | exec) modifier="${tok[i]}" ;;
-      # Options that take a value: env -u NAME / -P PATH / -C DIR / -S STR,
+      # env -S splits its value into the command itself, so parsing
+      # continues into it (quotes are stripped below).
+      -S | --split-string) [[ -n "$modifier" ]] || break ;;
+      --split-string=*)
+        [[ -n "$modifier" ]] || break
+        tok[i]="${tok[i]#--split-string=}"
+        continue ;;
+      # Options that take a value: env -u NAME / -P PATH / -C DIR,
       # exec -a NAME.
-      -u | --unset | -P | -C | --chdir | -S | --split-string | -a)
+      -u | --unset | -P | -C | --chdir | -a)
         [[ -n "$modifier" ]] || break
         i=$((i + 1)) ;;
       -*) [[ -n "$modifier" ]] || break ;;
@@ -240,7 +247,9 @@ runs_queue() {
     esac
     i=$((i + 1))
   done
-  [[ "${tok[i]:-}" =~ ^([^[:space:]]*/)?(ci-lock|lefthook|lefthook-ci-lock)$ ]]
+  local word="${tok[i]:-}"
+  word="${word#[\"\']}"
+  [[ "$word" =~ ^([^[:space:]]*/)?(ci-lock|lefthook|lefthook-ci-lock)$ ]]
 }
 
 all_read_only() {
@@ -254,10 +263,19 @@ all_read_only() {
 # A shell's quoted script is one argument; later tokens supply $0, $1, etc.
 shell_verdict() {
   # No-exec mode (-n, alone or in a cluster like -nc) reads commands without
-  # running them, so even an inline script is inert.
-  if [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)([[:space:]]+-[a-zA-Z]+)*[[:space:]]+-[a-zA-Z]*n[a-zA-Z]*([[:space:]]|$) ]]; then
-    echo "SKIP not-heavy"
-    return 0
+  # running them, so even an inline script is inert. Not when a later +
+  # option may turn it back off, an interactive shell (-i) ignores it, or the
+  # outer shell runs a substitution before the inner one ever starts.
+  local noexec_opts='^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)(([[:space:]]+[-+][a-zA-Z]+)+)([[:space:]]|$)'
+  if [[ "$1" =~ $noexec_opts ]]; then
+    local opts="${BASH_REMATCH[3]}"
+    # shellcheck disable=SC2016 # detect literal shell substitutions
+    if [[ "$opts" =~ [[:space:]]-[a-zA-Z]*n && ! "$opts" =~ [[:space:]][+] &&
+      ! "$opts" =~ [[:space:]]-[a-zA-Z]*i && "$1" != *'$('* && "$1" != *'`'* &&
+      "$1" != *'<('* && "$1" != *'>('* ]]; then
+      echo "SKIP not-heavy"
+      return 0
+    fi
   fi
   local prefix="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*c[a-zA-Z]*[[:space:]]+(--[[:space:]]+)?(['\"])(.*)"
   if ! [[ "$1" =~ $prefix ]]; then
@@ -528,9 +546,9 @@ lane=""
 # spaces. Anything that would execute (command substitution) is left out.
 repo_dir=""
 cd_word=$'("([^"\\\\]|\\\\.)*"|\'[^\']*\'|\\\\.|[^[:space:];&|<>()"\'\\\\])+'
-cd_lead="^[[:space:]]*cd[[:space:]]+((-[LPe@]+|--)[[:space:]]+)*($cd_word)[[:space:]]*(&&|;|"$'\n'")"
+cd_lead="^[[:space:]]*cd[[:space:]]+((-[LPe@]+|--)[[:space:]]+)*($cd_word)[[:space:]]*(&&|[|][|]|;|"$'\n'")"
 # shellcheck disable=SC2016 # $HOME and $OLDPWD are expanded by the shell
-if [[ "$cmd" =~ ^[[:space:]]*cd[[:space:]]*(\&\&|;|$'\n') ]]; then
+if [[ "$cmd" =~ ^[[:space:]]*cd[[:space:]]*(\&\&|[|][|]|;|$'\n') ]]; then
   # A bare cd goes home.
   repo_dir='CI_LOCK_REPO_DIR="$HOME" '
 elif [[ "$cmd" =~ $cd_lead ]]; then
