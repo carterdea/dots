@@ -45,8 +45,8 @@ if [[ "$LANE" == "heavy" && -z "${CI_LOCK_FILE:-}" ]]; then
 else
   SLOTS="${CI_LOCK_SLOTS:-1}"
 fi
-if ! [[ "$SLOTS" =~ ^[1-9][0-9]*$ ]]; then
-  echo "ci-lock: invalid slot count '$SLOTS' (want a positive integer)" >&2
+if ! [[ "$SLOTS" =~ ^[1-9][0-9]{0,2}$ ]]; then
+  echo "ci-lock: invalid slot count '$SLOTS' (want 1-999)" >&2
   exit 64
 fi
 
@@ -116,6 +116,9 @@ QUEUE_DIR="$LOCK_FILE.q"
 # Old epoch-named tickets sort before new monotonic tickets during upgrades.
 # Millisecond ties use the PID; wall-clock corrections cannot reorder arrivals.
 TICKET="$(printf '%s/m%015d-%010d' "$QUEUE_DIR" "$queued_ms" "$$")"
+# Names the repository a waiting ticket belongs to (see may_contend). A dotfile,
+# so ticket scans never mistake it for a ticket.
+REPO_NOTE="$QUEUE_DIR/.repo-${TICKET##*/}"
 mkdir -m 700 "$QUEUE_DIR" 2>/dev/null || true
 if ! perl -MFcntl=:mode -e 'my @s = lstat $ARGV[0];
     exit(!@s || !S_ISDIR($s[2]) || $s[4] != $< || ($s[2] & 0022));' "$QUEUE_DIR"; then
@@ -123,51 +126,73 @@ if ! perl -MFcntl=:mode -e 'my @s = lstat $ARGV[0];
   exit 73
 fi
 
-# Drops tickets whose owner is gone — a killed waiter must not wedge the
-# queue — and stops at the oldest survivor. Each ticket carries its own expiry, so callers with
-# shorter timeouts cannot evict a live waiter with a longer budget.
-# Legacy empty tickets are removed only when their owner is gone.
-queue_head() {
-  local ticket expiry now ticket_boot clock pid process_state ticket_start actual_start
-  now="$(now_ms)"
+# True when a ticket's owner is still waiting; otherwise drops the ticket, so
+# a killed waiter cannot wedge the queue. Each ticket carries its own expiry,
+# so callers with shorter timeouts cannot evict a live waiter with a longer
+# budget. Legacy empty tickets are removed only when their owner is gone.
+ticket_live() {
+  local ticket="$1" expiry clock ticket_boot pid process_state ticket_start actual_start
+  expiry="$(cat "$ticket" 2>/dev/null)" || return 1
+  ticket_start=""
+  if [[ "$expiry" == *'|'* ]]; then
+    ticket_start="${expiry#*|}"
+    expiry="${expiry%%|*}"
+  fi
+  clock="$(now_ms)"
+  if [[ "$expiry" == *:* ]]; then
+    ticket_boot="${expiry%%:*}"
+    expiry="${expiry#*:}"
+    if [[ "$boot_id" != unknown && "$ticket_boot" != unknown && "$ticket_boot" != "$boot_id" ]]; then
+      rm -f "$ticket" "$QUEUE_DIR/.repo-${ticket##*/}"
+      return 1
+    fi
+  else
+    # Numeric tickets from older versions use epoch milliseconds.
+    clock=$(($(date +%s) * 1000))
+  fi
+  # 10# because the fields are zero-padded, and a leading zero reads as octal.
+  pid="$((10#${ticket##*-}))"
+  process_state="$(ps -o stat= -p "$pid" 2>/dev/null)" || process_state=""
+  if [[ -n "$ticket_start" ]]; then
+    actual_start="$(LC_ALL=C ps -o lstart= -p "$pid" 2>/dev/null)" || actual_start=""
+    if [[ -n "$actual_start" && "$actual_start" != "$ticket_start" ]]; then
+      rm -f "$ticket" "$QUEUE_DIR/.repo-${ticket##*/}"
+      return 1
+    fi
+  fi
+  if kill -0 "$pid" 2>/dev/null && [[ ! "$process_state" =~ Z ]] &&
+    { [[ "$ticket" == "$TICKET" || ! "$expiry" =~ ^[0-9]+$ ]] || ((clock <= expiry)); }; then
+    return 0
+  fi
+  rm -f "$ticket" "$QUEUE_DIR/.repo-${ticket##*/}"
+  return 1
+}
+
+# True when a repository lock is held by a running check.
+repo_lock_held() {
+  [[ "$1" == "$LOCK_FILE.repo-"* && ! -L "$1" ]] || return 1
+  ( exec 7>"$1" && ! flock -n 7 )
+}
+
+# True when this waiter may contend for a slot now. Normally only the oldest
+# live ticket may, so arrival order decides who goes next. The exception: an
+# older waiter whose repository already has a check running cannot start
+# anyway, so a waiter from another repository may take a free slot past it
+# instead of leaving that slot idle. The scan stops at the first live ticket
+# that still has a claim.
+may_contend() {
+  local ticket repo_lock
   for ticket in "$QUEUE_DIR"/*; do
     [[ -f "$ticket" && ! -L "$ticket" && "${ticket##*/}" =~ ^m?[0-9]+-[0-9]+$ ]] || continue
-    expiry="$(cat "$ticket" 2>/dev/null)" || continue
-    ticket_start=""
-    if [[ "$expiry" == *'|'* ]]; then
-      ticket_start="${expiry#*|}"
-      expiry="${expiry%%|*}"
-    fi
-    clock=$now
-    if [[ "$expiry" == *:* ]]; then
-      ticket_boot="${expiry%%:*}"
-      expiry="${expiry#*:}"
-      if [[ "$boot_id" != unknown && "$ticket_boot" != unknown && "$ticket_boot" != "$boot_id" ]]; then
-        rm -f "$ticket"
-        continue
-      fi
-    else
-      # Numeric tickets from older versions use epoch milliseconds.
-      clock=$(($(date +%s) * 1000))
-    fi
-    # 10# because the fields are zero-padded, and a leading zero reads as octal.
-    pid="$((10#${ticket##*-}))"
-    process_state="$(ps -o stat= -p "$pid" 2>/dev/null)" || process_state=""
-    if [[ -n "$ticket_start" ]]; then
-      actual_start="$(LC_ALL=C ps -o lstart= -p "$pid" 2>/dev/null)" || actual_start=""
-      if [[ -n "$actual_start" && "$actual_start" != "$ticket_start" ]]; then
-        rm -f "$ticket"
-        continue
-      fi
-    fi
-    if kill -0 "$pid" 2>/dev/null && [[ ! "$process_state" =~ Z ]] &&
-      { [[ "$ticket" == "$TICKET" || ! "$expiry" =~ ^[0-9]+$ ]] || ((clock <= expiry)); }; then
-      printf '%s' "$ticket"
-      return
-    else
-      rm -f "$ticket"
-    fi
+    [[ "$ticket" == "$TICKET" ]] && return 0
+    ticket_live "$ticket" || continue
+    ((SLOTS > 1)) || return 1
+    repo_lock="$(cat "$QUEUE_DIR/.repo-${ticket##*/}" 2>/dev/null)" || return 1
+    # The same repository as ours means we are blocked too; keep the order.
+    [[ -n "$repo_lock" && "$repo_lock" != "$REPO_LOCK" ]] || return 1
+    repo_lock_held "$repo_lock" || return 1
   done
+  return 1
 }
 
 # Slot 0 is the lane's own lock file, so an older ci-lock that knows nothing
@@ -181,7 +206,11 @@ slot_file() {
 # queue time for flakes. fd 8 holds a per-repo lock beside the slot on fd 9.
 REPO_LOCK=""
 if ((SLOTS > 1)); then
-  repo_dir="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || repo_dir=""
+  # The directory the command runs in, which the queue hook passes when the
+  # command starts with `cd <dir> &&`. Inherited GIT_* variables would name
+  # the caller's repository instead, so they are dropped for this lookup only.
+  repo_dir="$(env -u GIT_DIR -u GIT_COMMON_DIR -u GIT_WORK_TREE \
+    git -C "${CI_LOCK_REPO_DIR:-.}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || repo_dir=""
   if [[ -n "$repo_dir" ]]; then
     REPO_LOCK="$LOCK_FILE.repo-$(printf '%s' "$repo_dir" | shasum | cut -c1-12)"
   fi
@@ -210,9 +239,12 @@ acquire() {
   local remaining interval wait_seconds
   # Publish a complete ticket before contending, including on a free lock.
   # The owner's initial nonblocking attempt is allowed even with zero timeout.
+  # Published before the ticket, so no waiter ever sees a ticket whose
+  # repository is unknown and mistakes it for one that cannot be passed.
+  [[ -z "$REPO_LOCK" ]] || printf '%s\n' "$REPO_LOCK" >"$REPO_NOTE"
   printf '%s:%s|%s\n' "$boot_id" "$deadline" "$owner_start" >"$QUEUE_DIR/.$$"
   mv "$QUEUE_DIR/.$$" "$TICKET"
-  if [[ "$(queue_head)" == "$TICKET" ]] && try_slots; then
+  if may_contend && try_slots; then
     return 0
   fi
   echo "ci-lock: another $LANE check is running; waiting in queue (max ${LOCK_TIMEOUT}s)..." >&2
@@ -222,7 +254,7 @@ acquire() {
     interval=$remaining
     ((interval <= 1000)) || interval=1000
     printf -v wait_seconds '%d.%03d' "$((interval / 1000))" "$((interval % 1000))"
-    if [[ "$(queue_head)" == "$TICKET" ]]; then
+    if may_contend; then
       # One second at a time rather than one blocking wait for the whole
       # budget: bash runs a trap only once the foreground command returns,
       # and a waiter that ignores Ctrl-C for half an hour — leaving its
@@ -249,7 +281,7 @@ acquire() {
 # The ticket has to go even if the wait is cut short. The signal traps exit
 # rather than clean up directly so there is one removal path; they are
 # replaced with child-forwarding traps once the command is running.
-trap 'rm -f "$TICKET" "$QUEUE_DIR/.$$"' EXIT
+trap 'rm -f "$TICKET" "$REPO_NOTE" "$QUEUE_DIR/.$$"' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
@@ -261,7 +293,7 @@ if ! acquire; then
 fi
 # The queue holds waiters only: leaving the ticket in place would make the
 # next arrival think it is not head and never block on flock.
-rm -f "$TICKET"
+rm -f "$TICKET" "$REPO_NOTE"
 
 export "$HELD_VAR=$LOCK_FILE:$$"
 started_ms="$(now_ms)"

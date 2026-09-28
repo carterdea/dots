@@ -625,3 +625,19 @@ EOF
 @test "running a script through bash still queues" {
     [ "$(classify 'bash scripts/pre-push-checks.sh')" = "QUEUE long-check" ]
 }
+
+@test "ci-lock behind command, exec, or env -u is already queued" {
+    [ "$(classify "command ~/.local/bin/ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
+    [ "$(classify "exec ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
+    [ "$(classify "env -u CI_LOCK_HELD_HEAVY CI_LOCK_LANE=fast ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
+}
+
+@test "enforce mode passes a leading cd target as the repository" {
+    out="$(enforce 'cd ~/Sites/rezio-app && bun run test')"
+    [[ "$out" == *"CI_LOCK_REPO_DIR='$FAKE_HOME/Sites/rezio-app' "*'ci-lock bash -c'* ]]
+}
+
+@test "enforce mode passes no repository without a leading cd" {
+    out="$(enforce 'bun run test')"
+    [[ "$out" != *CI_LOCK_REPO_DIR* ]]
+}

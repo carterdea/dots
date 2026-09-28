@@ -219,12 +219,22 @@ read_only_seg() {
 }
 
 # True when a segment's command word is the queue itself, after any env
-# assignments or an `env` prefix.
+# assignments and command modifiers (env and its options, command, exec).
 runs_queue() {
-  local i=0
+  local i=0 in_env=0
   local -a tok
   read -ra tok <<<"$1"
-  while ((i < ${#tok[@]})) && [[ "${tok[i]}" == env || "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; do
+  while ((i < ${#tok[@]})); do
+    case "${tok[i]}" in
+      env) in_env=1 ;;
+      command | exec) in_env=0 ;;
+      -u | --unset)
+        ((in_env)) || break
+        i=$((i + 1)) ;;
+      -*) ((in_env)) || break ;;
+      *=*) [[ "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || break ;;
+      *) break ;;
+    esac
     i=$((i + 1))
   done
   [[ "${tok[i]:-}" =~ ^([^[:space:]]*/)?(ci-lock|lefthook|lefthook-ci-lock)$ ]]
@@ -502,7 +512,19 @@ command -v jq >/dev/null 2>&1 || exit 0
 # first simple command, and the suite after `&&` would run unlocked.
 lane=""
 [[ "$reason" == "check-only" ]] && lane="CI_LOCK_LANE=check "
-wrapped="$lane$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"
+# A command that starts in another directory (cd <dir> && suite) runs that
+# directory's suite; tell ci-lock so its per-repository lock names the right
+# repository rather than the caller's.
+repo_dir=""
+cd_lead=$'^[[:space:]]*cd[[:space:]]+("[^"$]+"|\'[^\']+\'|[^[:space:];&|"\'$`]+)[[:space:]]*(&&|;|\n)'
+if [[ "$cmd" =~ $cd_lead ]]; then
+  repo_dir="${BASH_REMATCH[1]}"
+  repo_dir="${repo_dir#[\"\']}"
+  repo_dir="${repo_dir%[\"\']}"
+  [[ "$repo_dir" != "~"* ]] || repo_dir="$HOME${repo_dir#\~}"
+  repo_dir="CI_LOCK_REPO_DIR=$(printf '%s' "$repo_dir" | jq -Rrs '@sh') "
+fi
+wrapped="$lane$repo_dir$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"
 
 # Codex accepts updatedInput only alongside permissionDecision:"allow".
 # Claude Code gets updatedInput without a decision so the rewritten command

@@ -292,41 +292,96 @@ setup() {
 
 # --- heavy-lane slots ---
 
+# Polls for a file for up to 10s; slot holders touch one once they hold a slot,
+# so assertions never race a holder that has not started yet.
+await() {
+    for _ in {1..200}; do
+        [ ! -e "$1" ] || return 0
+        sleep 0.05
+    done
+    return 1
+}
+
+# Starts a two-slot check in directory $2 that marks $1 once it holds a slot.
+hold() {
+    (cd "$2" && exec env CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 \
+        "$CI_LOCK" sh -c "touch '$1'; sleep 10") &
+    holders+=($!)
+    await "$1"
+}
+
+# A throwaway repository; the identity keeps the commit independent of the
+# developer's git config.
+make_repo() {
+    git init -q "$1"
+    git -C "$1" -c user.name=test -c user.email=test@example.com commit -q --allow-empty -m init
+}
+
+teardown() {
+    [ -z "${holders[*]:-}" ] || kill "${holders[@]}" 2>/dev/null || true
+    wait 2>/dev/null || true
+}
+
 @test "two slots let a second check run beside the first" {
-    cd "$BATS_TEST_TMPDIR"
-    CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 "$CI_LOCK" sleep 5 &
-    holder=$!
-    sleep 0.5
+    hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR"
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
-    kill "$holder" 2>/dev/null || true
-    wait "$holder" 2>/dev/null || true
     [ "$status" -eq 0 ]
 }
 
 @test "a third check waits while both slots are busy" {
-    cd "$BATS_TEST_TMPDIR"
-    for _ in 1 2; do
-        CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 "$CI_LOCK" sleep 5 &
-        holders+=($!)
-        sleep 0.5
-    done
+    hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR"
+    hold "$BATS_TEST_TMPDIR/b" "$BATS_TEST_TMPDIR"
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
-    kill "${holders[@]}" 2>/dev/null || true
-    wait "${holders[@]}" 2>/dev/null || true
     [ "$status" -eq 1 ]
 }
 
 @test "two checks from one repository never share the slots" {
-    repo="$BATS_TEST_TMPDIR/repo"
-    git init -q "$repo"
-    git -C "$repo" commit -q --allow-empty -m init
-    git -C "$repo" worktree add -q "$BATS_TEST_TMPDIR/wt" 2>/dev/null
-    (cd "$repo" && exec env CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 "$CI_LOCK" sleep 5) &
-    holder=$!
-    sleep 0.5
+    make_repo "$BATS_TEST_TMPDIR/repo"
+    git -C "$BATS_TEST_TMPDIR/repo" worktree add -q "$BATS_TEST_TMPDIR/wt" 2>/dev/null
+    hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR/repo"
     cd "$BATS_TEST_TMPDIR/wt"
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
-    kill "$holder" 2>/dev/null || true
-    wait "$holder" 2>/dev/null || true
     [ "$status" -eq 1 ]
+}
+
+@test "the repository lock follows CI_LOCK_REPO_DIR, not the caller's directory" {
+    make_repo "$BATS_TEST_TMPDIR/repo"
+    hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR/repo"
+    cd "$BATS_TEST_TMPDIR"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 \
+        CI_LOCK_REPO_DIR="$BATS_TEST_TMPDIR/repo" "$CI_LOCK" true
+    [ "$status" -eq 1 ]
+}
+
+@test "inherited GIT_DIR does not pick the repository lock" {
+    make_repo "$BATS_TEST_TMPDIR/repo"
+    make_repo "$BATS_TEST_TMPDIR/other"
+    hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR/repo"
+    cd "$BATS_TEST_TMPDIR/other"
+    run env GIT_DIR="$BATS_TEST_TMPDIR/repo/.git" CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
+        CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 0 ]
+}
+
+@test "a waiter from another repository takes the slot a blocked head cannot use" {
+    make_repo "$BATS_TEST_TMPDIR/a-repo"
+    make_repo "$BATS_TEST_TMPDIR/b-repo"
+    hold "$BATS_TEST_TMPDIR/a-running" "$BATS_TEST_TMPDIR/a-repo"
+    # A second A check queues first and stays blocked on A's repository lock.
+    (cd "$BATS_TEST_TMPDIR/a-repo" && exec env CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" \
+        CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=10 "$CI_LOCK" true 2>/dev/null) &
+    holders+=($!)
+    for _ in {1..200}; do
+        [ -z "$(ls "$LOCK.q")" ] || break
+        sleep 0.05
+    done
+    [ -n "$(ls "$LOCK.q")" ]
+    cd "$BATS_TEST_TMPDIR/b-repo"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=2 "$CI_LOCK" true
+    [ "$status" -eq 0 ]
+}
+
+@test "an oversized slot count is rejected" {
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=99999999999999999999 "$CI_LOCK" true
+    [ "$status" -eq 64 ]
 }
