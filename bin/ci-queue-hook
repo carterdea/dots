@@ -229,8 +229,9 @@ runs_queue() {
   while ((i < ${#tok[@]})); do
     case "${tok[i]}" in
       env | command | exec) modifier="${tok[i]}" ;;
-      # Options that take a value: env -u NAME, exec -a NAME.
-      -u | --unset | -a)
+      # Options that take a value: env -u NAME / -P PATH / -C DIR / -S STR,
+      # exec -a NAME.
+      -u | --unset | -P | -C | --chdir | -S | --split-string | -a)
         [[ -n "$modifier" ]] || break
         i=$((i + 1)) ;;
       -*) [[ -n "$modifier" ]] || break ;;
@@ -528,11 +529,18 @@ lane=""
 repo_dir=""
 cd_word=$'("([^"\\\\]|\\\\.)*"|\'[^\']*\'|\\\\.|[^[:space:];&|<>()"\'\\\\])+'
 cd_lead="^[[:space:]]*cd[[:space:]]+((-[LPe@]+|--)[[:space:]]+)*($cd_word)[[:space:]]*(&&|;|"$'\n'")"
-if [[ "$cmd" =~ $cd_lead ]]; then
+# shellcheck disable=SC2016 # $HOME and $OLDPWD are expanded by the shell
+if [[ "$cmd" =~ ^[[:space:]]*cd[[:space:]]*(\&\&|;|$'\n') ]]; then
+  # A bare cd goes home.
+  repo_dir='CI_LOCK_REPO_DIR="$HOME" '
+elif [[ "$cmd" =~ $cd_lead ]]; then
   repo_dir="${BASH_REMATCH[3]}"
   # shellcheck disable=SC2016 # detect literal shell substitutions
   if [[ "$repo_dir" == *'$('* || "$repo_dir" == *'`'* ]]; then
     repo_dir=""
+  elif [[ "$repo_dir" == - ]]; then
+    # cd - returns to the previous directory.
+    repo_dir='CI_LOCK_REPO_DIR="$OLDPWD" '
   else
     repo_dir="CI_LOCK_REPO_DIR=$repo_dir "
   fi

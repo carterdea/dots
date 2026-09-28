@@ -634,6 +634,7 @@ EOF
 
 # Runs the enforce-mode rewrite of $1 against a stub ci-lock and prints the
 # CI_LOCK_REPO_DIR it receives after the shell's own expansion.
+# PRELUDE, if set, runs first in the same shell (e.g. to set OLDPWD).
 repo_dir_seen() {
     local stub="$BATS_TEST_TMPDIR/stub" wrapped
     mkdir -p "$stub/.local/bin"
@@ -642,7 +643,7 @@ repo_dir_seen() {
     wrapped="$(jq -cn --arg c "$1" '{tool_input:{command:$c}}' |
         HOME="$stub" CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=1 "$HOOK" |
         jq -r '.hookSpecificOutput.updatedInput.command')"
-    HOME="$stub" bash -c "$wrapped"
+    HOME="$stub" bash -c "${PRELUDE:-}$wrapped"
 }
 
 @test "leading cd target reaches ci-lock with the shell's expansion" {
@@ -676,4 +677,14 @@ repo_dir_seen() {
 @test "no-exec shells with an inline script are not queued" {
     [ "$(classify "bash -n -c 'bun test'")" = "SKIP not-heavy" ]
     [ "$(classify "bash -nc 'bun test'")" = "SKIP not-heavy" ]
+}
+
+@test "bare cd and cd - pass home and the previous directory" {
+    stub="$BATS_TEST_TMPDIR/stub"
+    [ "$(repo_dir_seen 'cd && bun run test')" = "$stub" ]
+    [ "$(PRELUDE="cd '$BATS_TEST_TMPDIR'; cd /; " repo_dir_seen 'cd - && bun run test')" = "$BATS_TEST_TMPDIR" ]
+}
+
+@test "env options that take a value do not hide ci-lock" {
+    [ "$(classify "CI_LOCK_FILE=/tmp/p env -P /usr/bin ~/.local/bin/ci-lock bash -c 'bun test'")" = "SKIP already-queued" ]
 }
