@@ -417,6 +417,32 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
+@test "a nested run in another repository waits for that repository's lock" {
+    make_repo "$BATS_TEST_TMPDIR/a-repo"
+    make_repo "$BATS_TEST_TMPDIR/b-repo"
+    state="$BATS_TEST_TMPDIR/state"
+    # B's own check holds slot 0 and B's repository lock.
+    (cd "$BATS_TEST_TMPDIR/b-repo" && exec env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null \
+        "$CI_LOCK" sh -c "touch '$BATS_TEST_TMPDIR/b'; sleep 10") &
+    holders+=($!)
+    await "$BATS_TEST_TMPDIR/b"
+    # A's check takes slot 1, then re-enters ci-lock from inside B.
+    (cd "$BATS_TEST_TMPDIR/a-repo" && exec env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null \
+        "$CI_LOCK" sh -c "cd '$BATS_TEST_TMPDIR/b-repo' && CI_LOCK_TIMEOUT=1 '$CI_LOCK' true; echo \$? >'$BATS_TEST_TMPDIR/nested'") &
+    holders+=($!)
+    await "$BATS_TEST_TMPDIR/nested"
+    [ "$(cat "$BATS_TEST_TMPDIR/nested")" = "1" ]
+}
+
+@test "a nested run in the same repository reuses the held slot" {
+    make_repo "$BATS_TEST_TMPDIR/a-repo"
+    state="$BATS_TEST_TMPDIR/state"
+    cd "$BATS_TEST_TMPDIR/a-repo"
+    run env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null CI_LOCK_TIMEOUT=1 \
+        "$CI_LOCK" sh -c "'$CI_LOCK' true"
+    [ "$status" -eq 0 ]
+}
+
 @test "an oversized slot count is rejected" {
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=99999999999999999999 "$CI_LOCK" true
     [ "$status" -eq 64 ]
