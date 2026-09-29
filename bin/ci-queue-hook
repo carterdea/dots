@@ -12,6 +12,13 @@
 #   enforce           — CI_QUEUE_HOOK_ENFORCE=1, rewrite the command
 #
 # Always exits 0. A hook on every Bash call must never be the reason one fails.
+#
+# Threat model: this schedules cooperating agents; it is not a security
+# boundary (--no-verify or a private CI_LOCK_FILE already skip it). When it
+# cannot tell what a command does, it queues. Deliberate evasion (crafted
+# executables named like trusted tools, shadowing functions, obfuscated
+# command words) is out of scope, though the hook never executes anything
+# named in the command it classifies.
 set -uo pipefail
 
 LOG="${CI_QUEUE_HOOK_LOG:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/queue-hook.log}"
