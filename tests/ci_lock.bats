@@ -454,16 +454,16 @@ teardown() {
     [ "$(cat "$BATS_TEST_TMPDIR/nested")" = "1" ]
 }
 
-@test "a nested wrapper's live repository lock stays reusable after the slot holder exits" {
+@test "a run whose ancestor holds its repository lock but no slot fails fast" {
     make_repo "$BATS_TEST_TMPDIR/a-repo"
     make_repo "$BATS_TEST_TMPDIR/b-repo"
     state="$BATS_TEST_TMPDIR/state"
     # A's check backgrounds a nested run in B and exits once it has started;
     # the nested wrapper keeps B's lock, and its command re-enters from B.
     (cd "$BATS_TEST_TMPDIR/a-repo" && exec env XDG_STATE_HOME="$state" CI_LOCK_LOG=/dev/null \
-        "$CI_LOCK" sh -c "cd '$BATS_TEST_TMPDIR/b-repo' && '$CI_LOCK' sh -c 'sleep 1; CI_LOCK_TIMEOUT=3 \"$CI_LOCK\" true; echo \$? >\"$BATS_TEST_TMPDIR/nested\"' & sleep 0.5") &
+        "$CI_LOCK" sh -c "cd '$BATS_TEST_TMPDIR/b-repo' && '$CI_LOCK' sh -c 'sleep 1; \"$CI_LOCK\" true; echo \$? >\"$BATS_TEST_TMPDIR/nested\"' & sleep 0.5") &
     await "$BATS_TEST_TMPDIR/nested"
-    [ "$(cat "$BATS_TEST_TMPDIR/nested")" = "0" ]
+    [ "$(cat "$BATS_TEST_TMPDIR/nested")" = "1" ]
 }
 
 @test "inherited descriptors the lock never opened reach the command" {

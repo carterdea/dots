@@ -742,7 +742,20 @@ EOF
     [ "$(classify "env -S 'CI_LOCK_FILE=/tmp/private\\_ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
 }
 
-@test "find and awk with expanded arguments are not read-only" {
+@test "find with expanded arguments is not read-only" {
     [ "$(classify 'ACTION=-exec; echo "$(find . $ACTION bun test {} +)"')" = "QUEUE long-check" ]
-    [ "$(classify "awk '{print \$1}' notes.txt")" = "SKIP read-only-tool" ]
+    [ "$(classify "awk '{print \$1}' notes.txt")" != "QUEUE long-check" ]
+}
+
+@test "awk command pipes and program files are not read-only" {
+    [ "$(classify "echo \"\$(awk 'BEGIN { \"bun test\" | getline }')\"")" = "QUEUE long-check" ]
+    [ "$(classify 'echo "$(awk -f check.awk)"')" = "QUEUE long-check" ]
+}
+
+@test "classifying a command never executes a binary it names" {
+    printf '#!/bin/sh\ntouch "%s/ran"\n' "$BATS_TEST_TMPDIR" >"$BATS_TEST_TMPDIR/sed"
+    chmod +x "$BATS_TEST_TMPDIR/sed"
+    cd "$BATS_TEST_TMPDIR"
+    classify 'echo "$(./sed -n p notes.txt)"' >/dev/null
+    [ ! -e "$BATS_TEST_TMPDIR/ran" ]
 }

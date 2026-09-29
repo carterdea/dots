@@ -112,8 +112,11 @@ if [[ "${!HELD_VAR:-}" == "$LOCK_FILE:"* ]]; then
     SLOT_HOLDER=$holder
   elif ((repo_held)); then
     # The slot is gone but a live ancestor still holds this repository's
-    # lock: take a new slot only, or this would wait on its own ancestor.
-    REPO_LOCK=""
+    # lock. Waiting would wait on its own ancestor, and running on the
+    # ancestor's lock would lose exclusion if the ancestor exits first, so
+    # it fails fast, as a nested run into a busy repository does.
+    echo "ci-lock: an ancestor still holds this repository's lock but not a slot; run it from that ancestor" >&2
+    exit 1
   fi
 fi
 

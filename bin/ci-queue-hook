@@ -204,15 +204,16 @@ read_only_seg() {
     kill)
       [[ "${tok[i + 1]:-}" == -0 ]]
       return ;;
-    # awk can execute subprocesses from its program text, and find through its
-    # -exec family; an expanded argument could supply either unseen.
-    awk | find)
-      [[ "$(outer_expanded "$seg")" != *'$'* ]] || return 1
-      [[ "$first" != awk || ! "$seg" =~ system[[:space:]]*\( ]] ;;
-    # GNU sed can run commands (the e command, s///e); BSD sed cannot.
+    # find runs commands through its -exec family; an expanded argument could
+    # supply one unseen. (awk is not listed at all: system(), "cmd" | getline,
+    # and -f program files all run commands.)
+    find) [[ "$(outer_expanded "$seg")" != *'$'* ]] ;;
+    # GNU sed can run commands (the e command, s///e); macOS's /usr/bin/sed is
+    # BSD sed and cannot. Decided by path alone: the hook never executes
+    # anything named in the command it is classifying.
     sed)
-      ! "${tok[i]}" --version >/dev/null 2>&1
-      return ;;
+      [[ "$OSTYPE" == darwin* && ( "${tok[i]}" == /usr/bin/sed ||
+        ( "${tok[i]}" == sed && "$(command -v sed)" == /usr/bin/sed ) ) ]] ;;
     grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|echo|printf|cd|pwd|gh) return 0 ;;
     # Process and disk inspectors: their patterns name suites (pgrep -f vitest).
     ps|pgrep|lsof|stat|du|df|uptime|which|sleep) return 0 ;;
@@ -561,7 +562,9 @@ decide() {
       [[ "$seg" =~ (playwright|cypress|detox) ]] ||
       [[ "$seg" =~ (^|[[:space:]/])(rails|rake)[[:space:]]+test(:[a-z]+)?([[:space:]]|$) ]] ||
       [[ "$seg" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||
-      [[ "$seg" =~ scripts/(verify|test)[^[:space:]]*\.sh ]]; then
+      [[ "$seg" =~ scripts/(verify|test)[^[:space:]]*\.sh ]] ||
+      # An awk program file is opaque, like a shell script: it may run anything.
+      [[ "$seg" =~ (^|[^[:alnum:]_])[gmn]?awk[[:space:]]([^\;\&\|]*[[:space:]])?-f ]]; then
       echo "QUEUE long-check"
       return
     fi
