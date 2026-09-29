@@ -769,3 +769,9 @@ EOF
 @test "--rcfile swallowing -n does not earn the no-exec exemption" {
     [ "$(classify "bash --rcfile -n -c 'bun test'")" = "QUEUE long-check" ]
 }
+
+@test "abbreviated git options that run a program are not read-only" {
+    [ "$(classify 'echo "$(git ls-remote --upload-p=bun test)"')" = "QUEUE long-check" ]
+    [ "$(classify 'git log --reverse --oneline -5')" = "SKIP read-only-tool" ]
+    [ "$(classify 'git diff --exit-code')" = "SKIP read-only-tool" ]
+}

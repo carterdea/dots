@@ -219,10 +219,8 @@ read_only_seg() {
     ps|pgrep|lsof|stat|du|df|uptime|which|sleep) return 0 ;;
     git)
       case "${tok[i + 1]:-}" in
-        # Options that name a program for git to run make any of these
-        # execute something (--upload-pack, --exec, --ext-diff).
         log|diff|show|status|branch|remote|ls-remote|ls-files|rev-parse|blame|describe)
-          [[ ! "$seg" =~ --(upload-pack|receive-pack|exec|ext-diff) ]] ;;
+          ! git_runs_program "${tok[@]:i+2}" ;;
         *) return 1 ;;
       esac ;;
     *) return 1 ;;
@@ -354,6 +352,22 @@ runs_queue() {
     i=$((i + 1))
   done
   [[ "${tok[i]:-}" =~ ^([^[:space:]]*/)?(ci-lock|lefthook|lefthook-ci-lock)$ ]]
+}
+
+# True when any argument is an option that names a program for git to run
+# (--upload-pack, --receive-pack, --exec, --ext-diff), including the
+# unambiguous abbreviations git accepts (--upload-p=...).
+git_runs_program() {
+  local arg name target
+  for arg in "$@"; do
+    [[ "$arg" == --?* ]] || continue
+    name="${arg#--}"
+    name="${name%%=*}"
+    for target in upload-pack receive-pack exec ext-diff; do
+      [[ "$target" != "$name"* ]] || return 0
+    done
+  done
+  return 1
 }
 
 all_read_only() {
