@@ -478,6 +478,13 @@ teardown() {
     [ "$status" -eq 0 ]
 }
 
+@test "a descriptor limit too low for the lock fds runs the command at once" {
+    run bash -c "ulimit -n 128; CI_LOCK_LOG='$LOG' CI_LOCK_FILE='$LOCK' CI_LOCK_TIMEOUT=5 '$CI_LOCK' echo ran"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"running without the queue"* ]]
+    [[ "$output" == *ran* ]]
+}
+
 @test "an oversized slot count is rejected" {
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=99999999999999999999 "$CI_LOCK" true
     [ "$status" -eq 64 ]

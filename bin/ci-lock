@@ -105,6 +105,14 @@ if ! command -v flock >/dev/null 2>&1; then
   echo "ci-lock: flock not found (brew install flock); running without the queue" >&2
   exec "$@"
 fi
+# The locks live on descriptors 196-199 (clear of any a caller passes in).
+# Under a soft descriptor limit that cannot hold them, every open would fail
+# and look like contention until the timeout; run unqueued instead.
+fd_limit="$(ulimit -n 2>/dev/null)" || fd_limit=unlimited
+if [[ "$fd_limit" =~ ^[0-9]+$ ]] && ((fd_limit < 200)); then
+  echo "ci-lock: descriptor limit $fd_limit is below 200 (raise ulimit -n); running without the queue" >&2
+  exec "$@"
+fi
 
 mkdir -p "$(dirname "$LOCK_FILE")"
 
