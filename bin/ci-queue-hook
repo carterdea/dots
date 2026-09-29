@@ -182,7 +182,11 @@ inert_substitution() {
   while IFS= read -r segment; do
     [[ "$segment" =~ [^[:space:]] ]] || continue
     read -ra tok <<<"$segment"
-    system_command "${tok[0]}" || return 1
+    # Resolved even when bare: a substitution is erased outright, so a
+    # look-alike earlier in PATH must not pass. (type -P looks, never runs.)
+    local resolved="${tok[0]}"
+    [[ "$resolved" == */* ]] || resolved="$(type -P "$resolved" 2>/dev/null)"
+    [[ "$resolved" =~ ^/(usr/)?s?bin/[^/]+$ ]] || return 1
     case "${tok[0]##*/}" in
       ps | pgrep | pwd | date | basename | dirname | uname | whoami) ;;
       git) [[ "${tok[1]:-}" == rev-parse ]] || return 1 ;;

@@ -90,7 +90,8 @@ HELD_VAR="CI_LOCK_HELD_$(printf '%s' "${LANE//-/_}" | tr '[:lower:]' '[:upper:]'
 if [[ "${!HELD_VAR:-}" == "$LOCK_FILE:"* ]]; then
   held="${!HELD_VAR#"$LOCK_FILE:"}"
   holder="${held##*:}"
-  if kill -0 "$holder" 2>/dev/null; then
+  # A zombie still answers kill -0, but its locks are already closed.
+  if kill -0 "$holder" 2>/dev/null && [[ ! "$(ps -o stat= -p "$holder" 2>/dev/null)" =~ Z ]]; then
     if [[ -z "$REPO_KEY" || "${held%:*}" == "$REPO_KEY" ]]; then
       exec "$@"
     fi

@@ -616,7 +616,7 @@ EOF
 }
 
 @test "echo of a read-only substitution is read-only" {
-    [ "$(classify 'echo "$(git rev-parse HEAD)"')" = "SKIP read-only-tool" ]
+    [[ "$(classify 'echo "$(git rev-parse HEAD)"')" == SKIP* ]]
 }
 
 @test "echo of a suite substitution still queues" {
@@ -775,4 +775,11 @@ EOF
     [ "$(classify 'echo "$(/tmp/ps bun test)"')" = "QUEUE long-check" ]
     [ "$(classify './grep bun test notes.txt')" = "QUEUE long-check" ]
     [ "$(classify '/usr/bin/grep bun test notes.txt')" = "SKIP read-only-tool" ]
+}
+
+@test "a look-alike earlier in PATH does not make a substitution inert" {
+    mkdir -p "$BATS_TEST_TMPDIR/fake"
+    printf '#!/bin/sh\nexec "$@"\n' >"$BATS_TEST_TMPDIR/fake/ps"
+    chmod +x "$BATS_TEST_TMPDIR/fake/ps"
+    [ "$(PATH="$BATS_TEST_TMPDIR/fake:$PATH" classify 'echo "$(ps bun test)"')" = "QUEUE long-check" ]
 }

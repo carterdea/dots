@@ -485,6 +485,23 @@ teardown() {
     [[ "$output" == *ran* ]]
 }
 
+@test "a zombie marker holder does not let a nested call skip the lock" {
+    perl -e 'my $pid = fork; die $! unless defined $pid; exit 0 unless $pid;
+        open my $f, ">", $ARGV[0] or die $!; print $f $pid; close $f;
+        sleep 10; waitpid $pid, 0;' "$BATS_TEST_TMPDIR/zombie" &
+    holders+=($!)
+    await "$BATS_TEST_TMPDIR/zombie"
+    sleep 0.2
+    zombie="$(cat "$BATS_TEST_TMPDIR/zombie")"
+    flock "$LOCK" sleep 10 &
+    holders+=($!)
+    sleep 0.3
+    cd "$BATS_TEST_TMPDIR"
+    run env CI_LOCK_HELD_HEAVY="$LOCK::$zombie" CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
+        CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 1 ]
+}
+
 @test "an oversized slot count is rejected" {
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=99999999999999999999 "$CI_LOCK" true
     [ "$status" -eq 64 ]
