@@ -466,6 +466,23 @@ teardown() {
     [ "$(cat "$BATS_TEST_TMPDIR/nested")" = "0" ]
 }
 
+@test "inherited descriptors the lock never opened reach the command" {
+    printf 'from-fd-8' >"$BATS_TEST_TMPDIR/input"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" "$CI_LOCK" sh -c 'cat <&8' 8<"$BATS_TEST_TMPDIR/input"
+    [ "$status" -eq 0 ]
+    [ "$output" = "from-fd-8" ]
+}
+
+@test "an inherited ceiling does not hide the repository" {
+    make_repo "$BATS_TEST_TMPDIR/repo"
+    mkdir -p "$BATS_TEST_TMPDIR/repo/sub/dir"
+    hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR/repo"
+    cd "$BATS_TEST_TMPDIR/repo/sub/dir"
+    run env GIT_CEILING_DIRECTORIES="$BATS_TEST_TMPDIR/repo/sub" CI_LOCK_LOG="$LOG" \
+        CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 1 ]
+}
+
 @test "an oversized slot count is rejected" {
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=99999999999999999999 "$CI_LOCK" true
     [ "$status" -eq 64 ]

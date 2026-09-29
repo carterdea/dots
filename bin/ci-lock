@@ -55,12 +55,14 @@ fi
 # Every caller of the shared heavy lane takes it, whatever its slot count, so
 # a single-slot caller in slot 0 still excludes its repository from slot 1.
 REPO_LOCK=""
+# Redirections that close the lock descriptors this run opened (see launch).
+LOCK_FDS=""
 if ((SLOTS > 1 || SHARED_LANE)); then
   # Keyed on the directory ci-lock starts in: a pre-push hook runs at its
   # repository's root and an agent session runs in its worktree. Inherited
   # GIT_* variables would name the caller's repository instead, so they are
   # dropped for this lookup only.
-  repo_dir="$(env -u GIT_DIR -u GIT_COMMON_DIR -u GIT_WORK_TREE \
+  repo_dir="$(env -u GIT_DIR -u GIT_COMMON_DIR -u GIT_WORK_TREE -u GIT_CEILING_DIRECTORIES \
     git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || repo_dir=""
   if [[ -n "$repo_dir" ]]; then
     REPO_LOCK="$LOCK_FILE.repo-$(printf '%s' "$repo_dir" | shasum | cut -c1-12)"
@@ -278,9 +280,12 @@ try_slots() {
       if ((slot > 0)) && slot0_held && ! slot0_owned; then
         break
       fi
+      LOCK_FDS="9>&-"
+      [[ -z "$REPO_LOCK" ]] || LOCK_FDS+=" 8>&-"
       if ((slot == 0 && (SLOTS > 1 || SHARED_LANE))); then
         exec 6>"$OWNER_LOCK"
         flock -n 6 || true
+        LOCK_FDS+=" 6>&-"
       fi
       return 0
     fi
@@ -318,6 +323,7 @@ acquire() {
       # ticket behind the whole time — is its own kind of wedge.
       if ((SLOTS == 1)) && [[ -z "$REPO_LOCK" ]]; then
         exec 9>"$LOCK_FILE"
+        LOCK_FDS="9>&-"
         flock -w "$wait_seconds" 9 && return 0
       else
         # No single descriptor to block on across slots, or a repository
@@ -350,6 +356,7 @@ trap 'exit 129' HUP
 # takes its repository's lock only if it is free, and otherwise fails fast.
 if ((NESTED)); then
   exec 8>"$REPO_LOCK"
+  LOCK_FDS="8>&-"
   if ! flock -n 8; then
     echo "ci-lock: another check in this repository is running; a nested run cannot wait for it while holding a slot" >&2
     log_run "$((($(now_ms) - queued_ms) / 1000))" 0 busy
@@ -370,7 +377,7 @@ held_marker="${HELD_REPOS:+$HELD_REPOS|}$repo_entry"
 export "$HELD_VAR=$LOCK_FILE:${held_marker%|}:$SLOT_HOLDER"
 started_ms="$(now_ms)"
 
-# 6>&- 8>&- 9>&- close the lock descriptors for the command and everything it spawns.
+# LOCK_FDS closes the lock descriptors for the command and everything it spawns.
 # Without it, a check that leaves a background process behind (a test server,
 # a container) hands that process the lock, and it keeps holding it long
 # after the check itself has exited.
@@ -396,7 +403,9 @@ trap 'forward_signal HUP' HUP
 # cancelled push keeps running its suite and keeps the queue behind it.
 trap 'forward_signal TERM' INT
 
-"$@" 6>&- 8>&- 9>&- <&0 &
+# Only the descriptors this run opened are closed; any other inherited fd
+# (a caller's 8<input, say) passes through untouched.
+eval "\"\$@\" $LOCK_FDS <&0 &"
 child=$!
 [[ -z "$pending_signal" ]] || forward_signal "$pending_signal"
 
