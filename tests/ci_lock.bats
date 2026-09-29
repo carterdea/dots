@@ -502,6 +502,20 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
+@test "a held marker from before the update is reused, not refused" {
+    make_repo "$BATS_TEST_TMPDIR/repo"
+    state="$BATS_TEST_TMPDIR/state"
+    mkdir -p "$state/ci-lock"
+    # The old holder owns the lock; the old marker shape has no repo field.
+    flock "$state/ci-lock/heavy.lock" sleep 10 &
+    holders+=($!)
+    sleep 0.3
+    cd "$BATS_TEST_TMPDIR/repo"
+    run env XDG_STATE_HOME="$state" CI_LOCK_HELD_HEAVY="$state/ci-lock/heavy.lock:$$" \
+        CI_LOCK_LOG=/dev/null CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 0 ]
+}
+
 @test "an oversized slot count is rejected" {
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=99999999999999999999 "$CI_LOCK" true
     [ "$status" -eq 64 ]

@@ -783,3 +783,18 @@ EOF
     chmod +x "$BATS_TEST_TMPDIR/fake/ps"
     [ "$(PATH="$BATS_TEST_TMPDIR/fake:$PATH" classify 'echo "$(ps bun test)"')" = "QUEUE long-check" ]
 }
+
+@test "a backslash kept inside double quotes is part of the command word" {
+    [ "$(classify '"/tmp/ci\-lock" bun test')" = "QUEUE long-check" ]
+}
+
+@test "the no-exec exemption requires a trusted shell path" {
+    [ "$(classify '/tmp/bash -n check.sh')" = "QUEUE long-check" ]
+    [ "$(classify '/bin/bash -n check.sh')" = "SKIP not-heavy" ]
+}
+
+@test "an exported function shadowing a trusted tool is not trusted" {
+    ps() { "$@"; }
+    export -f ps
+    [ "$(classify 'echo "$(ps bun test)"')" = "QUEUE long-check" ]
+}

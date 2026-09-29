@@ -169,7 +169,12 @@ strip_heredocs() {
 # in a system directory. /tmp/ps or ./grep could be any script, so a trusted
 # basename alone is not enough.
 system_command() {
-  [[ "$1" != */* || "$1" =~ ^/(usr/)?s?bin/[^/]+$ ]]
+  if [[ "$1" == */* ]]; then
+    [[ "$1" =~ ^/(usr/)?s?bin/[^/]+$ ]]
+  else
+    # An exported function of that name would run instead of the tool.
+    ! declare -F "$1" >/dev/null
+  fi
 }
 
 # True when every command in a substitution is one that cannot run anything
@@ -184,6 +189,7 @@ inert_substitution() {
     read -ra tok <<<"$segment"
     # Resolved even when bare: a substitution is erased outright, so a
     # look-alike earlier in PATH must not pass. (type -P looks, never runs.)
+    system_command "${tok[0]}" || return 1
     local resolved="${tok[0]}"
     [[ "$resolved" == */* ]] || resolved="$(type -P "$resolved" 2>/dev/null)"
     [[ "$resolved" =~ ^/(usr/)?s?bin/[^/]+$ ]] || return 1
@@ -296,8 +302,13 @@ shell_words() {
       if [[ "$c" == "$q" ]]; then
         q=""
       elif [[ "$q" == '"' && "$c" == '\' ]]; then
+        # Inside double quotes a backslash escapes only $ ` " \ and newline;
+        # before anything else it stays, as the shell keeps it.
         i=$((i + 1))
-        w+="${s:i:1}"
+        case "${s:i:1}" in
+          '$' | '`' | '"' | '\' | $'\n') w+="${s:i:1}" ;;
+          *) w+="\\${s:i:1}" ;;
+        esac
       else
         w+="$c"
       fi
@@ -387,7 +398,7 @@ shell_verdict() {
   # A syntax check of script files (bash -n FILE...) runs nothing. Only that
   # exact shape: no -c, no other options, plain file words. Anything else
   # (inline scripts, option combinations) is judged as a shell invocation.
-  local noexec_file=$'^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+-n([[:space:]]+[^-[:space:]$`"\'()<>;&|][^[:space:]$`"\'()<>;&|]*)+[[:space:]]*$'
+  local noexec_file=$'^[[:space:]]*(/bin/|/usr/bin/|/usr/local/bin/|/opt/homebrew/bin/)?(bash|sh|zsh)[[:space:]]+-n([[:space:]]+[^-[:space:]$`"\'()<>;&|][^[:space:]$`"\'()<>;&|]*)+[[:space:]]*$'
   if [[ "$1" =~ $noexec_file ]]; then
     echo "SKIP not-heavy"
     return 0

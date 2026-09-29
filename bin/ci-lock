@@ -92,7 +92,10 @@ if [[ "${!HELD_VAR:-}" == "$LOCK_FILE:"* ]]; then
   holder="${held##*:}"
   # A zombie still answers kill -0, but its locks are already closed.
   if kill -0 "$holder" 2>/dev/null && [[ ! "$(ps -o stat= -p "$holder" 2>/dev/null)" =~ Z ]]; then
-    if [[ -z "$REPO_KEY" || "${held%:*}" == "$REPO_KEY" ]]; then
+    # A marker without a repository field ("<lock file>:<pid>") comes from a
+    # ci-lock started before the update; its repository is unknown, so reuse
+    # it rather than fail a check already in progress.
+    if [[ -z "$REPO_KEY" || "$held" != *:* || "${held%:*}" == "$REPO_KEY" ]]; then
       exec "$@"
     fi
     echo "ci-lock: already holding a $LANE slot for another repository; run this check on its own" >&2
