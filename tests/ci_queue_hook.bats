@@ -770,3 +770,9 @@ EOF
 @test "zsh named options do not earn a no-exec exemption" {
     [ "$(classify "zsh -n -o INTERACTIVE -c 'bun test'")" = "QUEUE long-check" ]
 }
+
+@test "a trusted name at an arbitrary path is not trusted" {
+    [ "$(classify 'echo "$(/tmp/ps bun test)"')" = "QUEUE long-check" ]
+    [ "$(classify './grep bun test notes.txt')" = "QUEUE long-check" ]
+    [ "$(classify '/usr/bin/grep bun test notes.txt')" = "SKIP read-only-tool" ]
+}
