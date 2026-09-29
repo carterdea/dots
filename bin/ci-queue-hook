@@ -219,7 +219,10 @@ read_only_seg() {
     ps|pgrep|lsof|stat|du|df|uptime|which|sleep) return 0 ;;
     git)
       case "${tok[i + 1]:-}" in
-        log|diff|show|status|branch|remote|ls-remote|ls-files|rev-parse|fetch|blame|describe) return 0 ;;
+        # Options that name a program for git to run make any of these
+        # execute something (--upload-pack, --exec, --ext-diff).
+        log|diff|show|status|branch|remote|ls-remote|ls-files|rev-parse|blame|describe)
+          [[ ! "$seg" =~ --(upload-pack|receive-pack|exec|ext-diff) ]] ;;
         *) return 1 ;;
       esac ;;
     *) return 1 ;;
@@ -377,7 +380,9 @@ shell_verdict() {
     local opts="${BASH_REMATCH[3]}" outer
     outer="$(outer_expanded "$1")"
     # shellcheck disable=SC2016 # detect literal shell substitutions
+    # --rcfile/--init-file take a value that can look like -n; no exemption.
     if [[ "$opts" =~ [[:space:]]-[a-zA-Z]*n && ! "$opts" =~ [[:space:]][+] &&
+      ! "$opts" =~ --(rcfile|init-file) &&
       ! "$opts" =~ [[:space:]]-[a-zA-Z]*i && "$outer" != *'$('* && "$outer" != *'`'* &&
       "$outer" != *'<('* && "$outer" != *'>('* ]]; then
       echo "SKIP not-heavy"

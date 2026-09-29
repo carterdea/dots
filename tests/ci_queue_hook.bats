@@ -759,3 +759,13 @@ EOF
     classify 'echo "$(./sed -n p notes.txt)"' >/dev/null
     [ ! -e "$BATS_TEST_TMPDIR/ran" ]
 }
+
+@test "git options that run a program are not read-only" {
+    [ "$(classify 'echo "$(git fetch --upload-pack=bun test)"')" = "QUEUE long-check" ]
+    [ "$(classify 'echo "$(git ls-remote --upload-pack=bun test origin)"')" = "QUEUE long-check" ]
+    [ "$(classify 'git log --oneline -5')" = "SKIP read-only-tool" ]
+}
+
+@test "--rcfile swallowing -n does not earn the no-exec exemption" {
+    [ "$(classify "bash --rcfile -n -c 'bun test'")" = "QUEUE long-check" ]
+}
