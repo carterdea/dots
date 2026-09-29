@@ -208,7 +208,11 @@ read_only_seg() {
     awk)
       [[ "$seg" =~ system[[:space:]]*\( ]] && return 1
       return 0 ;;
-    sed|grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|find|echo|printf|cd|pwd|gh) return 0 ;;
+    # GNU sed can run commands (the e command, s///e); BSD sed cannot.
+    sed)
+      ! "${tok[i]}" --version >/dev/null 2>&1
+      return ;;
+    grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|find|echo|printf|cd|pwd|gh) return 0 ;;
     # Process and disk inspectors: their patterns name suites (pgrep -f vitest).
     ps|pgrep|lsof|stat|du|df|uptime|which|sleep) return 0 ;;
     git)
@@ -317,11 +321,14 @@ runs_queue() {
       env | command | exec) modifier="${tok[i]}" ;;
       # env -S splits its value into more words, so they are spliced in and
       # parsing continues into them.
-      -S | --split-string | --split-string=*)
+      -S | --split-string | --split-string=* | -S?*)
         [[ -n "$modifier" ]] || break
         local split="${tok[i + 1]:-}" rest_at=$((i + 2))
         if [[ "${tok[i]}" == --split-string=* ]]; then
           split="${tok[i]#--split-string=}"
+          rest_at=$((i + 1))
+        elif [[ "${tok[i]}" == -S?* ]]; then
+          split="${tok[i]#-S}"
           rest_at=$((i + 1))
         fi
         sub=()
@@ -356,7 +363,8 @@ shell_verdict() {
   # running them, so even an inline script is inert. Not when a later +
   # option may turn it back off, an interactive shell (-i) ignores it, or the
   # outer shell runs a substitution before the inner one ever starts.
-  local noexec_opts='^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)(([[:space:]]+[-+][a-zA-Z]+)+)([[:space:]]|$)'
+  # Options, including -o/+o NAME and --long ones, so a later +n is seen.
+  local noexec_opts='^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)(([[:space:]]+([-+][oO][[:space:]]+[A-Za-z_]+|--[a-z-]+|[-+][a-zA-Z]+))+)([[:space:]]|$)'
   # Leading assignments and modifiers (NODE_ENV=test bash -n, env -u X
   # bash -n) do not change what the shell does with -n.
   strip_prefix "$1"

@@ -493,6 +493,14 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
+@test "a lock path with marker delimiters still re-enters its own repository" {
+    make_repo "$BATS_TEST_TMPDIR/repo"
+    cd "$BATS_TEST_TMPDIR/repo"
+    run env CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$BATS_TEST_TMPDIR/a|b@c:d.lock" CI_LOCK_SLOTS=2 \
+        "$CI_LOCK" "$CI_LOCK" true
+    [ "$status" -eq 0 ]
+}
+
 @test "an oversized slot count is rejected" {
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=99999999999999999999 "$CI_LOCK" true
     [ "$status" -eq 64 ]

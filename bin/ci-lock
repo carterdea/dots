@@ -55,6 +55,7 @@ fi
 # Every caller of the shared heavy lane takes it, whatever its slot count, so
 # a single-slot caller in slot 0 still excludes its repository from slot 1.
 REPO_LOCK=""
+REPO_KEY=""
 # Redirections that close the lock descriptors this run opened (see launch).
 LOCK_FDS=""
 if ((SLOTS > 1 || SHARED_LANE)); then
@@ -65,7 +66,9 @@ if ((SLOTS > 1 || SHARED_LANE)); then
   repo_dir="$(env -u GIT_DIR -u GIT_COMMON_DIR -u GIT_WORK_TREE -u GIT_CEILING_DIRECTORIES \
     git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || repo_dir=""
   if [[ -n "$repo_dir" ]]; then
-    REPO_LOCK="$LOCK_FILE.repo-$(printf '%s' "$repo_dir" | shasum | cut -c1-12)"
+    # Hex only, so it can sit in the held marker beside its delimiters.
+    REPO_KEY="$(printf '%s' "$repo_dir" | shasum | cut -c1-12)"
+    REPO_LOCK="$LOCK_FILE.repo-$REPO_KEY"
   fi
 fi
 
@@ -78,8 +81,9 @@ fi
 # and keep the variable in its environment; reusing the lock then would mean
 # not holding one at all.
 HELD_VAR="CI_LOCK_HELD_$(printf '%s' "${LANE//-/_}" | tr '[:lower:]' '[:upper:]')"
-# The marker is "<lock file>:<repo lock@pid|...>:<slot holder pid>". Each
-# repository lock is listed with the pid that holds it, since a backgrounded
+# The marker is "<lock file>:<repo key@pid|...>:<slot holder pid>". Each
+# repository lock is listed by its hex key (so no path character can collide
+# with a delimiter) and the pid that holds it, since a backgrounded
 # nested wrapper can outlive its ancestors and must not vouch for their locks.
 # Re-entering for a repository whose holder is alive reuses everything; a
 # nested run in another repository keeps the ancestor's slot but still takes
@@ -97,7 +101,7 @@ if [[ "${!HELD_VAR:-}" == "$LOCK_FILE:"* ]]; then
   for entry in ${held_entries[@]+"${held_entries[@]}"}; do
     kill -0 "${entry##*@}" 2>/dev/null || continue
     HELD_REPOS="${HELD_REPOS:+$HELD_REPOS|}$entry"
-    [[ "${entry%@*}" != "$REPO_LOCK" ]] || repo_held=1
+    [[ "${entry%@*}" != "$REPO_KEY" ]] || repo_held=1
   done
   holder="${!HELD_VAR##*:}"
   if kill -0 "$holder" 2>/dev/null; then
@@ -375,7 +379,7 @@ fi
 rm -f "$TICKET" "$REPO_NOTE"
 
 repo_entry=""
-[[ -z "$REPO_LOCK" ]] || repo_entry="$REPO_LOCK@$$"
+[[ -z "$REPO_LOCK" ]] || repo_entry="$REPO_KEY@$$"
 held_marker="${HELD_REPOS:+$HELD_REPOS|}$repo_entry"
 export "$HELD_VAR=$LOCK_FILE:${held_marker%|}:$SLOT_HOLDER"
 started_ms="$(now_ms)"

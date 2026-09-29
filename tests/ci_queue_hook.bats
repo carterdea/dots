@@ -722,3 +722,18 @@ EOF
 @test "single quotes inside a double-quoted script do not hide an outer substitution" {
     [ "$(classify "bash -n -c \"echo '\$(bun test)'\"")" = "QUEUE long-check" ]
 }
+
+@test "a +n after a value-taking option still disables the exemption" {
+    [ "$(classify "bash -n -o vi +n -c 'bun test'")" = "QUEUE long-check" ]
+}
+
+@test "an attached env -S payload does not hide ci-lock" {
+    [ "$(classify "env -S'CI_LOCK_FILE=/tmp/private ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
+}
+
+@test "GNU sed is not trusted as read-only" {
+    mkdir -p "$BATS_TEST_TMPDIR/gnu"
+    printf '#!/bin/sh\n[ "$1" = --version ] && echo "sed (GNU sed) 4.9"\n' >"$BATS_TEST_TMPDIR/gnu/sed"
+    chmod +x "$BATS_TEST_TMPDIR/gnu/sed"
+    [ "$(PATH="$BATS_TEST_TMPDIR/gnu:$PATH" classify 'echo "$(echo bun test | sed e)"')" = "QUEUE long-check" ]
+}
