@@ -218,7 +218,7 @@ ticket_live() {
 # True when a repository lock is held by a running check.
 repo_lock_held() {
   [[ "$1" == "$LOCK_FILE.repo-"* && ! -L "$1" ]] || return 1
-  ( exec 7>"$1" && ! flock -n 7 )
+  ( exec 197>"$1" && ! flock -n 197 )
 }
 
 # True when this waiter may contend for a slot now. Normally only the oldest
@@ -250,17 +250,17 @@ slot_file() {
 
 # Two slots must not go to the same repository: worktrees of one project share
 # fixed ports and test databases, and running two of its suites at once trades
-# queue time for flakes. fd 8 holds a per-repo lock beside the slot on fd 9.
+# queue time for flakes. fd 198 holds a per-repo lock beside the slot on fd 199.
 
-# A slot-0 holder from this version also holds the owner lock (fd 6). Slot 0
+# A slot-0 holder from this version also holds the owner lock (fd 196). Slot 0
 # held without it means an older ci-lock is running, one that took no
 # repository lock, so a second slot could run its repository twice.
 OWNER_LOCK="$LOCK_FILE.owner"
 slot0_owned() {
-  ( exec 7>"$OWNER_LOCK" && ! flock -n 7 )
+  ( exec 197>"$OWNER_LOCK" && ! flock -n 197 )
 }
 slot0_held() {
-  ( exec 7>"$LOCK_FILE" && ! flock -n 7 )
+  ( exec 197>"$LOCK_FILE" && ! flock -n 197 )
 }
 
 # Takes the repo lock (if any) and then any free slot, all nonblocking. On
@@ -268,30 +268,32 @@ slot0_held() {
 try_slots() {
   local slot
   if [[ -n "$REPO_LOCK" ]]; then
-    exec 8>"$REPO_LOCK"
-    flock -n 8 || { exec 8>&-; return 1; }
+    exec 198>"$REPO_LOCK"
+    flock -n 198 || { exec 198>&-; return 1; }
   fi
   for ((slot = 0; slot < SLOTS; slot++)); do
     ((slot == 0)) || slot0_owned || break
-    exec 9>"$(slot_file "$slot")"
-    if flock -n 9; then
+    # Closed first: bash 3.2 silently keeps an open fd above 9 on reopen.
+    exec 199>&-
+    exec 199>"$(slot_file "$slot")"
+    if flock -n 199; then
       # Re-check once the slot is ours: slot 0 may have changed hands to an
       # older ci-lock between the check above and this claim.
       if ((slot > 0)) && slot0_held && ! slot0_owned; then
         break
       fi
-      LOCK_FDS="9>&-"
-      [[ -z "$REPO_LOCK" ]] || LOCK_FDS+=" 8>&-"
+      LOCK_FDS="199>&-"
+      [[ -z "$REPO_LOCK" ]] || LOCK_FDS+=" 198>&-"
       if ((slot == 0 && (SLOTS > 1 || SHARED_LANE))); then
-        exec 6>"$OWNER_LOCK"
-        flock -n 6 || true
-        LOCK_FDS+=" 6>&-"
+        exec 196>"$OWNER_LOCK"
+        flock -n 196 || true
+        LOCK_FDS+=" 196>&-"
       fi
       return 0
     fi
   done
-  exec 9>&-
-  [[ -z "$REPO_LOCK" ]] || exec 8>&-
+  exec 199>&-
+  [[ -z "$REPO_LOCK" ]] || exec 198>&-
   return 1
 }
 
@@ -322,9 +324,10 @@ acquire() {
       # and a waiter that ignores Ctrl-C for half an hour — leaving its
       # ticket behind the whole time — is its own kind of wedge.
       if ((SLOTS == 1)) && [[ -z "$REPO_LOCK" ]]; then
-        exec 9>"$LOCK_FILE"
-        LOCK_FDS="9>&-"
-        flock -w "$wait_seconds" 9 && return 0
+        exec 199>&-
+        exec 199>"$LOCK_FILE"
+        LOCK_FDS="199>&-"
+        flock -w "$wait_seconds" 199 && return 0
       else
         # No single descriptor to block on across slots, or a repository
         # lock to take alongside the slot; poll them briefly.
@@ -338,7 +341,7 @@ acquire() {
   done
 }
 
-# This script holds the lock on fd 9 (and the repo lock on fd 8) for as long
+# This script holds the lock on fd 199 (and the repo lock on fd 198) for as long
 # as the command runs, so acquiring it stays separate from running it and no
 # exit code has to do double duty as "could not get the lock".
 
@@ -355,9 +358,9 @@ trap 'exit 129' HUP
 # repository lock whose holder may be waiting on ours, could deadlock. It
 # takes its repository's lock only if it is free, and otherwise fails fast.
 if ((NESTED)); then
-  exec 8>"$REPO_LOCK"
-  LOCK_FDS="8>&-"
-  if ! flock -n 8; then
+  exec 198>"$REPO_LOCK"
+  LOCK_FDS="198>&-"
+  if ! flock -n 198; then
     echo "ci-lock: another check in this repository is running; a nested run cannot wait for it while holding a slot" >&2
     log_run "$((($(now_ms) - queued_ms) / 1000))" 0 busy
     exit 1
@@ -403,8 +406,8 @@ trap 'forward_signal HUP' HUP
 # cancelled push keeps running its suite and keeps the queue behind it.
 trap 'forward_signal TERM' INT
 
-# Only the descriptors this run opened are closed; any other inherited fd
-# (a caller's 8<input, say) passes through untouched.
+# Only the descriptors this run opened are closed. They are high numbers
+# (196-199) so a caller's own low descriptors (8<input, say) pass through.
 eval "\"\$@\" $LOCK_FDS <&0 &"
 child=$!
 [[ -z "$pending_signal" ]] || forward_signal "$pending_signal"

@@ -473,6 +473,16 @@ teardown() {
     [ "$output" = "from-fd-8" ]
 }
 
+@test "a caller's fd 8 survives the shared lane's repository lock" {
+    make_repo "$BATS_TEST_TMPDIR/repo"
+    printf 'from-fd-8' >"$BATS_TEST_TMPDIR/input"
+    cd "$BATS_TEST_TMPDIR/repo"
+    run env XDG_STATE_HOME="$BATS_TEST_TMPDIR/state" CI_LOCK_LOG="$LOG" \
+        "$CI_LOCK" sh -c 'cat <&8' 8<"$BATS_TEST_TMPDIR/input"
+    [ "$status" -eq 0 ]
+    [ "$output" = "from-fd-8" ]
+}
+
 @test "an inherited ceiling does not hide the repository" {
     make_repo "$BATS_TEST_TMPDIR/repo"
     mkdir -p "$BATS_TEST_TMPDIR/repo/sub/dir"
