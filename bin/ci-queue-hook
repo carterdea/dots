@@ -204,15 +204,16 @@ read_only_seg() {
     kill)
       [[ "${tok[i + 1]:-}" == -0 ]]
       return ;;
-    # awk can execute subprocesses from its program text.
-    awk)
-      [[ "$seg" =~ system[[:space:]]*\( ]] && return 1
-      return 0 ;;
+    # awk can execute subprocesses from its program text, and find through its
+    # -exec family; an expanded argument could supply either unseen.
+    awk | find)
+      [[ "$(outer_expanded "$seg")" != *'$'* ]] || return 1
+      [[ "$first" != awk || ! "$seg" =~ system[[:space:]]*\( ]] ;;
     # GNU sed can run commands (the e command, s///e); BSD sed cannot.
     sed)
       ! "${tok[i]}" --version >/dev/null 2>&1
       return ;;
-    grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|find|echo|printf|cd|pwd|gh) return 0 ;;
+    grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|echo|printf|cd|pwd|gh) return 0 ;;
     # Process and disk inspectors: their patterns name suites (pgrep -f vitest).
     ps|pgrep|lsof|stat|du|df|uptime|which|sleep) return 0 ;;
     git)
@@ -332,6 +333,8 @@ runs_queue() {
           rest_at=$((i + 1))
         fi
         sub=()
+        # env's own escape: an unquoted \_ separates arguments.
+        split="${split//\\_/ }"
         while IFS= read -r -d '' w; do sub+=("$w"); done < <(shell_words "$split")
         tok=("${tok[@]:0:i}" ${sub[@]+"${sub[@]}"} "${tok[@]:rest_at}")
         continue ;;

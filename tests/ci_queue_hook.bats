@@ -737,3 +737,12 @@ EOF
     chmod +x "$BATS_TEST_TMPDIR/gnu/sed"
     [ "$(PATH="$BATS_TEST_TMPDIR/gnu:$PATH" classify 'echo "$(echo bun test | sed e)"')" = "QUEUE long-check" ]
 }
+
+@test "env -S split-string escapes separate arguments" {
+    [ "$(classify "env -S 'CI_LOCK_FILE=/tmp/private\\_ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
+}
+
+@test "find and awk with expanded arguments are not read-only" {
+    [ "$(classify 'ACTION=-exec; echo "$(find . $ACTION bun test {} +)"')" = "QUEUE long-check" ]
+    [ "$(classify "awk '{print \$1}' notes.txt")" = "SKIP read-only-tool" ]
+}
