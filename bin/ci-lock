@@ -81,41 +81,20 @@ fi
 # and keep the variable in its environment; reusing the lock then would mean
 # not holding one at all.
 HELD_VAR="CI_LOCK_HELD_$(printf '%s' "${LANE//-/_}" | tr '[:lower:]' '[:upper:]')"
-# The marker is "<lock file>:<repo key@pid|...>:<slot holder pid>". Each
-# repository lock is listed by its hex key (so no path character can collide
-# with a delimiter) and the pid that holds it, since a backgrounded
-# nested wrapper can outlive its ancestors and must not vouch for their locks.
-# Re-entering for a repository whose holder is alive reuses everything; a
-# nested run in another repository keeps the ancestor's slot but still takes
-# that repository's lock (NESTED), so it never runs beside that repo's check.
-NESTED=0
-HELD_REPOS=""
-SLOT_HOLDER=$$
+# The marker is "<lock file>:<repo key>:<holder pid>"; the key is hex (or
+# empty outside a repository), so no path character can collide with the
+# delimiters. Re-entering from the same repository, or from outside any,
+# reuses the held slot and lock. Re-entering from a different repository is
+# refused: running there needs that repository's lock, and waiting for it
+# while holding a slot others need could deadlock.
 if [[ "${!HELD_VAR:-}" == "$LOCK_FILE:"* ]]; then
-  held_list="${!HELD_VAR#"$LOCK_FILE:"}"
-  held_list="${held_list%:*}"
-  repo_held=0
-  # Keep only entries whose holder is still alive; each vouches for its own
-  # lock, independent of whether the slot holder is still around.
-  IFS='|' read -ra held_entries <<<"$held_list"
-  for entry in ${held_entries[@]+"${held_entries[@]}"}; do
-    kill -0 "${entry##*@}" 2>/dev/null || continue
-    HELD_REPOS="${HELD_REPOS:+$HELD_REPOS|}$entry"
-    [[ "${entry%@*}" != "$REPO_KEY" ]] || repo_held=1
-  done
-  holder="${!HELD_VAR##*:}"
+  held="${!HELD_VAR#"$LOCK_FILE:"}"
+  holder="${held##*:}"
   if kill -0 "$holder" 2>/dev/null; then
-    if [[ -z "$REPO_LOCK" ]] || ((repo_held)); then
+    if [[ -z "$REPO_KEY" || "${held%:*}" == "$REPO_KEY" ]]; then
       exec "$@"
     fi
-    NESTED=1
-    SLOT_HOLDER=$holder
-  elif ((repo_held)); then
-    # The slot is gone but a live ancestor still holds this repository's
-    # lock. Waiting would wait on its own ancestor, and running on the
-    # ancestor's lock would lose exclusion if the ancestor exits first, so
-    # it fails fast, as a nested run into a busy repository does.
-    echo "ci-lock: an ancestor still holds this repository's lock but not a slot; run it from that ancestor" >&2
+    echo "ci-lock: already holding a $LANE slot for another repository; run this check on its own" >&2
     exit 1
   fi
 fi
@@ -360,19 +339,7 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
 
-# A nested run already holds a slot through its ancestor, so it must not
-# wait at all: queueing behind checks that need that slot, or waiting on a
-# repository lock whose holder may be waiting on ours, could deadlock. It
-# takes its repository's lock only if it is free, and otherwise fails fast.
-if ((NESTED)); then
-  exec 198>"$REPO_LOCK"
-  LOCK_FDS="198>&-"
-  if ! flock -n 198; then
-    echo "ci-lock: another check in this repository is running; a nested run cannot wait for it while holding a slot" >&2
-    log_run "$((($(now_ms) - queued_ms) / 1000))" 0 busy
-    exit 1
-  fi
-elif ! acquire; then
+if ! acquire; then
   echo "ci-lock: timed out after ${LOCK_TIMEOUT}s waiting for $LOCK_FILE" >&2
   log_run "$((($(now_ms) - queued_ms) / 1000))" 0 timeout
   exit 1
@@ -381,10 +348,7 @@ fi
 # next arrival think it is not head and never block on flock.
 rm -f "$TICKET" "$REPO_NOTE"
 
-repo_entry=""
-[[ -z "$REPO_LOCK" ]] || repo_entry="$REPO_KEY@$$"
-held_marker="${HELD_REPOS:+$HELD_REPOS|}$repo_entry"
-export "$HELD_VAR=$LOCK_FILE:${held_marker%|}:$SLOT_HOLDER"
+export "$HELD_VAR=$LOCK_FILE:$REPO_KEY:$$"
 started_ms="$(now_ms)"
 
 # LOCK_FDS closes the lock descriptors for the command and everything it spawns.

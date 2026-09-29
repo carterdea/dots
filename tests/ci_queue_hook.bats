@@ -651,9 +651,9 @@ EOF
     [ "$(classify "printf '%s\n' \"\$(echo \"done)\"; bun test)\"")" = "QUEUE long-check" ]
 }
 
-@test "no-exec shells with an inline script are not queued" {
-    [ "$(classify "bash -n -c 'bun test'")" = "SKIP not-heavy" ]
-    [ "$(classify "bash -nc 'bun test'")" = "SKIP not-heavy" ]
+@test "inline-script syntax checks are judged as shell invocations" {
+    [ "$(classify "bash -n -c 'bun test'")" = "QUEUE long-check" ]
+    [ "$(classify "bash -nc 'bun test'")" = "QUEUE long-check" ]
 }
 
 
@@ -673,26 +673,12 @@ EOF
     [ "$(classify 'bash -n -c "$(bun test)"')" = "QUEUE long-check" ]
 }
 
-@test "a substitution inside the single-quoted script keeps the no-exec exemption" {
-    [ "$(classify "bash -n -c 'echo \"\$(bun test)\"'")" = "SKIP not-heavy" ]
-}
-
 @test "an assignment inside env -S does not hide ci-lock" {
     [ "$(classify "env -S 'CI_LOCK_FILE=/tmp/private ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
 }
 
 @test "quoted assignments with spaces do not hide ci-lock" {
     [ "$(classify "LABEL='nightly run' CI_LOCK_FILE=/tmp/private ci-lock bash -c 'bun test'")" = "SKIP already-queued" ]
-}
-
-@test "no-exec shells behind assignments or modifiers are not queued" {
-    [ "$(classify "NODE_ENV=test bash -n -c 'bun test'")" = "SKIP not-heavy" ]
-    [ "$(classify "env bash -n -c 'bun test'")" = "SKIP not-heavy" ]
-}
-
-@test "no-exec shells behind modifier options are not queued" {
-    [ "$(classify "env -u FOO bash -n -c 'bun test'")" = "SKIP not-heavy" ]
-    [ "$(classify "command -p bash -n -c 'bun test'")" = "SKIP not-heavy" ]
 }
 
 @test "a busy log mutex does not delay the hook, and the record still lands" {
@@ -774,4 +760,13 @@ EOF
     [ "$(classify 'echo "$(git ls-remote --upload-p=bun test)"')" = "QUEUE long-check" ]
     [ "$(classify 'git log --reverse --oneline -5')" = "SKIP read-only-tool" ]
     [ "$(classify 'git diff --exit-code')" = "SKIP read-only-tool" ]
+}
+
+@test "only inert commands are erased from substitutions" {
+    [ "$(classify 'echo "$(rg -e x --pre bun test)"')" = "QUEUE long-check" ]
+    [ "$(classify 'echo "$(pwd)" "$(date)"')" = "SKIP read-only-tool" ]
+}
+
+@test "zsh named options do not earn a no-exec exemption" {
+    [ "$(classify "zsh -n -o INTERACTIVE -c 'bun test'")" = "QUEUE long-check" ]
 }

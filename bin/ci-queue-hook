@@ -165,6 +165,24 @@ strip_heredocs() {
   '
 }
 
+# True when every command in a substitution is one that cannot run anything
+# else whatever its arguments: process and path reporters. Deliberately tiny;
+# general read-only tools (grep, rg, sed, find, git) all have options that
+# execute programs.
+inert_substitution() {
+  local segment
+  local -a tok
+  while IFS= read -r segment; do
+    [[ "$segment" =~ [^[:space:]] ]] || continue
+    read -ra tok <<<"$segment"
+    case "${tok[0]##*/}" in
+      ps | pgrep | pwd | date | basename | dirname | uname | whoami) ;;
+      git) [[ "${tok[1]:-}" == rev-parse ]] || return 1 ;;
+      *) return 1 ;;
+    esac
+  done < <(split_segments "$1")
+}
+
 # True when a segment starts with a tool that only reads or reports. Their
 # arguments routinely name suites — a grep FOR "pytest", a PR title
 # mentioning playwright — and must not queue. Not read-only if the segment
@@ -172,15 +190,14 @@ strip_heredocs() {
 read_only_seg() {
   local seg="$1" first i
   local -a tok
-  # A substitution runs a command; it is read-only only if that command is.
-  # Innermost first, so nested substitutions are judged from the inside out.
-  # Quotes or escapes inside make the closing paren ambiguous to a regex, so
-  # such substitutions are never judged read-only.
+  # A substitution runs a command. Only a small set of inert ones (see
+  # inert_substitution) is erased; anything else keeps the $( marker and
+  # makes the segment not read-only. Quotes or escapes inside make the
+  # closing paren ambiguous to a regex, so those are never erased.
   local substitution=$'\\$\\(([^()"\'\\\\`]*)\\)' expansion
   while [[ "$seg" =~ $substitution ]]; do
-    # Saved first: the recursive check runs its own matches.
     expansion="${BASH_REMATCH[0]}"
-    all_read_only "${BASH_REMATCH[1]}" || return 1
+    inert_substitution "${BASH_REMATCH[1]}" || return 1
     seg="${seg/"$expansion"/_}"
   done
   # shellcheck disable=SC2016 # literal $( is the point: no expansion wanted
@@ -225,32 +242,6 @@ read_only_seg() {
       esac ;;
     *) return 1 ;;
   esac
-}
-
-# Skips the words before a command that do not change which command runs:
-# assignments (NAME=value) and the modifiers env/command/exec with their
-# options. Sets PREFIX_REST to what follows, verbatim.
-strip_prefix() {
-  local s="$1" modifier=0 m
-  local assign="^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=(\"[^\"]*\"|'[^']*'|[^[:space:]\"'])*[[:space:]]+"
-  local mod='^[[:space:]]*(env|command|exec)[[:space:]]+'
-  # Options that take a value: env -u NAME / -P PATH / -C DIR, exec -a NAME.
-  local valopt='^[[:space:]]*(-u|--unset|-P|-C|--chdir|-a)[[:space:]]+[^[:space:]]+[[:space:]]+'
-  local opt='^[[:space:]]*-[A-Za-z-]+[[:space:]]+'
-  while :; do
-    if [[ "$s" =~ $assign ]]; then
-      :
-    elif [[ "$s" =~ $mod ]]; then
-      modifier=1
-    elif ((modifier)) && [[ "$s" =~ $valopt || "$s" =~ $opt ]]; then
-      :
-    else
-      break
-    fi
-    m="${BASH_REMATCH[0]}"
-    s="${s:${#m}}"
-  done
-  PREFIX_REST="$s"
 }
 
 # Prints the parts of a command the outer shell expands: everything except
@@ -380,28 +371,13 @@ all_read_only() {
 
 # A shell's quoted script is one argument; later tokens supply $0, $1, etc.
 shell_verdict() {
-  # No-exec mode (-n, alone or in a cluster like -nc) reads commands without
-  # running them, so even an inline script is inert. Not when a later +
-  # option may turn it back off, an interactive shell (-i) ignores it, or the
-  # outer shell runs a substitution before the inner one ever starts.
-  # Options, including -o/+o NAME and --long ones, so a later +n is seen.
-  local noexec_opts='^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)(([[:space:]]+([-+][oO][[:space:]]+[A-Za-z_]+|--[a-z-]+|[-+][a-zA-Z]+))+)([[:space:]]|$)'
-  # Leading assignments and modifiers (NODE_ENV=test bash -n, env -u X
-  # bash -n) do not change what the shell does with -n.
-  strip_prefix "$1"
-  local head="$PREFIX_REST"
-  if [[ "$head" =~ $noexec_opts ]]; then
-    local opts="${BASH_REMATCH[3]}" outer
-    outer="$(outer_expanded "$1")"
-    # shellcheck disable=SC2016 # detect literal shell substitutions
-    # --rcfile/--init-file take a value that can look like -n; no exemption.
-    if [[ "$opts" =~ [[:space:]]-[a-zA-Z]*n && ! "$opts" =~ [[:space:]][+] &&
-      ! "$opts" =~ --(rcfile|init-file) &&
-      ! "$opts" =~ [[:space:]]-[a-zA-Z]*i && "$outer" != *'$('* && "$outer" != *'`'* &&
-      "$outer" != *'<('* && "$outer" != *'>('* ]]; then
-      echo "SKIP not-heavy"
-      return 0
-    fi
+  # A syntax check of script files (bash -n FILE...) runs nothing. Only that
+  # exact shape: no -c, no other options, plain file words. Anything else
+  # (inline scripts, option combinations) is judged as a shell invocation.
+  local noexec_file=$'^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+-n([[:space:]]+[^-[:space:]$`"\'()<>;&|][^[:space:]$`"\'()<>;&|]*)+[[:space:]]*$'
+  if [[ "$1" =~ $noexec_file ]]; then
+    echo "SKIP not-heavy"
+    return 0
   fi
   local prefix="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*c[a-zA-Z]*[[:space:]]+(--[[:space:]]+)?(['\"])(.*)"
   if ! [[ "$1" =~ $prefix ]]; then
