@@ -533,6 +533,13 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
+@test "zero-padded slot counts are rejected rather than read as octal" {
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=010 "$CI_LOCK" true
+    [ "$status" -eq 64 ]
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=08 "$CI_LOCK" true
+    [ "$status" -eq 64 ]
+}
+
 @test "an oversized slot count is rejected" {
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=99999999999999999999 "$CI_LOCK" true
     [ "$status" -eq 64 ]
