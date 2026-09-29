@@ -516,6 +516,23 @@ teardown() {
     [ "$status" -eq 0 ]
 }
 
+@test "a single-slot caller of a private lock shared with two-slot callers takes its repo lock" {
+    make_repo "$BATS_TEST_TMPDIR/a-repo"
+    make_repo "$BATS_TEST_TMPDIR/b-repo"
+    # B takes slot 0, A takes slot 1, then B exits and frees slot 0.
+    (cd "$BATS_TEST_TMPDIR/b-repo" && exec env CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 \
+        "$CI_LOCK" sh -c "touch '$BATS_TEST_TMPDIR/b'; sleep 10") &
+    b_holder=$!
+    await "$BATS_TEST_TMPDIR/b"
+    hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR/a-repo"
+    kill "$b_holder"
+    wait "$b_holder" 2>/dev/null || true
+    # A default (single-slot) caller from A now finds slot 0 free.
+    cd "$BATS_TEST_TMPDIR/a-repo"
+    run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 1 ]
+}
+
 @test "an oversized slot count is rejected" {
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=99999999999999999999 "$CI_LOCK" true
     [ "$status" -eq 64 ]

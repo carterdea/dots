@@ -58,7 +58,13 @@ REPO_LOCK=""
 REPO_KEY=""
 # Redirections that close the lock descriptors this run opened (see launch).
 LOCK_FDS=""
-if ((SLOTS > 1 || SHARED_LANE)); then
+# Also when this lock file has ever had a second slot: a single-slot caller
+# sharing it with multi-slot ones must still exclude its repository.
+MULTI_SLOT=0
+if ((SLOTS > 1 || SHARED_LANE)) || [[ -e "$LOCK_FILE.1" ]]; then
+  MULTI_SLOT=1
+fi
+if ((MULTI_SLOT)); then
   # Keyed on the directory ci-lock starts in: a pre-push hook runs at its
   # repository's root and an agent session runs in its worktree. Inherited
   # GIT_* variables would name the caller's repository instead, so they are
@@ -282,7 +288,7 @@ try_slots() {
       fi
       LOCK_FDS="199>&-"
       [[ -z "$REPO_LOCK" ]] || LOCK_FDS+=" 198>&-"
-      if ((slot == 0 && (SLOTS > 1 || SHARED_LANE))); then
+      if ((slot == 0 && MULTI_SLOT)); then
         exec 196>"$OWNER_LOCK"
         flock -n 196 || true
         LOCK_FDS+=" 196>&-"
