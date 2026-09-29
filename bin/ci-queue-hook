@@ -246,6 +246,34 @@ strip_prefix() {
   PREFIX_REST="$s"
 }
 
+# Prints the parts of a command the outer shell expands: everything except
+# single-quoted spans. Quote state is tracked, so a ' inside double quotes is
+# a literal character and the substitution around it still counts.
+outer_expanded() {
+  local s="$1" out="" c q="" i
+  for ((i = 0; i < ${#s}; i++)); do
+    c="${s:i:1}"
+    if [[ "$q" == "'" ]]; then
+      [[ "$c" != "'" ]] || q=""
+      continue
+    fi
+    # shellcheck disable=SC1003 # comparing against a literal backslash
+    if [[ "$c" == '\' ]]; then
+      out+="$c${s:i+1:1}"
+      i=$((i + 1))
+    elif [[ "$q" == '"' ]]; then
+      [[ "$c" != '"' ]] || q=""
+      out+="$c"
+    elif [[ "$c" == "'" ]]; then
+      q="'"
+    else
+      [[ "$c" != '"' ]] || q='"'
+      out+="$c"
+    fi
+  done
+  printf '%s' "$out"
+}
+
 # Splits a command into shell words, NUL-terminated, honoring quotes and
 # backslashes the way the shell would, without expanding anything.
 shell_words() {
@@ -334,11 +362,8 @@ shell_verdict() {
   strip_prefix "$1"
   local head="$PREFIX_REST"
   if [[ "$head" =~ $noexec_opts ]]; then
-    local opts="${BASH_REMATCH[3]}" outer="$1" quoted="'[^']*'"
-    # Single-quoted text is the inner script's; only the rest expands here.
-    while [[ "$outer" =~ $quoted ]]; do
-      outer="${outer/"${BASH_REMATCH[0]}"/_}"
-    done
+    local opts="${BASH_REMATCH[3]}" outer
+    outer="$(outer_expanded "$1")"
     # shellcheck disable=SC2016 # detect literal shell substitutions
     if [[ "$opts" =~ [[:space:]]-[a-zA-Z]*n && ! "$opts" =~ [[:space:]][+] &&
       ! "$opts" =~ [[:space:]]-[a-zA-Z]*i && "$outer" != *'$('* && "$outer" != *'`'* &&

@@ -718,3 +718,7 @@ EOF
     [[ "$out" == *'ci-lock bash -c'* ]]
     [[ "$out" != *CI_LOCK_REPO_DIR* ]]
 }
+
+@test "single quotes inside a double-quoted script do not hide an outer substitution" {
+    [ "$(classify "bash -n -c \"echo '\$(bun test)'\"")" = "QUEUE long-check" ]
+}
