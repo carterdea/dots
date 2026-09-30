@@ -83,10 +83,52 @@ class FetchTests(unittest.TestCase):
         newer = {**review, "state": "CHANGES_REQUESTED", "submittedAt": "2026-09-05T02:00:00Z"}
         self.assertFalse(fetch.summarize_approval([], [review, newer], "head", [], [])["has_agent_approval"])
 
+    def test_codex_pr_thumbs_up_counts_despite_rest_user_type(self):
+        reaction = {"content": "+1", "user": {"login": "chatgpt-codex-connector[bot]", "type": "User"}}
+        self.assertTrue(fetch.summarize_approval([reaction], [], "head", [], [])["has_codex_like_thumbs_up"])
+        human = {"content": "+1", "user": {"login": "codex-fan", "type": "User"}}
+        self.assertFalse(fetch.summarize_approval([human], [], "head", [], [])["has_codex_like_thumbs_up"])
+
+    def test_codex_head_signoff_pairs_thumbs_up_with_summary_commit(self):
+        head = "a26c59aa50cbde77e5f3a51d8174f5290ef5fc9b"
+        completed = ('| 📝 **Code Review** | ✅ **Completed** <relative-time datetime="2026-09-29T05:16:14.399619Z">'
+                     "2026-09-29T05:16:14.399619Z</relative-time> | `a26c59a` | Manual request |")
+        running = "| 🔒 **Security Review** | ⏳ **In progress** | `a26c59a` | Manual request |"
+        bot = {"login": "chatgpt-codex-connector", "__typename": "Bot"}
+
+        def summary(*rows, author=bot):
+            table = "| Review | Status | Commit | Review trigger |\n| --- | --- | --- | --- |\n" + "\n".join(rows)
+            return {"id": "summary", "author": author, "updatedAt": "2026-09-29T05:16:15Z",
+                    "body": f"{fetch.CODEX_SUMMARY_MARKER}\n\n## Codex Review Summary\n\n{table}\n"}
+
+        def thumbs(at="2026-09-29T05:16:17Z"):
+            return [{"content": "+1", "created_at": at, "user": {"login": "chatgpt-codex-connector[bot]", "type": "User"}}]
+
+        for name, reactions, comments, pr_head, expected in [
+            ("signed off", thumbs(), [summary(completed)], head, True),
+            ("same second as completion", thumbs("2026-09-29T05:16:14Z"), [summary(completed)], head, True),
+            ("head moved", thumbs(), [summary(completed)], "b" * 40, False),
+            ("review still running", thumbs(), [summary(completed, running)], head, False),
+            ("thumbs up predates review", thumbs("2026-09-29T04:00:00Z"), [summary(completed)], head, False),
+            ("no thumbs up", [], [summary(completed)], head, False),
+            ("no summary", thumbs(), [], head, False),
+            ("summary from non-bot", thumbs(), [summary(completed, author={**bot, "__typename": "User"})], head, False),
+        ]:
+            with self.subTest(name):
+                result = fetch.summarize_approval(reactions, [], pr_head, [], comments)
+                self.assertIs(result["has_codex_head_signoff"], expected)
+
+        codex = fetch.summarize_approval(thumbs(), [], head, [], [summary(completed)])["codex_review"]
+        self.assertEqual(codex["latest_completed"]["commit"], "a26c59a")
+        # The summary comment is status, not feedback, so it must not reset the approval clock.
+        self.assertIsNone(fetch.summarize_approval([], [], head, [], [summary(completed)])["latest_active_feedback_at"])
+
     def test_graphql_errors_fail_instead_of_reporting_clean(self):
-        with patch.object(fetch, "gh_thread_comments", return_value={"errors": [{"message": "denied"}]}):
-            with self.assertRaisesRegex(RuntimeError, "denied"):
-                fetch.fetch_all_thread_comments({"id": "thread"})
+        with (
+            patch.object(fetch, "gh_thread_comments", return_value={"errors": [{"message": "denied"}]}),
+            self.assertRaisesRegex(RuntimeError, "denied"),
+        ):
+            fetch.fetch_all_thread_comments({"id": "thread"})
 
 
 if __name__ == "__main__":
