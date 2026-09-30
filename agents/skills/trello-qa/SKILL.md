@@ -129,6 +129,7 @@ This is the core of the job. Invoke the `dogfood` skill to drive the preview sys
 
 - For each acceptance criterion: reproduce the intended behavior on the preview, mark it PASS or FAIL, and capture evidence.
 - **Console/network check:** with `agent-browser`, read the console and network panel on the touched surface; flag JS errors, failed requests, and broken assets the change introduced.
+- **Accessibility check:** run `agent-browser a11y --tags wcag2a,wcag2aa --selector "<touched area>"` at desktop and mobile; flag violations the change introduced (compare against production if unsure).
 - **Figma compare:** for any visual criterion, compare the preview against the Figma reference at the matching viewport(s).
 - **Regression sweep:** exercise the adjacent flows the diff could affect (shared component, shared route, shared state), not just the changed screen.
 

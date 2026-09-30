@@ -34,6 +34,9 @@
 
 {What is wrong, what was expected, and what actually happened.}
 
+<!-- Interactive issues only: embed the contact sheet saved next to the video. -->
+![Contact sheet](videos/issue-001-repro.contact-sheet.png)
+
 **Repro Steps**
 
 <!-- Each step has a screenshot. A reader should be able to follow along visually. -->
