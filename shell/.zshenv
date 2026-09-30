@@ -16,3 +16,7 @@ export PATH
 if [ -x "$HOME/.local/bin/lefthook-ci-lock" ]; then
   export LEFTHOOK_BIN="$HOME/.local/bin/lefthook-ci-lock"
 fi
+
+# Agent sessions often end without `agent-browser close`, leaving the daemon
+# and its Chrome running for days. Let idle daemons shut themselves down.
+export AGENT_BROWSER_IDLE_TIMEOUT_MS="${AGENT_BROWSER_IDLE_TIMEOUT_MS:-1800000}"

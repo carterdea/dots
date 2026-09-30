@@ -457,6 +457,12 @@ EOF
         writers+=($!)
     done
     for writer in "${writers[@]}"; do wait "$writer"; done
+    # Writers that found the mutex busy log from a detached process; give
+    # them time to land.
+    for _ in {1..100}; do
+        [ "$(grep -c 'echo writer-' "$LOG")" -lt 12 ] || break
+        sleep 0.1
+    done
     [ "$(grep -c 'echo writer-' "$LOG")" -eq 12 ]
     [ "$(wc -l < "$LOG")" -lt 60000 ]
 }
@@ -583,4 +589,212 @@ EOF
     [ "$(head -1 "$LOG" | wc -c)" -eq 601 ]
     [[ "$(tail -1 "$LOG")" == *'echo newest' ]]
     [ "$(stat -f%Lp "$LOG" 2>/dev/null || stat -c%a "$LOG")" = 600 ]
+}
+
+# --- only running ci-lock or lefthook counts as already queued ---
+
+@test "mentioning lefthook does not excuse a suite" {
+    [ "$(classify 'cat lefthook.yml && bun run test')" = "QUEUE long-check" ]
+}
+
+@test "listing the ci-lock binary is read-only" {
+    [ "$(classify 'ls -la ~/.local/bin/ci-lock ~/.local/state/ci-lock/')" = "SKIP read-only-tool" ]
+}
+
+@test "self-wrapped private lane is already queued" {
+    [ "$(classify "CI_LOCK_FILE=/tmp/x-heavy.lock ~/.local/bin/ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
+}
+
+@test "lefthook run is already queued" {
+    [ "$(classify 'lefthook run pre-push')" = "SKIP already-queued" ]
+}
+
+# --- read-only substitutions stay read-only ---
+
+@test "while-read loop formatting ps output is not queued" {
+    [ "$(classify 'ps -Ao ppid,stat | awk "{print \$1}" | while read n p; do echo "$n <- $(ps -o comm= -p $p)"; done')" != "QUEUE long-check" ]
+}
+
+@test "echo of a read-only substitution is read-only" {
+    [[ "$(classify 'echo "$(git rev-parse HEAD)"')" == SKIP* ]]
+}
+
+@test "echo of a suite substitution still queues" {
+    [ "$(classify 'echo "$(bun run test)"')" = "QUEUE long-check" ]
+}
+
+@test "shell syntax check and version queries are not queued" {
+    [ "$(classify 'bash -n scripts/pre-push-checks.sh')" = "SKIP not-heavy" ]
+    [[ "$(classify 'bash --version | head -1')" == SKIP* ]]
+}
+
+@test "running a script through bash still queues" {
+    [ "$(classify 'bash scripts/pre-push-checks.sh')" = "QUEUE long-check" ]
+}
+
+@test "ci-lock behind command, exec, or env -u is already queued" {
+    [ "$(classify "command ~/.local/bin/ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
+    [ "$(classify "exec ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
+    [ "$(classify "env -u CI_LOCK_HELD_HEAVY CI_LOCK_LANE=fast ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
+}
+
+
+
+
+@test "ci-lock behind command or exec options is already queued" {
+    [ "$(classify "CI_LOCK_FILE=/tmp/p command -p ~/.local/bin/ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
+    [ "$(classify "exec -a queued ci-lock bash -c 'bun run test'")" = "SKIP already-queued" ]
+}
+
+
+@test "a quoted paren inside a substitution cannot hide a suite" {
+    [ "$(classify "printf '%s\n' \"\$(echo \"done)\"; bun test)\"")" = "QUEUE long-check" ]
+}
+
+@test "inline-script syntax checks are judged as shell invocations" {
+    [ "$(classify "bash -n -c 'bun test'")" = "QUEUE long-check" ]
+    [ "$(classify "bash -nc 'bun test'")" = "QUEUE long-check" ]
+}
+
+
+@test "env options that take a value do not hide ci-lock" {
+    [ "$(classify "CI_LOCK_FILE=/tmp/p env -P /usr/bin ~/.local/bin/ci-lock bash -c 'bun test'")" = "SKIP already-queued" ]
+}
+
+
+@test "ci-lock inside env -S is already queued" {
+    [ "$(classify "CI_LOCK_FILE=/tmp/p env -S 'ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
+    [ "$(classify "env --split-string='ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
+}
+
+@test "no-exec exemption does not cover +n, interactive, or substitutions" {
+    [ "$(classify "bash -n +n -c 'bun test'")" = "QUEUE long-check" ]
+    [ "$(classify "bash -nic 'bun test'")" = "QUEUE long-check" ]
+    [ "$(classify 'bash -n -c "$(bun test)"')" = "QUEUE long-check" ]
+}
+
+@test "an assignment inside env -S does not hide ci-lock" {
+    [ "$(classify "env -S 'CI_LOCK_FILE=/tmp/private ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
+}
+
+@test "quoted assignments with spaces do not hide ci-lock" {
+    [ "$(classify "LABEL='nightly run' CI_LOCK_FILE=/tmp/private ci-lock bash -c 'bun test'")" = "SKIP already-queued" ]
+}
+
+@test "a busy log mutex does not delay the hook, and the record still lands" {
+    : >"$LOG"
+    flock "$LOG.lock" sleep 2 &
+    locker=$!
+    sleep 0.3
+    start=$(perl -MTime::HiRes=time -e 'print time')
+    jq -cn --arg c 'echo busy-log' '{tool_input:{command:$c}}' |
+        CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=0 "$HOOK"
+    elapsed=$(perl -MTime::HiRes=time -e 'printf "%.2f", time - $ARGV[0]' "$start")
+    perl -e 'exit($ARGV[0] < 1 ? 0 : 1)' "$elapsed"
+    wait "$locker"
+    for _ in {1..50}; do
+        ! grep -q 'echo busy-log' "$LOG" || break
+        sleep 0.1
+    done
+    grep -q 'echo busy-log' "$LOG"
+}
+
+@test "enforce mode wraps without predicting the directory" {
+    out="$(enforce 'cd ~/Sites/rezio-app && bun run test')"
+    [[ "$out" == *'ci-lock bash -c'* ]]
+    [[ "$out" != *CI_LOCK_REPO_DIR* ]]
+}
+
+@test "single quotes inside a double-quoted script do not hide an outer substitution" {
+    [ "$(classify "bash -n -c \"echo '\$(bun test)'\"")" = "QUEUE long-check" ]
+}
+
+@test "a +n after a value-taking option still disables the exemption" {
+    [ "$(classify "bash -n -o vi +n -c 'bun test'")" = "QUEUE long-check" ]
+}
+
+@test "an attached env -S payload does not hide ci-lock" {
+    [ "$(classify "env -S'CI_LOCK_FILE=/tmp/private ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
+}
+
+@test "GNU sed is not trusted as read-only" {
+    mkdir -p "$BATS_TEST_TMPDIR/gnu"
+    printf '#!/bin/sh\n[ "$1" = --version ] && echo "sed (GNU sed) 4.9"\n' >"$BATS_TEST_TMPDIR/gnu/sed"
+    chmod +x "$BATS_TEST_TMPDIR/gnu/sed"
+    [ "$(PATH="$BATS_TEST_TMPDIR/gnu:$PATH" classify 'echo "$(echo bun test | sed e)"')" = "QUEUE long-check" ]
+}
+
+@test "env -S split-string escapes separate arguments" {
+    [ "$(classify "env -S 'CI_LOCK_FILE=/tmp/private\\_ci-lock bash -c \"bun test\"'")" = "SKIP already-queued" ]
+}
+
+@test "find with expanded arguments is not read-only" {
+    [ "$(classify 'ACTION=-exec; echo "$(find . $ACTION bun test {} +)"')" = "QUEUE long-check" ]
+    [ "$(classify "awk '{print \$1}' notes.txt")" != "QUEUE long-check" ]
+}
+
+@test "awk command pipes and program files are not read-only" {
+    [ "$(classify "echo \"\$(awk 'BEGIN { \"bun test\" | getline }')\"")" = "QUEUE long-check" ]
+    [ "$(classify 'echo "$(awk -f check.awk)"')" = "QUEUE long-check" ]
+}
+
+@test "classifying a command never executes a binary it names" {
+    printf '#!/bin/sh\ntouch "%s/ran"\n' "$BATS_TEST_TMPDIR" >"$BATS_TEST_TMPDIR/sed"
+    chmod +x "$BATS_TEST_TMPDIR/sed"
+    cd "$BATS_TEST_TMPDIR"
+    classify 'echo "$(./sed -n p notes.txt)"' >/dev/null
+    [ ! -e "$BATS_TEST_TMPDIR/ran" ]
+}
+
+@test "git options that run a program are not read-only" {
+    [ "$(classify 'echo "$(git fetch --upload-pack=bun test)"')" = "QUEUE long-check" ]
+    [ "$(classify 'echo "$(git ls-remote --upload-pack=bun test origin)"')" = "QUEUE long-check" ]
+    [ "$(classify 'git log --oneline -5')" = "SKIP read-only-tool" ]
+}
+
+@test "--rcfile swallowing -n does not earn the no-exec exemption" {
+    [ "$(classify "bash --rcfile -n -c 'bun test'")" = "QUEUE long-check" ]
+}
+
+@test "abbreviated git options that run a program are not read-only" {
+    [ "$(classify 'echo "$(git ls-remote --upload-p=bun test)"')" = "QUEUE long-check" ]
+    [ "$(classify 'git log --reverse --oneline -5')" = "SKIP read-only-tool" ]
+    [ "$(classify 'git diff --exit-code')" = "SKIP read-only-tool" ]
+}
+
+@test "only inert commands are erased from substitutions" {
+    [ "$(classify 'echo "$(rg -e x --pre bun test)"')" = "QUEUE long-check" ]
+    [ "$(classify 'echo "$(pwd)" "$(date)"')" = "SKIP read-only-tool" ]
+}
+
+@test "zsh named options do not earn a no-exec exemption" {
+    [ "$(classify "zsh -n -o INTERACTIVE -c 'bun test'")" = "QUEUE long-check" ]
+}
+
+@test "a trusted name at an arbitrary path is not trusted" {
+    [ "$(classify 'echo "$(/tmp/ps bun test)"')" = "QUEUE long-check" ]
+    [ "$(classify './grep bun test notes.txt')" = "QUEUE long-check" ]
+    [ "$(classify '/usr/bin/grep bun test notes.txt')" = "SKIP read-only-tool" ]
+}
+
+@test "a look-alike earlier in PATH does not make a substitution inert" {
+    mkdir -p "$BATS_TEST_TMPDIR/fake"
+    printf '#!/bin/sh\nexec "$@"\n' >"$BATS_TEST_TMPDIR/fake/ps"
+    chmod +x "$BATS_TEST_TMPDIR/fake/ps"
+    [ "$(PATH="$BATS_TEST_TMPDIR/fake:$PATH" classify 'echo "$(ps bun test)"')" = "QUEUE long-check" ]
+}
+
+@test "a backslash kept inside double quotes is part of the command word" {
+    [ "$(classify '"/tmp/ci\-lock" bun test')" = "QUEUE long-check" ]
+}
+
+@test "the no-exec exemption requires a trusted shell path" {
+    [ "$(classify '/tmp/bash -n check.sh')" = "QUEUE long-check" ]
+    [ "$(classify '/bin/bash -n check.sh')" = "SKIP not-heavy" ]
+}
+
+@test "an exported function shadowing a trusted tool is not trusted" {
+    ps() { "$@"; }
+    export -f ps
+    [ "$(classify 'echo "$(ps bun test)"')" = "QUEUE long-check" ]
 }

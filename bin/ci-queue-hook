@@ -12,6 +12,13 @@
 #   enforce           — CI_QUEUE_HOOK_ENFORCE=1, rewrite the command
 #
 # Always exits 0. A hook on every Bash call must never be the reason one fails.
+#
+# Threat model: this schedules cooperating agents; it is not a security
+# boundary (--no-verify or a private CI_LOCK_FILE already skip it). When it
+# cannot tell what a command does, it queues. Deliberate evasion (crafted
+# executables named like trusted tools, shadowing functions, obfuscated
+# command words) is out of scope, though the hook never executes anything
+# named in the command it classifies.
 set -uo pipefail
 
 LOG="${CI_QUEUE_HOOK_LOG:-${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock/queue-hook.log}"
@@ -165,6 +172,42 @@ strip_heredocs() {
   '
 }
 
+# True when a command word is a bare name (resolved through PATH) or a path
+# in a system directory. /tmp/ps or ./grep could be any script, so a trusted
+# basename alone is not enough.
+system_command() {
+  if [[ "$1" == */* ]]; then
+    [[ "$1" =~ ^/(usr/)?s?bin/[^/]+$ ]]
+  else
+    # An exported function of that name would run instead of the tool.
+    ! declare -F "$1" >/dev/null
+  fi
+}
+
+# True when every command in a substitution is one that cannot run anything
+# else whatever its arguments: process and path reporters. Deliberately tiny;
+# general read-only tools (grep, rg, sed, find, git) all have options that
+# execute programs.
+inert_substitution() {
+  local segment
+  local -a tok
+  while IFS= read -r segment; do
+    [[ "$segment" =~ [^[:space:]] ]] || continue
+    read -ra tok <<<"$segment"
+    # Resolved even when bare: a substitution is erased outright, so a
+    # look-alike earlier in PATH must not pass. (type -P looks, never runs.)
+    system_command "${tok[0]}" || return 1
+    local resolved="${tok[0]}"
+    [[ "$resolved" == */* ]] || resolved="$(type -P "$resolved" 2>/dev/null)"
+    [[ "$resolved" =~ ^/(usr/)?s?bin/[^/]+$ ]] || return 1
+    case "${tok[0]##*/}" in
+      ps | pgrep | pwd | date | basename | dirname | uname | whoami) ;;
+      git) [[ "${tok[1]:-}" == rev-parse ]] || return 1 ;;
+      *) return 1 ;;
+    esac
+  done < <(split_segments "$1")
+}
+
 # True when a segment starts with a tool that only reads or reports. Their
 # arguments routinely name suites — a grep FOR "pytest", a PR title
 # mentioning playwright — and must not queue. Not read-only if the segment
@@ -172,6 +215,16 @@ strip_heredocs() {
 read_only_seg() {
   local seg="$1" first i
   local -a tok
+  # A substitution runs a command. Only a small set of inert ones (see
+  # inert_substitution) is erased; anything else keeps the $( marker and
+  # makes the segment not read-only. Quotes or escapes inside make the
+  # closing paren ambiguous to a regex, so those are never erased.
+  local substitution=$'\\$\\(([^()"\'\\\\`]*)\\)' expansion
+  while [[ "$seg" =~ $substitution ]]; do
+    expansion="${BASH_REMATCH[0]}"
+    inert_substitution "${BASH_REMATCH[1]}" || return 1
+    seg="${seg/"$expansion"/_}"
+  done
   # shellcheck disable=SC2016 # literal $( is the point: no expansion wanted
   [[ "$seg" == *'$('* || "$seg" == *'`'* ]] && return 1
   [[ "$seg" == *'<('* || "$seg" == *'>('* ]] && return 1
@@ -182,6 +235,7 @@ read_only_seg() {
     i=$((i + 1))
   done
   ((i >= ${#tok[@]})) && return 0
+  system_command "${tok[i]}" || return 1
   first="${tok[i]##*/}"
   if [[ "${2:-}" == data-only ]]; then
     case "$first" in
@@ -193,20 +247,149 @@ read_only_seg() {
     kill)
       [[ "${tok[i + 1]:-}" == -0 ]]
       return ;;
-    # awk can execute subprocesses from its program text.
-    awk)
-      [[ "$seg" =~ system[[:space:]]*\( ]] && return 1
-      return 0 ;;
-    sed|grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|find|echo|printf|cd|pwd|gh) return 0 ;;
+    # find runs commands through its -exec family; an expanded argument could
+    # supply one unseen. (awk is not listed at all: system(), "cmd" | getline,
+    # and -f program files all run commands.)
+    find) [[ "$(outer_expanded "$seg")" != *'$'* ]] ;;
+    # GNU sed can run commands (the e command, s///e); macOS's /usr/bin/sed is
+    # BSD sed and cannot. Decided by path alone: the hook never executes
+    # anything named in the command it is classifying.
+    sed)
+      [[ "$OSTYPE" == darwin* && ( "${tok[i]}" == /usr/bin/sed ||
+        ( "${tok[i]}" == sed && "$(command -v sed)" == /usr/bin/sed ) ) ]] ;;
+    grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|echo|printf|cd|pwd|gh) return 0 ;;
     # Process and disk inspectors: their patterns name suites (pgrep -f vitest).
     ps|pgrep|lsof|stat|du|df|uptime|which|sleep) return 0 ;;
     git)
       case "${tok[i + 1]:-}" in
-        log|diff|show|status|branch|remote|ls-remote|ls-files|rev-parse|fetch|blame|describe) return 0 ;;
+        log|diff|show|status|branch|remote|ls-remote|ls-files|rev-parse|blame|describe)
+          ! git_runs_program "${tok[@]:i+2}" ;;
         *) return 1 ;;
       esac ;;
     *) return 1 ;;
   esac
+}
+
+# Prints the parts of a command the outer shell expands: everything except
+# single-quoted spans. Quote state is tracked, so a ' inside double quotes is
+# a literal character and the substitution around it still counts.
+outer_expanded() {
+  local s="$1" out="" c q="" i
+  for ((i = 0; i < ${#s}; i++)); do
+    c="${s:i:1}"
+    if [[ "$q" == "'" ]]; then
+      [[ "$c" != "'" ]] || q=""
+      continue
+    fi
+    # shellcheck disable=SC1003 # comparing against a literal backslash
+    if [[ "$c" == '\' ]]; then
+      out+="$c${s:i+1:1}"
+      i=$((i + 1))
+    elif [[ "$q" == '"' ]]; then
+      [[ "$c" != '"' ]] || q=""
+      out+="$c"
+    elif [[ "$c" == "'" ]]; then
+      q="'"
+    else
+      [[ "$c" != '"' ]] || q='"'
+      out+="$c"
+    fi
+  done
+  printf '%s' "$out"
+}
+
+# Splits a command into shell words, NUL-terminated, honoring quotes and
+# backslashes the way the shell would, without expanding anything.
+shell_words() {
+  local s="$1" c q="" w="" have=0 i
+  for ((i = 0; i < ${#s}; i++)); do
+    c="${s:i:1}"
+    if [[ -n "$q" ]]; then
+      # shellcheck disable=SC1003 # comparing against a literal backslash
+      if [[ "$c" == "$q" ]]; then
+        q=""
+      elif [[ "$q" == '"' && "$c" == '\' ]]; then
+        # Inside double quotes a backslash escapes only $ ` " \ and newline;
+        # before anything else it stays, as the shell keeps it.
+        i=$((i + 1))
+        case "${s:i:1}" in
+          '$' | '`' | '"' | '\' | $'\n') w+="${s:i:1}" ;;
+          *) w+="\\${s:i:1}" ;;
+        esac
+      else
+        w+="$c"
+      fi
+      continue
+    fi
+    case "$c" in
+      \' | \") q="$c"; have=1 ;;
+      \\) i=$((i + 1)); w+="${s:i:1}"; have=1 ;;
+      [[:space:]])
+        ((have)) && printf '%s\0' "$w"
+        w=""
+        have=0 ;;
+      *) w+="$c"; have=1 ;;
+    esac
+  done
+  ((have)) && printf '%s\0' "$w"
+  return 0
+}
+
+# True when a segment's command word is the queue itself, after any env
+# assignments and command modifiers (env, command, exec) with their options.
+runs_queue() {
+  local i=0 modifier="" w
+  local -a tok=() sub
+  while IFS= read -r -d '' w; do tok+=("$w"); done < <(shell_words "$1")
+  while ((i < ${#tok[@]})); do
+    case "${tok[i]}" in
+      env | command | exec) modifier="${tok[i]}" ;;
+      # env -S splits its value into more words, so they are spliced in and
+      # parsing continues into them.
+      -S | --split-string | --split-string=* | -S?*)
+        [[ -n "$modifier" ]] || break
+        local split="${tok[i + 1]:-}" rest_at=$((i + 2))
+        if [[ "${tok[i]}" == --split-string=* ]]; then
+          split="${tok[i]#--split-string=}"
+          rest_at=$((i + 1))
+        elif [[ "${tok[i]}" == -S?* ]]; then
+          split="${tok[i]#-S}"
+          rest_at=$((i + 1))
+        fi
+        sub=()
+        # env's own escape: an unquoted \_ separates arguments.
+        split="${split//\\_/ }"
+        while IFS= read -r -d '' w; do sub+=("$w"); done < <(shell_words "$split")
+        tok=("${tok[@]:0:i}" ${sub[@]+"${sub[@]}"} "${tok[@]:rest_at}")
+        continue ;;
+      # Options that take a value: env -u NAME / -P PATH / -C DIR,
+      # exec -a NAME.
+      -u | --unset | -P | -C | --chdir | -a)
+        [[ -n "$modifier" ]] || break
+        i=$((i + 1)) ;;
+      -*) [[ -n "$modifier" ]] || break ;;
+      *=*) [[ "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || break ;;
+      *) break ;;
+    esac
+    i=$((i + 1))
+  done
+  [[ "${tok[i]:-}" =~ ^([^[:space:]]*/)?(ci-lock|lefthook|lefthook-ci-lock)$ ]]
+}
+
+# True when any argument is an option that names a program for git to run
+# (--upload-pack, --receive-pack, --exec, --ext-diff), including the
+# unambiguous abbreviations git accepts (--upload-p=...).
+git_runs_program() {
+  local arg name target
+  for arg in "$@"; do
+    [[ "$arg" == --?* ]] || continue
+    name="${arg#--}"
+    name="${name%%=*}"
+    for target in upload-pack receive-pack exec ext-diff; do
+      [[ "$target" != "$name"* ]] || return 0
+    done
+  done
+  return 1
 }
 
 all_read_only() {
@@ -219,6 +402,14 @@ all_read_only() {
 
 # A shell's quoted script is one argument; later tokens supply $0, $1, etc.
 shell_verdict() {
+  # A syntax check of script files (bash -n FILE...) runs nothing. Only that
+  # exact shape: no -c, no other options, plain file words. Anything else
+  # (inline scripts, option combinations) is judged as a shell invocation.
+  local noexec_file=$'^[[:space:]]*(/bin/|/usr/bin/|/usr/local/bin/|/opt/homebrew/bin/)?(bash|sh|zsh)[[:space:]]+-n([[:space:]]+[^-[:space:]$`"\'()<>;&|][^[:space:]$`"\'()<>;&|]*)+[[:space:]]*$'
+  if [[ "$1" =~ $noexec_file ]]; then
+    echo "SKIP not-heavy"
+    return 0
+  fi
   local prefix="^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+((--[^[:space:]]+|-[a-zA-Z]+)[[:space:]]+)*-[a-zA-Z]*c[a-zA-Z]*[[:space:]]+(--[[:space:]]+)?(['\"])(.*)"
   if ! [[ "$1" =~ $prefix ]]; then
     local output_redirect="([0-9]*>>?|&>>?)[[:space:]]*([^[:space:]<>]+|'[^']*'|\"[^\"]*\")"
@@ -234,6 +425,8 @@ shell_verdict() {
     # Opaque shell invocations can execute arbitrary checks. In particular,
     # options taking values must not fall through to the install exemption.
     [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]] ]] || return 1
+    # Except a version or help query, which executes nothing.
+    [[ "$1" =~ ^[[:space:]]*(/[^[:space:]]*/)?(bash|sh|zsh)[[:space:]]+(--version|--help)([[:space:]]|$) ]] && return 1
     echo "QUEUE long-check"
     return 0
   fi
@@ -340,17 +533,20 @@ decide() {
     fi
   fi
 
-  # 2. Already queued, or is the queue itself.
-  if [[ "$cmd" =~ (ci-lock|lefthook) ]]; then echo "SKIP already-queued"; return; fi
-
   # 3. Judge each pipeline segment on its own. A file argument scopes only
   #    the segment it appears in, and a read-only lead-in never excuses a
   #    suite running after && — one heavy segment queues the whole command.
-  local seg after_segment any_interactive=0 any_file=0 any_name=0 any_ro=0 checkonly=0 any_install=0 any_other=0
+  local seg after_segment any_queued=0 any_interactive=0 any_file=0 any_name=0 any_ro=0 checkonly=0 any_install=0 any_other=0
   while IFS= read -r seg; do
     [[ "$seg" =~ [^[:space:]] ]] || continue
     if read_only_seg "$seg"; then
       any_ro=1
+      continue
+    fi
+    # Already queued: the segment runs ci-lock or lefthook itself. Merely
+    # naming one (cat lefthook.yml) does not count.
+    if runs_queue "$seg"; then
+      any_queued=1
       continue
     fi
     if verdict="$(shell_verdict "$seg")"; then
@@ -392,7 +588,9 @@ decide() {
       [[ "$seg" =~ (playwright|cypress|detox) ]] ||
       [[ "$seg" =~ (^|[[:space:]/])(rails|rake)[[:space:]]+test(:[a-z]+)?([[:space:]]|$) ]] ||
       [[ "$seg" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||
-      [[ "$seg" =~ scripts/(verify|test)[^[:space:]]*\.sh ]]; then
+      [[ "$seg" =~ scripts/(verify|test)[^[:space:]]*\.sh ]] ||
+      # An awk program file is opaque, like a shell script: it may run anything.
+      [[ "$seg" =~ (^|[^[:alnum:]_])[gmn]?awk[[:space:]]([^\;\&\|]*[[:space:]])?-f ]]; then
       echo "QUEUE long-check"
       return
     fi
@@ -419,6 +617,7 @@ decide() {
     if ((any_other)); then echo "QUEUE long-check"; else echo "SKIP not-a-check"; fi
     return
   fi
+  ((any_queued)) && { echo "SKIP already-queued"; return; }
   ((any_file)) && { echo "SKIP file-scoped"; return; }
   ((any_name)) && { echo "SKIP name-filtered"; return; }
   ((any_ro)) && { echo "SKIP read-only-tool"; return; }
@@ -442,8 +641,14 @@ if ((stream_log)); then
   write_log || true
 elif command -v flock >/dev/null 2>&1 &&
   [[ ! -L "$LOG.lock" && ( ! -e "$LOG.lock" || -f "$LOG.lock" ) ]]; then
-  (
-    flock -x -w 1 8 || exit 0
+  # Writes and rotates under the mutex, waiting up to $1 seconds for it;
+  # exits 75 when the wait runs out.
+  log_locked() {
+    if (($1 == 0)); then
+      flock -x -n 8 || exit 75
+    else
+      flock -x -w "$1" 8 || exit 75
+    fi
     write_log
     log_size="$(stat -f%z "$LOG" 2>/dev/null || stat -c%s "$LOG" 2>/dev/null || echo 0)"
     if [[ "$log_size" =~ ^[0-9]+$ ]] && ((log_size > 5242880)); then
@@ -456,7 +661,14 @@ elif command -v flock >/dev/null 2>&1 &&
         cat "$rotating" >"$LOG"
       fi
     fi
-  ) 8>>"$LOG.lock" 2>/dev/null || true
+  }
+  # Logging is best-effort and must not delay the command: when the mutex is
+  # busy, a detached writer waits for it instead, with every stream closed so
+  # nothing waits on it.
+  ( log_locked 0 ) 8>>"$LOG.lock" 2>/dev/null
+  if (($? == 75)); then
+    ( log_locked 5 ) 8>>"$LOG.lock" </dev/null >/dev/null 2>&1 &
+  fi
 else
   write_log 2>/dev/null || true
 fi
