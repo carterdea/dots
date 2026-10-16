@@ -3,6 +3,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import clean_worktrees as cw
 
@@ -41,12 +42,17 @@ class LeftoverScanTests(unittest.TestCase):
         own.mkdir(parents=True)
         self.assertEqual(self.leftovers({own.resolve()}), [])
 
-    def test_unreadable_dir_is_kept(self):
-        locked = self.root / "locked"
-        locked.mkdir(parents=True)
-        locked.chmod(0)
-        self.addCleanup(locked.chmod, 0o755)
-        self.assertEqual(self.leftovers(), [])
+    def test_unreadable_or_vanished_dir_is_kept(self):
+        (self.root / "locked").mkdir(parents=True)
+        real_iterdir = Path.iterdir
+
+        def failing_iterdir(path: Path):
+            if path.name == "locked":
+                raise PermissionError(path)
+            return real_iterdir(path)
+
+        with patch.object(Path, "iterdir", failing_iterdir):
+            self.assertEqual(self.leftovers(), [])
 
     def test_apply_moves_only_leftovers(self):
         other = make_worktree(self.root / "abcd" / "other-repo")
