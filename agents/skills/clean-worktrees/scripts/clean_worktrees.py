@@ -13,16 +13,16 @@ import argparse
 import datetime as dt
 import json
 import os
-import time
 import shutil
 import subprocess
 import sys
 import tarfile
+import time
 from pathlib import Path
 
 
 def run(cmd: list[str], cwd: Path | None = None, check: bool = False) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, cwd=cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=check)
+    return subprocess.run(cmd, cwd=cwd, text=True, capture_output=True, check=check)
 
 
 def expand(path: str) -> Path:
