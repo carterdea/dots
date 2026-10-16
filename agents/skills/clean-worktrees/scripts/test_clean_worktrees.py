@@ -41,6 +41,13 @@ class LeftoverScanTests(unittest.TestCase):
         own.mkdir(parents=True)
         self.assertEqual(self.leftovers({own.resolve()}), [])
 
+    def test_unreadable_dir_is_kept(self):
+        locked = self.root / "locked"
+        locked.mkdir(parents=True)
+        locked.chmod(0)
+        self.addCleanup(locked.chmod, 0o755)
+        self.assertEqual(self.leftovers(), [])
+
     def test_apply_moves_only_leftovers(self):
         other = make_worktree(self.root / "abcd" / "other-repo")
         (self.root / "feb8").mkdir()

@@ -140,8 +140,11 @@ def under_any_root(wt: Path, roots: list[Path]) -> bool:
     return any(root in wt.parents or wt == root for root in roots)
 
 
-def holds_worktree(path: Path) -> bool:
-    return (path / ".git").exists() or any((child / ".git").exists() for child in path.iterdir() if child.is_dir())
+def may_hold_worktree(path: Path) -> bool:
+    try:
+        return (path / ".git").exists() or any((child / ".git").exists() for child in path.iterdir() if child.is_dir())
+    except OSError:
+        return True
 
 
 def move_leftovers(roots: list[Path], audit_dir: Path, trash_base: Path, apply: bool, registered: set[Path]) -> int:
@@ -150,7 +153,7 @@ def move_leftovers(roots: list[Path], audit_dir: Path, trash_base: Path, apply: 
         if not root.exists():
             continue
         for p in root.iterdir():
-            if p.is_dir() and p.resolve() not in registered and not holds_worktree(p):
+            if p.is_dir() and p.resolve() not in registered and not may_hold_worktree(p):
                 leftovers.append(p)
     with (audit_dir / "leftover-directories.tsv").open("w") as out:
         for p in leftovers:
