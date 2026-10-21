@@ -195,7 +195,7 @@ dots/
     ├── AGENTS.md           # Global instructions
     ├── pi-packages.txt     # pi extension package sources
     ├── subagents/          # Subagent definitions (14 agents)
-    └── skills/             # Skills (78 skills)
+    └── skills/             # Skills (88 skills)
 ```
 
 ## AI Assistant Configuration
@@ -295,6 +295,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 
 **External Tools:**
 - `/asana-cli` - Manage Asana tasks and projects through the `asana` CLI
+- `/reverse-engineer-anything` - Reverse engineer binaries, Electron/JS apps, .NET, firmware, and websites via the REA MCP. Vendored from [morluto/rea](https://github.com/morluto/rea); needs `npx rea-agents setup` for the MCP server
 - `/trello-cli` - Drive Trello (boards, lists, cards, comments, checklists, labels) through the `trello-cli`. Requires the binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 **Meta:**
