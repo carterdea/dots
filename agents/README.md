@@ -63,7 +63,7 @@ agents/
     ├── react-doctor/                     # Catch React issues early
     ├── react-native-skills/              # React Native and Expo performance patterns
     ├── react-router/                     # React Router patterns and modes
-    ├── security-audit/                   # Security review and secret scanning
+    ├── security-audit/                   # Multi-phase security audit (Cloudflare)
     ├── self-improve/                     # Codex session-driven self-improvement
     ├── shopify-app-store-review/         # Shopify App Store review requirements
     ├── shopify-baseline/                 # Shopify quality baseline
@@ -165,7 +165,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/react-router` — React Router patterns and mode-specific guidance
 - `/vercel-react-best-practices` — React/Next.js performance patterns
 - `/nestjs-best-practices` — NestJS architecture and API patterns
-- `/security-audit` — Security review for vulnerabilities and secret exposure
+- `/security-audit` — Multi-phase security audit with adversarial validation (vendored from cloudflare/security-audit-skill)
 - `/audit-ai-frontend` — Triage AI-looking UI: generic aesthetics, weak copy, a11y gaps
 - `/improve` — Senior codebase survey and improvement plan
 - `/improve-codebase-architecture` — Find deepening opportunities toward deep modules
