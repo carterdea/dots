@@ -246,7 +246,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/react-router` - React Router patterns and mode-specific guidance
 - `/vercel-react-best-practices` - React/Next.js performance patterns
 - `/nestjs-best-practices` - NestJS architecture and API patterns
-- `/security-audit` - Security review for vulnerabilities and secret exposure
+- `/security-audit` - Multi-phase security audit with isolated hunters, adversarial validation, and schema-checked findings. Vendored from [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill)
 - `/audit-ai-frontend` - Triage AI-looking UI (generic aesthetics, weak copy, a11y gaps)
 - `/improve` - Senior codebase survey and improvement plan
 - `/improve-codebase-architecture` - Find deepening opportunities toward deep modules
