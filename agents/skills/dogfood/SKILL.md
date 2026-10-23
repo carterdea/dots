@@ -51,7 +51,7 @@ Start a named session:
 
 ```bash
 agent-browser --session {SESSION} open {TARGET_URL}
-agent-browser --session {SESSION} wait --load networkidle
+agent-browser --session {SESSION} wait --load domcontentloaded
 ```
 
 ### 2. Authenticate
@@ -64,7 +64,11 @@ agent-browser --session {SESSION} snapshot -i
 agent-browser --session {SESSION} fill @e1 "{EMAIL}"
 agent-browser --session {SESSION} fill @e2 "{PASSWORD}"
 agent-browser --session {SESSION} click @e3
-agent-browser --session {SESSION} wait --load networkidle
+# Replace this with the target app's post-login URL, text, or JS condition:
+agent-browser --session {SESSION} wait --url "{POST_LOGIN_URL_PATTERN}"
+# Or:
+# agent-browser --session {SESSION} wait --text "{POST_LOGIN_TEXT}"
+# agent-browser --session {SESSION} wait --fn "{POST_LOGIN_CONDITION}"
 ```
 
 For OTP/email codes: ask the user, wait for their response, then enter the code.
@@ -105,7 +109,10 @@ agent-browser --session {SESSION} snapshot -i
 agent-browser --session {SESSION} screenshot --annotate {OUTPUT_DIR}/screenshots/{page-name}.png
 agent-browser --session {SESSION} errors
 agent-browser --session {SESSION} console
+agent-browser --session {SESSION} a11y --tags wcag2a,wcag2aa
 ```
+
+After interacting on the same page, use `snapshot -i --delta` to see only what changed. Log each distinct `a11y` violation rule once as an `accessibility` issue (static evidence: annotated screenshot plus the failing selector), not once per element or page.
 
 Use your judgment on how deep to go. Spend more time on core features and less on peripheral pages. If you find a cluster of issues in one area, investigate deeper.
 
@@ -124,8 +131,10 @@ These require user interaction to reproduce -- use full repro with video and ste
 1. **Start a repro video** _before_ reproducing:
 
 ```bash
-agent-browser --session {SESSION} record start {OUTPUT_DIR}/videos/issue-{NNN}-repro.webm
+agent-browser --session {SESSION} record start {OUTPUT_DIR}/videos/issue-{NNN}-repro.webm --cursor --contact-sheet
 ```
+
+`--cursor` draws the pointer and click ripples into the video. `--contact-sheet` also saves `issue-{NNN}-repro.contact-sheet.png` next to the video: a one-image summary of the repro to embed in the report.
 
 2. **Walk through the steps at human pace.** Pause 1-2 seconds between actions so the video is watchable. Take a screenshot at each step:
 

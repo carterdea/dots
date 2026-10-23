@@ -134,6 +134,7 @@ Invoke the `dogfood` skill to drive the preview theme systematically, on a deskt
 
 - For each acceptance criterion: reproduce the intended behavior on the preview theme, mark PASS or FAIL, capture evidence.
 - **Console/network check:** with `agent-browser`, read the console and network panel; flag JS errors, failed requests, broken/404 assets the change introduced.
+- **Accessibility check:** run `agent-browser a11y --tags wcag2a,wcag2aa --selector "<touched section>"` at desktop and mobile (e.g. `#shopify-section-<id>`); flag violations the change introduced (compare against the live theme if unsure).
 - **Figma compare:** for visual criteria, compare the preview against the Figma reference at the matching viewport(s); use both desktop and mobile frames when they exist.
 - **Regression sweep:** exercise adjacent sections/templates and the Customizer settings the change exposes, not just the changed screen.
 
