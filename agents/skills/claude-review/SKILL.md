@@ -11,9 +11,9 @@ Get an independent code review from Anthropic's Claude CLI as a second opinion.
 
 Pass `--model` with an alias — aliases always resolve to the latest version of each model, so never pin dated model IDs:
 
-- `sonnet` — Claude Sonnet (latest is v5, `claude-sonnet-5`). Default: fast and cheap, good enough for most reviews.
-- `opus` — Claude Opus (latest is v5, `claude-opus-5`). Stronger reasoning for tricky or subtle diffs.
-- `fable` — Claude Fable (`claude-fable-5`), Anthropic's most capable model. Premium tier, roughly 2x Opus pricing. See Reviewing with Fable below.
+- `sonnet` — Claude Sonnet. Default: fast and cheap, good enough for most reviews.
+- `opus` — Claude Opus. Stronger reasoning for tricky or subtle diffs.
+- `fable` — Claude Fable, Anthropic's most capable model. Premium tier, 2.5x Opus per-token pricing. See Reviewing with Fable below.
 
 If the user names a model ("use fable", "review with opus"), use that. Otherwise default to `sonnet`. Never upgrade to `fable` on your own initiative — it is opt-in.
 
