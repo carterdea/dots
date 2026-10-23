@@ -13,7 +13,7 @@ Pass `--model` with an alias — aliases always resolve to the latest version of
 
 - `sonnet` — Claude Sonnet. Default: fast and cheap, good enough for most reviews.
 - `opus` — Claude Opus. Stronger reasoning for tricky or subtle diffs.
-- `fable` — Claude Fable, Anthropic's most capable model. Premium tier. See Reviewing with Fable below.
+- `fable` — Claude Fable, Anthropic's most capable model. Premium tier, 2.5x Opus per-token pricing. See Reviewing with Fable below.
 
 If the user names a model ("use fable", "review with opus"), use that. Otherwise default to `sonnet`. Never upgrade to `fable` on your own initiative — it is opt-in.
 
