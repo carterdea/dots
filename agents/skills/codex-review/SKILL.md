@@ -1,6 +1,6 @@
 ---
 name: codex-review
-description: Get a second opinion on code changes from OpenAI Codex CLI (gpt 5.5). Use before PRs or when you want an independent review from a different AI model.
+description: Get a second opinion on code changes from OpenAI Codex CLI (gpt-6.1-sol). Use before PRs or when you want an independent review from a different AI model.
 ---
 
 # Codex Review
@@ -22,22 +22,24 @@ REPORT="$ARTIFACT_DIR/report.md"
 PROMPT="$ARTIFACT_DIR/prompt.md"
 
 # `codex review` runs on review_model (falling back to the session model),
-# and either may default to something other than gpt-5.5. It has no --model
+# and either may default to something other than gpt-6.1-sol. It has no --model
 # flag, so force the reviewer with -c review_model.
 
 # Standard review of a target (built-in prompt, no custom instructions):
 # staged, unstaged, and untracked changes.
-codex -C "$PWD" review -c review_model="gpt-5.5" --uncommitted > "$REPORT"
+codex -C "$PWD" review -c review_model="gpt-6.1-sol" --uncommitted > "$REPORT"
 # current branch against a base branch.
-codex -C "$PWD" review -c review_model="gpt-5.5" --base main > "$REPORT"
+codex -C "$PWD" review -c review_model="gpt-6.1-sol" --base main > "$REPORT"
 # a single commit.
-codex -C "$PWD" review -c review_model="gpt-5.5" --commit <sha> > "$REPORT"
+codex -C "$PWD" review -c review_model="gpt-6.1-sol" --commit <sha> > "$REPORT"
 
 # Focused review: write instructions to "$PROMPT", then review the current
 # uncommitted changes with them (no target selector allowed here). Name the
 # change set inside $PROMPT so Codex reviews the intended diff, not the repo.
-codex -C "$PWD" review -c review_model="gpt-5.5" - < "$PROMPT" > "$REPORT"
+codex -C "$PWD" review -c review_model="gpt-6.1-sol" - < "$PROMPT" > "$REPORT"
 ```
+
+Default to `gpt-6.1-sol`. Only swap in `gpt-6-astra` (Codex's top-tier, higher-cost model) when the user explicitly asks for Astra — substitute it for `gpt-6.1-sol` in the `-c review_model=` value.
 
 If the diff is empty, tell the user there are no changes to review and stop.
 

@@ -36,10 +36,10 @@ Summarize what's being reviewed (files changed, rough scope) so the user knows w
 
 ### 2. Run Codex review
 
-Use `codex exec` in non-interactive mode. Pipe the diff via stdin:
+Use `codex exec` in non-interactive mode. Pipe the diff via stdin. Force the reviewer model with `-m gpt-6.1-sol` — the installed Codex config may default to something else. Only use `-m gpt-6-astra` (Codex's top-tier, higher-cost model) when the user explicitly asks for Astra:
 
 ```bash
-eval "$DIFF_CMD" | codex exec --ephemeral "You are reviewing a code diff. Analyze it for:
+eval "$DIFF_CMD" | codex exec -m gpt-6.1-sol --ephemeral "You are reviewing a code diff. Analyze it for:
 1. Bugs and logic errors
 2. Security vulnerabilities
 3. Performance issues
@@ -54,7 +54,7 @@ If the diff is too large (>5000 lines), break it into per-file reviews:
 
 ```bash
 for file in $(eval "$NAMES_CMD"); do
-  eval "${FILE_DIFF_CMD//FILE/$file}" | codex exec --ephemeral "Review this diff of $file for bugs, security issues, and code quality problems. Be specific and concise."
+  eval "${FILE_DIFF_CMD//FILE/$file}" | codex exec -m gpt-6.1-sol --ephemeral "Review this diff of $file for bugs, security issues, and code quality problems. Be specific and concise."
 done
 ```
 
@@ -63,7 +63,7 @@ done
 Fall back to running codex with quiet mode:
 
 ```bash
-eval "$DIFF_CMD" | codex -q "Review this code diff for bugs, security issues, performance problems, and missing tests. Be specific with line references."
+eval "$DIFF_CMD" | codex -q -m gpt-6.1-sol "Review this code diff for bugs, security issues, performance problems, and missing tests. Be specific with line references."
 ```
 
 ### 5. Return the results
