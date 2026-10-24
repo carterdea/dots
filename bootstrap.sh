@@ -73,7 +73,7 @@ brew install \
 # Install Bun
 if ! command -v bun &> /dev/null; then
     info "Installing Bun..."
-    curl -fsSL https://bun.sh/install | bash
+    curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.4"
 else
     info "Bun already installed"
 fi
