@@ -62,9 +62,7 @@ The work is making complex things simple. Reduce complexity while solving the pr
 - Keep it small: small files, small functions, small interfaces — split or extract before a file or API surface grows large
 
 ## Comments
-- Comments are a great way to clarify functionality and how code is used
-- Don't comment every line, but feel free to describe concisely how functions are used above function definitions, classes, etc.
-- Keep comments up to date — when making changes, keep things in sync
+- Don't write code comments
 
 ## UI quality
 - When end-to-end testing a website or app, be picky about the UI and aim for pixel polish
@@ -80,10 +78,11 @@ The work is making complex things simple. Reduce complexity while solving the pr
 - Never touch production, live databases, or daily-driver build/preview channels unless explicitly told to
 
 ## General preferences
-- If computer use is helpful for completing or verifying work, shell out to gpt-5.6-sol with Codex for it
+- If computer use is helpful for completing or verifying work, shell out to gpt-6-sol with Codex for it
 
 ## Commands
-- Don't run dev server commands (e.g. `bun run dev`) unless specifically asked — assume it's already running
+- Before starting a dev server, check whether one is already running (`portless list`); reuse it if so
+- Prefer starting dev servers in a worktree with `portless` over `bun run dev`; each worktree gets its own `https://<branch>.<project>.localhost` URL
 - Don't run build commands unless specifically told to
 - Focus on check commands like `bun run typecheck` and `bun run lint`; prefer a project's quiet/silent variant (often wrapped via `scripts/run_silent.sh`) when one exists
 
