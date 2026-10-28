@@ -92,7 +92,7 @@ if [[ "${1:-}" == "run" ]]; then
 fi
 
 clean_tree() {
-  [[ -z "$(git status --porcelain --untracked-files=all 2>/dev/null)" ]] && git rev-parse -q --verify 'HEAD^{tree}' 2>/dev/null
+  [[ -z "$(git status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null)" ]] && git rev-parse -q --verify 'HEAD^{tree}' 2>/dev/null
 }
 
 full_run() {
@@ -103,21 +103,22 @@ full_run() {
   done
 }
 
-config_env() {
-  local root name
+hook_config() {
+  local root config name
   root="$(git rev-parse --show-toplevel)"
-  for name in $(cat "$root"/{.,}lefthook*.{yml,yaml,json,toml} "$root"/.config/lefthook*.{yml,yaml,json,toml} 2>/dev/null |
-    grep -oE '[$][{]?[A-Za-z_][A-Za-z0-9_]*' | tr -d '{$' | sort -u); do
+  config="$(cat "$root"/{.,}lefthook*.{yml,yaml,json,toml} "$root"/.config/lefthook*.{yml,yaml,json,toml} 2>/dev/null)"
+  printf '%s\n' "$config"
+  for name in $(grep -oE '[$][{]?[A-Za-z_][A-Za-z0-9_]*' <<<"$config" | tr -d '{$' | sort -u); do
     printf '%s=%s\n' "$name" "${!name:-}"
   done
 }
 
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock"
 pass_file=""
-if [[ "$lane" == heavy && "${CI_LOCK_NO_PASS_CACHE:-}" != 1 ]] && full_run "$@" && tree="$(clean_tree)"; then
-  env_key="$(config_env | git hash-object --stdin)"
-  pass_file="$state_dir/passed/pre-push-$tree-${env_key:0:12}"
-  if [[ -n "$(find "$pass_file" -mtime -14 2>/dev/null)" ]]; then
+if [[ "$lane" == heavy ]] && full_run "$@" && tree="$(clean_tree)"; then
+  config_key="$(hook_config | git hash-object --stdin)"
+  pass_file="$state_dir/passed/pre-push-$tree-${config_key:0:12}"
+  if [[ "${CI_LOCK_NO_PASS_CACHE:-}" != 1 && -n "$(find "$pass_file" -mtime -14 2>/dev/null)" ]]; then
     echo "lefthook-ci-lock: pre-push already passed for tree ${tree:0:12}; skipping (CI_LOCK_NO_PASS_CACHE=1 reruns)" >&2
     printf '%s\theavy\t0\t0\tcached\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$PWD lefthook run pre-push" \
       >>"${CI_LOCK_LOG:-$state_dir/ci-lock.log}" 2>/dev/null || true
@@ -137,7 +138,9 @@ if [[ -n "$lane" ]]; then
       status=$?
       kill -0 "$child" 2>/dev/null || break
     done
-    if ((status == 0)) && [[ "$(clean_tree)" == "$tree" ]]; then
+    if ((status != 0)); then
+      rm -f "$pass_file"
+    elif [[ "$(clean_tree)" == "$tree" ]]; then
       mkdir -p "${pass_file%/*}"
       touch "$pass_file"
       find "${pass_file%/*}" -type f -mtime +14 -delete 2>/dev/null || true

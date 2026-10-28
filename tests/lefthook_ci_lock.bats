@@ -121,3 +121,35 @@ runs() { [ -f "$RUNS" ] && wc -l <"$RUNS" | tr -d ' ' || echo 0; }
     "$SHIM" run pre-push
     [ "$(runs)" = 2 ]
 }
+
+@test "editing an ignored hook config runs pre-push again" {
+    echo lefthook.yml >>.git/info/exclude
+    echo 'pre-push: {}' >lefthook.yml
+    "$SHIM" run pre-push
+    printf 'pre-push:\n  commands:\n    lint:\n      run: false\n' >lefthook.yml
+    "$SHIM" run pre-push
+    [ "$(runs)" = 2 ]
+}
+
+@test "a failed forced rerun drops the earlier pass" {
+    "$SHIM" run pre-push
+    CI_LOCK_NO_PASS_CACHE=1 FAKE_EXIT=1 run "$SHIM" run pre-push
+    [ "$status" -eq 1 ]
+    "$SHIM" run pre-push
+    [ "$(runs)" = 3 ]
+}
+
+@test "changes inside an ignored submodule still run" {
+    SUB="$BATS_TEST_TMPDIR/sub"
+    git init -q "$SUB"
+    echo a >"$SUB/f"
+    git -C "$SUB" add f
+    git -C "$SUB" -c user.name=test -c user.email=test@example.com commit -q -m init
+    git -c protocol.file.allow=always submodule -q add "$SUB" sub
+    git -c user.name=test -c user.email=test@example.com commit -q -m sub
+    git config submodule.sub.ignore all
+    "$SHIM" run pre-push
+    echo b >sub/f
+    "$SHIM" run pre-push
+    [ "$(runs)" = 2 ]
+}
