@@ -264,8 +264,15 @@ OWNER_LOCK="$LOCK_FILE.owner"
 slot0_owned() {
   ( exec 197>"$OWNER_LOCK" && ! flock -n 197 )
 }
-slot0_held() {
-  ( exec 197>"$LOCK_FILE" && ! flock -n 197 )
+slot_held() {
+  ( exec 197>"$(slot_file "$1")" && ! flock -n 197 )
+}
+other_slot_held() {
+  local slot
+  for ((slot = 1; slot < SLOTS; slot++)); do
+    slot_held "$slot" && return 0
+  done
+  return 1
 }
 
 memory_ok() {
@@ -283,15 +290,19 @@ try_slots() {
     flock -n 198 || { exec 198>&-; return 1; }
   fi
   for ((slot = 0; slot < SLOTS; slot++)); do
-    ((slot == 0)) || slot0_owned || break
-    ((slot == 0)) || memory_ok || break
+    if ((slot == 0)); then
+      memory_ok || ! other_slot_held || break
+    else
+      slot0_owned || break
+      memory_ok || break
+    fi
     # Closed first: bash 3.2 silently keeps an open fd above 9 on reopen.
     exec 199>&-
     exec 199>"$(slot_file "$slot")"
     if flock -n 199; then
       # Re-check once the slot is ours: slot 0 may have changed hands to an
       # older ci-lock between the check above and this claim.
-      if ((slot > 0)) && slot0_held && ! slot0_owned; then
+      if ((slot > 0)) && slot_held 0 && ! slot0_owned; then
         break
       fi
       LOCK_FDS="199>&-"
@@ -379,10 +390,6 @@ export "$HELD_VAR=$LOCK_FILE:$REPO_KEY:$$"
 cpus="$(getconf _NPROCESSORS_ONLN 2>/dev/null)" || cpus=2
 [[ "$cpus" =~ ^[0-9]+$ ]] || cpus=2
 workers=$((cpus / 2 > 0 ? cpus / 2 : 1))
-export VITEST_MAX_WORKERS="${VITEST_MAX_WORKERS:-$workers}"
-export VITEST_MAX_THREADS="${VITEST_MAX_THREADS:-$workers}"
-export VITEST_MAX_FORKS="${VITEST_MAX_FORKS:-$workers}"
-export PARALLEL_WORKERS="${PARALLEL_WORKERS:-$workers}"
 export PYTEST_XDIST_AUTO_NUM_WORKERS="${PYTEST_XDIST_AUTO_NUM_WORKERS:-$workers}"
 
 started_ms="$(now_ms)"
