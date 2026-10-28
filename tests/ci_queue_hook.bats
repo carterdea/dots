@@ -564,6 +564,22 @@ EOF
     [ "$(classify "bash -c 'while true; do \"\$@\"; sleep 1; done' _ bun test")" = "QUEUE long-check" ]
 }
 
+@test "polling loops with test conditions and assignments skip the queue" {
+    [ "$(classify 'end=$((SECONDS+7200)); while [ $SECONDS -lt $end ]; do l=$(sysctl -n vm.loadavg | awk '"'"'{print int($2)}'"'"'); [ "$l" -lt 100 ] && break; sleep 60; done; git push')" = "SKIP wait-loop" ]
+    [ "$(classify 'clean=0; while [ $clean -lt 4 ]; do sleep 300; uv run fetch_comments.py --pr 5 > /tmp/pr.json; done')" = "SKIP wait-loop" ]
+}
+
+@test "polling loops still queue dynamic commands and trailing suites" {
+    [ "$(classify 'while true; do $CMD; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do eval "$x"; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'until [ -f /tmp/done ]; do sleep 10; done; bun run test')" = "QUEUE long-check" ]
+}
+
+@test "suites inside command substitutions queue" {
+    [ "$(classify 'x=$(pytest -q 2>&1 | tail -1); echo $x')" = "QUEUE long-check" ]
+    [ "$(classify 'r=$(rspec | tail -1)')" = "QUEUE long-check" ]
+}
+
 @test "background interactive pipelines do not hide checks" {
     [ "$(classify 'bash -i | cat & bun test')" = 'QUEUE long-check' ]
 }
