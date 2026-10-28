@@ -334,6 +334,19 @@ teardown() {
     [ "$status" -eq 0 ]
 }
 
+@test "checks get half the cores as their worker cap" {
+    half=$(( $(getconf _NPROCESSORS_ONLN) / 2 ))
+    run env -u VITEST_MAX_WORKERS -u PARALLEL_WORKERS CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
+        "$CI_LOCK" sh -c 'echo "$VITEST_MAX_WORKERS $PARALLEL_WORKERS"'
+    [ "$output" = "$half $half" ]
+}
+
+@test "a caller's own worker cap wins" {
+    run env VITEST_MAX_WORKERS=1 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
+        "$CI_LOCK" sh -c 'echo "$VITEST_MAX_WORKERS"'
+    [ "$output" = 1 ]
+}
+
 @test "memory pressure keeps the second slot closed" {
     hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR"
     run env FAKE_PRESSURE_LEVEL=2 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
