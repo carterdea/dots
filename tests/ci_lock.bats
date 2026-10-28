@@ -334,16 +334,17 @@ teardown() {
     [ "$status" -eq 0 ]
 }
 
-@test "checks get half the cores as their worker cap" {
+@test "pytest -n auto gets half the cores" {
     half=$(( $(getconf _NPROCESSORS_ONLN) / 2 ))
-    run env -u VITEST_MAX_WORKERS -u PARALLEL_WORKERS CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
-        "$CI_LOCK" sh -c 'echo "$VITEST_MAX_WORKERS $PARALLEL_WORKERS"'
-    [ "$output" = "$half $half" ]
+    ((half > 0)) || half=1
+    run env -u PYTEST_XDIST_AUTO_NUM_WORKERS CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
+        "$CI_LOCK" sh -c 'echo "$PYTEST_XDIST_AUTO_NUM_WORKERS"'
+    [ "$output" = "$half" ]
 }
 
-@test "a caller's own worker cap wins" {
-    run env VITEST_MAX_WORKERS=1 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
-        "$CI_LOCK" sh -c 'echo "$VITEST_MAX_WORKERS"'
+@test "a caller's own worker count wins" {
+    run env PYTEST_XDIST_AUTO_NUM_WORKERS=1 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
+        "$CI_LOCK" sh -c 'echo "$PYTEST_XDIST_AUTO_NUM_WORKERS"'
     [ "$output" = 1 ]
 }
 
@@ -356,6 +357,17 @@ teardown() {
 @test "memory pressure never blocks the first slot" {
     run env FAKE_PRESSURE_LEVEL=4 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
     [ "$status" -eq 0 ]
+}
+
+@test "memory pressure keeps a freed first slot closed while the second is busy" {
+    (cd "$BATS_TEST_TMPDIR" && exec env CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 \
+        "$CI_LOCK" sh -c "touch '$BATS_TEST_TMPDIR/a'; sleep 1") &
+    first=$!
+    await "$BATS_TEST_TMPDIR/a"
+    hold "$BATS_TEST_TMPDIR/b" "$BATS_TEST_TMPDIR"
+    wait "$first"
+    run env FAKE_PRESSURE_LEVEL=2 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 1 ]
 }
 
 @test "a third check waits while both slots are busy" {
