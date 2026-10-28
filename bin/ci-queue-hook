@@ -723,11 +723,8 @@ wrapped="$lane$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"
 # that allow approves nothing: exec policy, sandbox, and approval prompts
 # still judge the rewritten command. Claude Code treats allow as a real
 # approval, so it gets updatedInput alone. Codex payloads carry a turn_id.
-if printf '%s' "$payload" | jq -e 'has("turn_id")' >/dev/null 2>&1; then
-  jq -cn --arg c "$wrapped" \
-    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow",updatedInput:{command:$c}}}' 2>/dev/null || true
-else
-  jq -cn --arg c "$wrapped" \
-    '{hookSpecificOutput:{hookEventName:"PreToolUse",updatedInput:{command:$c}}}' 2>/dev/null || true
-fi
+printf '%s' "$payload" | jq -c --arg c "$wrapped" \
+  '{hookSpecificOutput:({hookEventName:"PreToolUse"}
+    + (if has("turn_id") then {permissionDecision:"allow"} else {} end)
+    + {updatedInput:{command:$c}})}' 2>/dev/null || true
 exit 0
