@@ -65,7 +65,7 @@ Do NOT use Chrome MCP (mcp__claude-in-chrome__*) when agent-browser is installed
    - Navigate and interact using the selected browser tool (agent-browser or Playwright CLI)
    - Take a snapshot to inspect page state (`agent-browser --session qa-<plan-slug> snapshot -i` or equivalent; `snapshot -i --delta` after same-page interactions)
    - Screenshot the result and save to `qa/screenshots/` (the baseline gitignores that subdir)
-   - With agent-browser, on each page the item touches, run `agent-browser --session qa-<plan-slug> a11y --tags wcag2a,wcag2aa` (scope with `--selector` to the changed area when possible) and add a `> A11Y:` note for any violation the change introduced. A11y notes don't fail the item unless the item is about accessibility. On the Playwright fallback, skip this and note `> A11Y: skipped, agent-browser unavailable` once in the summary
+   - With agent-browser, on each page the item touches, run `agent-browser --session qa-<plan-slug> a11y --tags wcag2a,wcag2aa` (scope with `--selector` to the changed area when possible) and add a `> A11Y:` note for any violation the change introduced. To tell, run the same audit against the base branch or production and only note violations missing there. A11y notes don't fail the item unless the item is about accessibility. On the Playwright fallback, skip this and note `> A11Y: skipped, agent-browser unavailable` once in the summary
    - Pass: check it off `- [x] QA:`
    - Fail: leave unchecked, add a `> FAIL:` annotation describing what went wrong
    - Continue to next item regardless of pass/fail
