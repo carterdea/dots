@@ -65,4 +65,4 @@ Add task-specific context when useful: requirements, risky areas, expected behav
 
 ## Reporting back
 
-Verify each finding against the cited code before relaying it, and separate confirmed issues from unverified Codex suggestions. Name the review target Codex inspected. If Codex finds nothing, say so clearly. If `codex` is not installed or the command fails, report the error and offer to review the changes directly instead.
+Verify each finding against the cited code before relaying it, and separate confirmed issues from unverified Codex suggestions. Name the review target Codex inspected. If Codex finds nothing, say so clearly. If Codex warns `Model metadata for ... not found` or fails with `model is not supported when using Codex with a ChatGPT account`, the CLI is too old for the model, not misnamed: run `codex update` and retry. If `codex` is not installed or the command still fails, report the error and offer to review the changes directly instead.
