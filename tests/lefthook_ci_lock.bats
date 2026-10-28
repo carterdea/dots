@@ -105,3 +105,19 @@ runs() { [ -f "$RUNS" ] && wc -l <"$RUNS" | tr -d ' ' || echo 0; }
     for _ in {1..100}; do kill -0 "$check" 2>/dev/null || break; sleep 0.05; done
     ! kill -0 "$check" 2>/dev/null
 }
+
+@test "env vars the hook config reads are part of the cache key" {
+    printf 'pre-push:\n  commands:\n    a11y:\n      run: test -z "${BASE_URL:-}"\n' >lefthook.yml
+    echo lefthook.yml >>.git/info/exclude
+    "$SHIM" run pre-push
+    BASE_URL=https://example.test "$SHIM" run pre-push
+    "$SHIM" run pre-push
+    [ "$(runs)" = 2 ]
+}
+
+@test "pass records older than 14 days are not trusted" {
+    "$SHIM" run pre-push
+    touch -t 202001010000 "$XDG_STATE_HOME"/ci-lock/passed/*
+    "$SHIM" run pre-push
+    [ "$(runs)" = 2 ]
+}

@@ -103,11 +103,21 @@ full_run() {
   done
 }
 
+config_env() {
+  local root name
+  root="$(git rev-parse --show-toplevel)"
+  for name in $(cat "$root"/{.,}lefthook*.{yml,yaml,json,toml} "$root"/.config/lefthook*.{yml,yaml,json,toml} 2>/dev/null |
+    grep -oE '[$][{]?[A-Za-z_][A-Za-z0-9_]*' | tr -d '{$' | sort -u); do
+    printf '%s=%s\n' "$name" "${!name:-}"
+  done
+}
+
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock"
 pass_file=""
 if [[ "$lane" == heavy && "${CI_LOCK_NO_PASS_CACHE:-}" != 1 ]] && full_run "$@" && tree="$(clean_tree)"; then
-  pass_file="$state_dir/passed/pre-push-$tree"
-  if [[ -f "$pass_file" ]]; then
+  env_key="$(config_env | git hash-object --stdin)"
+  pass_file="$state_dir/passed/pre-push-$tree-${env_key:0:12}"
+  if [[ -n "$(find "$pass_file" -mtime -14 2>/dev/null)" ]]; then
     echo "lefthook-ci-lock: pre-push already passed for tree ${tree:0:12}; skipping (CI_LOCK_NO_PASS_CACHE=1 reruns)" >&2
     printf '%s\theavy\t0\t0\tcached\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$PWD lefthook run pre-push" \
       >>"${CI_LOCK_LOG:-$state_dir/ci-lock.log}" 2>/dev/null || true
