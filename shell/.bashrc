@@ -13,7 +13,7 @@ fi
 
 # Agent sessions often end without `agent-browser close`, leaving the daemon
 # and its Chrome running for days. Let idle daemons shut themselves down.
-export AGENT_BROWSER_IDLE_TIMEOUT_MS="${AGENT_BROWSER_IDLE_TIMEOUT_MS:-1800000}"
+export AGENT_BROWSER_IDLE_TIMEOUT_MS="${AGENT_BROWSER_IDLE_TIMEOUT_MS:-600000}"
 
 # Rust (Cargo)
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
