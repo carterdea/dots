@@ -97,7 +97,7 @@ clean_tree() {
 
 full_run() {
   local arg
-  [[ -z "${LEFTHOOK_EXCLUDE:-}" && "${LEFTHOOK:-}" != 0 && "${LEFTHOOK:-}" != false ]] || return 1
+  [[ -z "${LEFTHOOK_EXCLUDE:-}${LEFTHOOK_CONFIG:-}" && "${LEFTHOOK:-}" != 0 && "${LEFTHOOK:-}" != false ]] || return 1
   for arg in "${@:3}"; do
     [[ "$arg" != -* ]] || return 1
   done

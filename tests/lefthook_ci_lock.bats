@@ -85,9 +85,10 @@ runs() { [ -f "$RUNS" ] && wc -l <"$RUNS" | tr -d ' ' || echo 0; }
 
 @test "runs with excluded or selected checks are not recorded" {
     LEFTHOOK_EXCLUDE=tests "$SHIM" run pre-push
+    LEFTHOOK_CONFIG=other.yml "$SHIM" run pre-push
     "$SHIM" run pre-push origin git@example.com:r.git --commands lint
     "$SHIM" run pre-push origin git@example.com:r.git
-    [ "$(runs)" = 3 ]
+    [ "$(runs)" = 4 ]
 }
 
 @test "pre-push refs on stdin reach lefthook" {
