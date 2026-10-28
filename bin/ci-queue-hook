@@ -294,8 +294,9 @@ dynamic_command() {
   # shellcheck disable=SC2016
   [[ "${tok[0]}" == *'$'* || "${tok[0]}" == *'`'* ]] && return 0
   case "${tok[0]##*/}" in
-    eval|exec|source|.|xargs|command|env|nohup|time|timeout|sudo|nice|caffeinate|stdbuf) [[ "$seg" == *'$'* ]] ;;
-    *) return 1 ;;
+    echo|printf|test|'['|'[['|true|false|:|break|continue|return|sleep|kill|cd|pwd|read|export|local) return 1 ;;
+    grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|gh|curl|date|sysctl|pgrep|ps|stat|du|df) return 1 ;;
+    *) [[ "$(outer_expanded "$seg")" == *'$'* ]] ;;
   esac
 }
 
