@@ -258,6 +258,7 @@ read_only_seg() {
       [[ "$OSTYPE" == darwin* && ( "${tok[i]}" == /usr/bin/sed ||
         ( "${tok[i]}" == sed && "$(command -v sed)" == /usr/bin/sed ) ) ]] ;;
     grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|echo|printf|cd|pwd|gh) return 0 ;;
+    '['|test|true|false|:|break|continue) return 0 ;;
     # Process and disk inspectors: their patterns name suites (pgrep -f vitest).
     ps|pgrep|lsof|stat|du|df|uptime|which|sleep) return 0 ;;
     git)
@@ -267,6 +268,35 @@ read_only_seg() {
         *) return 1 ;;
       esac ;;
     *) return 1 ;;
+  esac
+}
+
+dynamic_command() {
+  # shellcheck disable=SC2016
+  local seg="$1" rest="$1" sq="'" assignment inner open subst='$('
+  for open in '`' '<(' '>('; do
+    rest="${rest//"$open"/"$subst"}"
+  done
+  local -a tok
+  # shellcheck disable=SC2016
+  if [[ "$rest" == *'$('* ]]; then
+    rest="${rest#*\$(}"
+    while IFS= read -r inner; do
+      dynamic_command "$inner" && return 0
+    done < <(split_segments "$rest")
+  fi
+  assignment="^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=(\"[^\"]*\"|${sq}[^${sq}]*${sq}|[^[:space:]]*)|(then|do|else|elif|if|while|until|!|\\{)[[:space:]]|\\()"
+  while [[ "$seg" =~ $assignment ]]; do
+    seg="${seg:${#BASH_REMATCH[0]}}"
+  done
+  read -ra tok <<<"$seg"
+  ((${#tok[@]})) || return 1
+  # shellcheck disable=SC2016
+  [[ "${tok[0]}" == *'$'* || "${tok[0]}" == *'`'* ]] && return 0
+  case "${tok[0]##*/}" in
+    echo|printf|test|'['|'[['|true|false|:|break|continue|return|sleep|kill|cd|pwd|read|export|local) return 1 ;;
+    grep|rg|cat|head|tail|ls|wc|sort|uniq|jq|gh|curl|date|sysctl|pgrep|ps|stat|du|df) return 1 ;;
+    *) [[ "$(outer_expanded "$seg")" == *'$'* ]] ;;
   esac
 }
 
@@ -493,7 +523,7 @@ decide() {
     condition="${BASH_REMATCH[2]}"
     body="${BASH_REMATCH[3]}"
     while IFS= read -r body_segment; do
-      if [[ "$body_segment" == *'$'* ]] && ! read_only_seg "$body_segment"; then
+      if dynamic_command "$body_segment"; then
         echo 'QUEUE long-check'; return
       fi
     done < <(split_segments "$body")
@@ -582,9 +612,9 @@ decide() {
       continue
     fi
     # Long: full suites, e2e, aggregates, builds — the heavy lane.
-    if [[ "$seg" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]])jest([[:space:]]|$)) ]] ||
+    if [[ "$seg" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]]|\$\()jest([[:space:]]|$)|\$\(jest\)) ]] ||
       [[ "$seg" =~ run[[:space:]]+--filter[[:space:]]+[^[:space:]]+[[:space:]]+test([[:space:]]|$) ]] ||
-      [[ "$seg" =~ ((^|[[:space:]])pytest([[:space:]]|$)|(^|[[:space:]])rspec([[:space:]]|$)|go[[:space:]]+test) ]] ||
+      [[ "$seg" =~ ((^|[[:space:]]|\$\()pytest([[:space:]]|$)|\$\(pytest\)|(^|[[:space:]]|\$\()rspec([[:space:]]|$)|\$\(rspec\)|go[[:space:]]+test) ]] ||
       [[ "$seg" =~ (playwright|cypress|detox) ]] ||
       [[ "$seg" =~ (^|[[:space:]/])(rails|rake)[[:space:]]+test(:[a-z]+)?([[:space:]]|$) ]] ||
       [[ "$seg" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||

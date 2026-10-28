@@ -564,6 +564,39 @@ EOF
     [ "$(classify "bash -c 'while true; do \"\$@\"; sleep 1; done' _ bun test")" = "QUEUE long-check" ]
 }
 
+@test "polling loops with test conditions and assignments skip the queue" {
+    [ "$(classify 'end=$((SECONDS+7200)); while [ $SECONDS -lt $end ]; do l=$(sysctl -n vm.loadavg | awk '"'"'{print int($2)}'"'"'); [ "$l" -lt 100 ] && break; sleep 60; done; git push')" = "SKIP wait-loop" ]
+    [ "$(classify 'clean=0; while [ $clean -lt 4 ]; do sleep 300; uv run fetch_comments.py --pr 5 > /tmp/pr.json; done')" = "SKIP wait-loop" ]
+}
+
+@test "polling loops still queue dynamic commands and trailing suites" {
+    [ "$(classify 'while true; do $CMD; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do eval "$x"; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'until [ -f /tmp/done ]; do sleep 10; done; bun run test')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do result=$($CMD); sleep 1; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do LABEL="nightly run" "$CMD"; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do timeout 600 "$CMD"; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do if true; then "$CMD"; fi; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do /usr/bin/env "$CMD"; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do echo "$(cd project && $CMD)"; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do echo "$(cd "$(pwd)" && $CMD)"; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do result=`$CMD`; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do cat <($CMD); sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do find suites -type d -exec "$CMD" {} +; sleep 5; done')" = "QUEUE long-check" ]
+}
+
+@test "polling loops that capture read-only status skip the queue" {
+    [ "$(classify 'while true; do s=$(gh pr view 5 --json state); [ "$s" = done ] && break; sleep 30; done')" = "SKIP wait-loop" ]
+    [ "$(classify 'while true; do runs=$(gh run list --workflow pytest); sleep 30; done')" = "SKIP wait-loop" ]
+}
+
+@test "suites inside command substitutions queue" {
+    [ "$(classify 'x=$(pytest -q 2>&1 | tail -1); echo $x')" = "QUEUE long-check" ]
+    [ "$(classify 'r=$(rspec | tail -1)')" = "QUEUE long-check" ]
+    [ "$(classify 'x=$(pytest)')" = "QUEUE long-check" ]
+    [ "$(classify 'x=$(jest)')" = "QUEUE long-check" ]
+}
+
 @test "background interactive pipelines do not hide checks" {
     [ "$(classify 'bash -i | cat & bun test')" = 'QUEUE long-check' ]
 }

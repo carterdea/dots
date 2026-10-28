@@ -9,6 +9,10 @@ setup() {
     LOCK="$BATS_TEST_TMPDIR/test.lock"
     # Run from a git hook, these would redirect the fixture repositories.
     unset GIT_DIR GIT_COMMON_DIR GIT_WORK_TREE GIT_INDEX_FILE
+    unset "${!CI_LOCK_@}"
+    mkdir -p "$BATS_TEST_TMPDIR/pressure"
+    ln -sf "$DIR/fixtures/pressure-sysctl.bash" "$BATS_TEST_TMPDIR/pressure/sysctl"
+    export PATH="$BATS_TEST_TMPDIR/pressure:$PATH"
 }
 
 @test "unavailable clock helper does not prevent the check" {
@@ -328,6 +332,53 @@ teardown() {
     hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR"
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
     [ "$status" -eq 0 ]
+}
+
+@test "pytest -n auto gets half the cores" {
+    half=$(( $(getconf _NPROCESSORS_ONLN) / 2 ))
+    ((half > 0)) || half=1
+    run env -u PYTEST_XDIST_AUTO_NUM_WORKERS CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
+        "$CI_LOCK" sh -c 'echo "$PYTEST_XDIST_AUTO_NUM_WORKERS"'
+    [ "$output" = "$half" ]
+}
+
+@test "a caller's own worker count wins" {
+    run env PYTEST_XDIST_AUTO_NUM_WORKERS=1 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" \
+        "$CI_LOCK" sh -c 'echo "$PYTEST_XDIST_AUTO_NUM_WORKERS"'
+    [ "$output" = 1 ]
+}
+
+@test "memory pressure keeps the second slot closed" {
+    hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR"
+    run env FAKE_PRESSURE_LEVEL=2 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 1 ]
+}
+
+@test "memory pressure never blocks the first slot" {
+    run env FAKE_PRESSURE_LEVEL=4 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 0 ]
+}
+
+@test "memory pressure keeps a freed first slot closed while the second is busy" {
+    (cd "$BATS_TEST_TMPDIR" && exec env CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 \
+        "$CI_LOCK" sh -c "touch '$BATS_TEST_TMPDIR/a'; until [ -e '$BATS_TEST_TMPDIR/release' ]; do sleep 0.05; done") &
+    first=$!
+    await "$BATS_TEST_TMPDIR/a"
+    hold "$BATS_TEST_TMPDIR/b" "$BATS_TEST_TMPDIR"
+    ! flock -n "$LOCK.1" true
+    touch "$BATS_TEST_TMPDIR/release"
+    wait "$first"
+    run env FAKE_PRESSURE_LEVEL=2 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 1 ]
+}
+
+@test "memory pressure keeps a single-slot caller out while another slot is busy" {
+    touch "$LOCK.1"
+    exec 9>"$LOCK.1"
+    flock -n 9
+    run env FAKE_PRESSURE_LEVEL=4 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=1 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    exec 9>&-
+    [ "$status" -eq 1 ]
 }
 
 @test "a third check waits while both slots are busy" {
