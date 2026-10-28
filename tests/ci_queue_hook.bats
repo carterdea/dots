@@ -29,6 +29,12 @@ enforce() {
         HOME="$FAKE_HOME" CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=1 "$HOOK"
 }
 
+# Same as enforce, with a Codex payload (identified by its turn_id).
+enforce_codex() {
+    jq -cn --arg c "$1" '{turn_id:"t1",tool_input:{command:$c}}' |
+        HOME="$FAKE_HOME" CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=1 "$HOOK"
+}
+
 # --- single-file tests must stay out of the queue, kebab-case included ---
 
 @test "single-file test with plain name is file-scoped" {
@@ -155,6 +161,22 @@ enforce() {
 
 @test "enforce mode leaves a file-scoped test untouched" {
     out="$(enforce 'bun run test -- server/routers/migration-batch.test.ts')"
+    [ -z "$out" ]
+}
+
+@test "Claude Code rewrite carries no permission decision" {
+    out="$(enforce 'bun run test')"
+    [ "$(jq -c '.hookSpecificOutput | has("permissionDecision")' <<<"$out")" = false ]
+}
+
+@test "Codex rewrite pairs updatedInput with allow" {
+    out="$(enforce_codex 'bun run test')"
+    [ "$(jq -r '.hookSpecificOutput.permissionDecision' <<<"$out")" = allow ]
+    [[ "$(jq -r '.hookSpecificOutput.updatedInput.command' <<<"$out")" == *"ci-lock bash -c 'bun run test'" ]]
+}
+
+@test "Codex gets no allow for a command the hook does not queue" {
+    out="$(enforce_codex 'bun run test -- server/routers/migration-batch.test.ts')"
     [ -z "$out" ]
 }
 
