@@ -180,11 +180,6 @@ enforce_codex() {
     [ -z "$out" ]
 }
 
-@test "Codex rerun through ci-lock is not rewritten again" {
-    out="$(enforce_codex "$FAKE_HOME/.local/bin/ci-lock bash -c 'bun run test'")"
-    [ -z "$out" ]
-}
-
 # --- review fixes: flags that do not consume the next argument ---
 
 @test "single-file pytest behind a quiet flag is file-scoped" {

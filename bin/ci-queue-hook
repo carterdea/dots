@@ -719,12 +719,10 @@ lane=""
 [[ "$reason" == "check-only" ]] && lane="CI_LOCK_LANE=check "
 wrapped="$lane$lock bash -c $(printf '%s' "$cmd" | jq -Rrs '@sh')"
 
-# Codex accepts updatedInput only alongside permissionDecision:"allow", and
-# that allow grants nothing: its PreToolUse outcome carries no approval, so
-# exec policy, sandbox, and approval prompts still judge the rewritten
-# command. Claude Code treats allow as a real approval, so it gets
-# updatedInput without a decision. Codex payloads are the ones carrying a
-# turn_id.
+# Codex applies updatedInput only alongside permissionDecision:"allow", and
+# that allow approves nothing: exec policy, sandbox, and approval prompts
+# still judge the rewritten command. Claude Code treats allow as a real
+# approval, so it gets updatedInput alone. Codex payloads carry a turn_id.
 if printf '%s' "$payload" | jq -e 'has("turn_id")' >/dev/null 2>&1; then
   jq -cn --arg c "$wrapped" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow",updatedInput:{command:$c}}}' 2>/dev/null || true
