@@ -13,7 +13,7 @@ setup() {
     REPO="$BATS_TEST_TMPDIR/repo"
     git init -q "$REPO"
     mkdir -p "$REPO/node_modules/.bin"
-    printf '#!/bin/sh\necho run >> "%s"\nexit "${FAKE_EXIT:-0}"\n' "$RUNS" >"$REPO/node_modules/.bin/lefthook"
+    printf '#!/bin/sh\necho run >> "%s"\n[ -z "$FAKE_STDIN" ] || cat >"$FAKE_STDIN"\n[ -z "$FAKE_SLEEP" ] || { echo $$ >"$FAKE_SLEEP"; sleep 30; }\nexit "${FAKE_EXIT:-0}"\n' "$RUNS" >"$REPO/node_modules/.bin/lefthook"
     chmod +x "$REPO/node_modules/.bin/lefthook"
     echo node_modules >"$REPO/.gitignore"
     echo one >"$REPO/file"
@@ -73,4 +73,35 @@ runs() { [ -f "$RUNS" ] && wc -l <"$RUNS" | tr -d ' ' || echo 0; }
     "$SHIM" run pre-commit
     "$SHIM" run pre-commit
     [ "$(runs)" = 2 ]
+}
+
+@test "untracked files run even when git status hides them" {
+    git config status.showUntrackedFiles no
+    "$SHIM" run pre-push
+    touch new.test.ts
+    "$SHIM" run pre-push
+    [ "$(runs)" = 2 ]
+}
+
+@test "runs with excluded or selected checks are not recorded" {
+    LEFTHOOK_EXCLUDE=tests "$SHIM" run pre-push
+    "$SHIM" run pre-push origin git@example.com:r.git --commands lint
+    "$SHIM" run pre-push origin git@example.com:r.git
+    [ "$(runs)" = 3 ]
+}
+
+@test "pre-push refs on stdin reach lefthook" {
+    printf 'refs/heads/a 1 refs/heads/a 0\n' | FAKE_STDIN="$BATS_TEST_TMPDIR/stdin" "$SHIM" run pre-push
+    [ "$(cat "$BATS_TEST_TMPDIR/stdin")" = 'refs/heads/a 1 refs/heads/a 0' ]
+}
+
+@test "terminating the shim stops the queued check" {
+    FAKE_SLEEP="$BATS_TEST_TMPDIR/pid" "$SHIM" run pre-push &
+    shim=$!
+    for _ in {1..200}; do [ ! -s "$BATS_TEST_TMPDIR/pid" ] || break; sleep 0.05; done
+    check="$(cat "$BATS_TEST_TMPDIR/pid")"
+    kill -TERM "$shim"
+    wait "$shim" || true
+    for _ in {1..100}; do kill -0 "$check" 2>/dev/null || break; sleep 0.05; done
+    ! kill -0 "$check" 2>/dev/null
 }

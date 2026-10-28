@@ -92,12 +92,20 @@ if [[ "${1:-}" == "run" ]]; then
 fi
 
 clean_tree() {
-  [[ -z "$(git status --porcelain 2>/dev/null)" ]] && git rev-parse -q --verify 'HEAD^{tree}' 2>/dev/null
+  [[ -z "$(git status --porcelain --untracked-files=all 2>/dev/null)" ]] && git rev-parse -q --verify 'HEAD^{tree}' 2>/dev/null
+}
+
+full_run() {
+  local arg
+  [[ -z "${LEFTHOOK_EXCLUDE:-}" && "${LEFTHOOK:-}" != 0 && "${LEFTHOOK:-}" != false ]] || return 1
+  for arg in "${@:3}"; do
+    [[ "$arg" != -* ]] || return 1
+  done
 }
 
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock"
 pass_file=""
-if [[ "$lane" == heavy && "${CI_LOCK_NO_PASS_CACHE:-}" != 1 ]] && tree="$(clean_tree)"; then
+if [[ "$lane" == heavy && "${CI_LOCK_NO_PASS_CACHE:-}" != 1 ]] && full_run "$@" && tree="$(clean_tree)"; then
   pass_file="$state_dir/passed/pre-push-$tree"
   if [[ -f "$pass_file" ]]; then
     echo "lefthook-ci-lock: pre-push already passed for tree ${tree:0:12}; skipping (CI_LOCK_NO_PASS_CACHE=1 reruns)" >&2
@@ -111,8 +119,14 @@ if [[ -n "$lane" ]]; then
   lock="$(find_ci_lock)"
   if [[ -n "$lock" ]]; then
     [[ -n "$pass_file" ]] || exec env CI_LOCK_LANE="$lane" "$lock" "${LEFTHOOK_CMD[@]}" "$@"
+    env CI_LOCK_LANE="$lane" "$lock" "${LEFTHOOK_CMD[@]}" "$@" <&0 &
+    child=$!
+    trap 'kill -TERM "$child" 2>/dev/null' HUP INT TERM
     status=0
-    env CI_LOCK_LANE="$lane" "$lock" "${LEFTHOOK_CMD[@]}" "$@" || status=$?
+    until wait "$child"; do
+      status=$?
+      kill -0 "$child" 2>/dev/null || break
+    done
     if ((status == 0)) && [[ "$(clean_tree)" == "$tree" ]]; then
       mkdir -p "${pass_file%/*}"
       touch "$pass_file"
