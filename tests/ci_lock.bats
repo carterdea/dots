@@ -361,10 +361,12 @@ teardown() {
 
 @test "memory pressure keeps a freed first slot closed while the second is busy" {
     (cd "$BATS_TEST_TMPDIR" && exec env CI_LOCK_LOG=/dev/null CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 \
-        "$CI_LOCK" sh -c "touch '$BATS_TEST_TMPDIR/a'; sleep 1") &
+        "$CI_LOCK" sh -c "touch '$BATS_TEST_TMPDIR/a'; until [ -e '$BATS_TEST_TMPDIR/release' ]; do sleep 0.05; done") &
     first=$!
     await "$BATS_TEST_TMPDIR/a"
     hold "$BATS_TEST_TMPDIR/b" "$BATS_TEST_TMPDIR"
+    ! flock -n "$LOCK.1" true
+    touch "$BATS_TEST_TMPDIR/release"
     wait "$first"
     run env FAKE_PRESSURE_LEVEL=2 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
     [ "$status" -eq 1 ]

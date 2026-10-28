@@ -576,10 +576,12 @@ EOF
     [ "$(classify 'while true; do result=$($CMD); sleep 1; done')" = "QUEUE long-check" ]
     [ "$(classify 'while true; do LABEL="nightly run" "$CMD"; sleep 5; done')" = "QUEUE long-check" ]
     [ "$(classify 'while true; do timeout 600 "$CMD"; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do if true; then "$CMD"; fi; sleep 5; done')" = "QUEUE long-check" ]
 }
 
 @test "polling loops that capture read-only status skip the queue" {
     [ "$(classify 'while true; do s=$(gh pr view 5 --json state); [ "$s" = done ] && break; sleep 30; done')" = "SKIP wait-loop" ]
+    [ "$(classify 'while true; do runs=$(gh run list --workflow pytest); sleep 30; done')" = "SKIP wait-loop" ]
 }
 
 @test "suites inside command substitutions queue" {

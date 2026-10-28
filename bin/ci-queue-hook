@@ -279,7 +279,7 @@ dynamic_command() {
     rest="${rest#*\$(}"
     dynamic_command "${rest%%)*}" && return 0
   done
-  assignment="^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=(\"[^\"]*\"|${sq}[^${sq}]*${sq}|[^[:space:]]*)"
+  assignment="^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=(\"[^\"]*\"|${sq}[^${sq}]*${sq}|[^[:space:]]*)|(then|do|else|elif|if|while|until|!|\\{)[[:space:]]|\\()"
   while [[ "$seg" =~ $assignment ]]; do
     seg="${seg:${#BASH_REMATCH[0]}}"
   done
@@ -605,9 +605,9 @@ decide() {
       continue
     fi
     # Long: full suites, e2e, aggregates, builds — the heavy lane.
-    if [[ "$seg" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]]|\$\()jest([[:space:]]|\)|$)) ]] ||
+    if [[ "$seg" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]]|\$\()jest([[:space:]]|$)|\$\(jest\)) ]] ||
       [[ "$seg" =~ run[[:space:]]+--filter[[:space:]]+[^[:space:]]+[[:space:]]+test([[:space:]]|$) ]] ||
-      [[ "$seg" =~ ((^|[[:space:]]|\$\()pytest([[:space:]]|\)|$)|(^|[[:space:]]|\$\()rspec([[:space:]]|\)|$)|go[[:space:]]+test) ]] ||
+      [[ "$seg" =~ ((^|[[:space:]]|\$\()pytest([[:space:]]|$)|\$\(pytest\)|(^|[[:space:]]|\$\()rspec([[:space:]]|$)|\$\(rspec\)|go[[:space:]]+test) ]] ||
       [[ "$seg" =~ (playwright|cypress|detox) ]] ||
       [[ "$seg" =~ (^|[[:space:]/])(rails|rake)[[:space:]]+test(:[a-z]+)?([[:space:]]|$) ]] ||
       [[ "$seg" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||
