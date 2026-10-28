@@ -45,7 +45,7 @@ Do NOT use Chrome MCP (mcp__claude-in-chrome__*) when agent-browser is installed
    agent-browser --session qa-<plan-slug> snapshot -i
    ```
 
-   Always pass a named `--session`; the default session is shared with every other agent on the machine.
+   Pass `--session qa-<plan-slug>` on every agent-browser command in this run, not just the first. The default session is shared with every other agent on the machine, and an exported `AGENT_BROWSER_SESSION` does not survive between shell calls.
 
    **Playwright CLI (fallback):**
    ```bash
@@ -53,7 +53,7 @@ Do NOT use Chrome MCP (mcp__claude-in-chrome__*) when agent-browser is installed
    ```
 
    If auth is needed, check for cached state:
-   - agent-browser: `agent-browser state load .playwright/.auth/qa-state.json`
+   - agent-browser: `agent-browser --session qa-<plan-slug> state load .playwright/.auth/qa-state.json`
    - playwright-cli: `playwright-cli state-load .playwright/.auth/qa-state.json`
 
    If no cached state exists, ask the user for credentials, log in via CLI commands, then persist state.
@@ -63,14 +63,14 @@ Do NOT use Chrome MCP (mcp__claude-in-chrome__*) when agent-browser is installed
 5. For each `- [ ] QA:` item:
    - Read the instruction and relevant source code
    - Navigate and interact using the selected browser tool (agent-browser or Playwright CLI)
-   - Take a snapshot to inspect page state (`agent-browser snapshot -i` or equivalent; `snapshot -i --delta` after same-page interactions)
+   - Take a snapshot to inspect page state (`agent-browser --session qa-<plan-slug> snapshot -i` or equivalent; `snapshot -i --delta` after same-page interactions)
    - Screenshot the result and save to `qa/screenshots/` (the baseline gitignores that subdir)
-   - On each page the item touches, run `agent-browser a11y --tags wcag2a,wcag2aa` (scope with `--selector` to the changed area when possible) and add a `> A11Y:` note for any violation the change introduced. A11y notes don't fail the item unless the item is about accessibility
+   - With agent-browser, on each page the item touches, run `agent-browser --session qa-<plan-slug> a11y --tags wcag2a,wcag2aa` (scope with `--selector` to the changed area when possible) and add a `> A11Y:` note for any violation the change introduced. A11y notes don't fail the item unless the item is about accessibility. On the Playwright fallback, skip this and note `> A11Y: skipped, agent-browser unavailable` once in the summary
    - Pass: check it off `- [x] QA:`
    - Fail: leave unchecked, add a `> FAIL:` annotation describing what went wrong
    - Continue to next item regardless of pass/fail
 
-6. Close the browser session when finished.
+6. Close the browser session when finished (`agent-browser --session qa-<plan-slug> close`).
 
 7. Summarize: passed, failed, skipped. If all passed, suggest `/pre-pr`. If any failed, suggest re-running `/execute-plan` to fix them.
 

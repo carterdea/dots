@@ -34,7 +34,7 @@
 
 {What is wrong, what was expected, and what actually happened.}
 
-<!-- Interactive issues only: embed the contact sheet saved next to the video. -->
+<!-- Interactive issues only: embed the contact sheet saved next to the video. Delete this image line for static issues. -->
 ![Contact sheet](videos/issue-001-repro.contact-sheet.png)
 
 **Repro Steps**

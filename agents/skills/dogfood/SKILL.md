@@ -112,7 +112,7 @@ agent-browser --session {SESSION} console
 agent-browser --session {SESSION} a11y --tags wcag2a,wcag2aa
 ```
 
-After interacting on the same page, use `snapshot -i --delta` to see only what changed. Log each distinct `a11y` violation rule once as an `accessibility` issue (static evidence: annotated screenshot plus the failing selector), not once per element or page.
+To see what an interaction changed, run `snapshot -i --delta` once before it (the first call returns the full baseline) and again after (only the changes). Log each distinct `a11y` violation rule once as an `accessibility` issue (static evidence: annotated screenshot plus the failing selector), not once per element or page.
 
 Use your judgment on how deep to go. Spend more time on core features and less on peripheral pages. If you find a cluster of issues in one area, investigate deeper.
 
