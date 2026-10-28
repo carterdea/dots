@@ -91,10 +91,61 @@ if [[ "${1:-}" == "run" ]]; then
   esac
 fi
 
+clean_tree() {
+  [[ -z "$(git status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null)" ]] && git rev-parse -q --verify 'HEAD^{tree}' 2>/dev/null
+}
+
+full_run() {
+  local arg
+  [[ -z "${LEFTHOOK_EXCLUDE:-}${LEFTHOOK_CONFIG:-}" && "${LEFTHOOK:-}" != 0 && "${LEFTHOOK:-}" != false ]] || return 1
+  for arg in "${@:3}"; do
+    [[ "$arg" != -* ]] || return 1
+  done
+}
+
+hook_config() {
+  local root config name
+  root="$(git rev-parse --show-toplevel)"
+  config="$(cat "$root"/{.,}lefthook*.{yml,yaml,json,toml} "$root"/.config/lefthook*.{yml,yaml,json,toml} 2>/dev/null)"
+  printf '%s\n' "$config"
+  for name in $(grep -oE '[$][{]?[A-Za-z_][A-Za-z0-9_]*' <<<"$config" | tr -d '{$' | sort -u); do
+    printf '%s=%s\n' "$name" "${!name:-}"
+  done
+}
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ci-lock"
+pass_file=""
+if [[ "$lane" == heavy ]] && full_run "$@" && tree="$(clean_tree)"; then
+  config_key="$(hook_config | git hash-object --stdin)"
+  pass_file="$state_dir/passed/pre-push-$tree-${config_key:0:12}"
+  if [[ "${CI_LOCK_NO_PASS_CACHE:-}" != 1 && -n "$(find "$pass_file" -mtime -14 2>/dev/null)" ]]; then
+    echo "lefthook-ci-lock: pre-push already passed for tree ${tree:0:12}; skipping (CI_LOCK_NO_PASS_CACHE=1 reruns)" >&2
+    printf '%s\theavy\t0\t0\tcached\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$PWD lefthook run pre-push" \
+      >>"${CI_LOCK_LOG:-$state_dir/ci-lock.log}" 2>/dev/null || true
+    exit 0
+  fi
+fi
+
 if [[ -n "$lane" ]]; then
   lock="$(find_ci_lock)"
   if [[ -n "$lock" ]]; then
-    exec env CI_LOCK_LANE="$lane" "$lock" "${LEFTHOOK_CMD[@]}" "$@"
+    [[ -n "$pass_file" ]] || exec env CI_LOCK_LANE="$lane" "$lock" "${LEFTHOOK_CMD[@]}" "$@"
+    env CI_LOCK_LANE="$lane" "$lock" "${LEFTHOOK_CMD[@]}" "$@" <&0 &
+    child=$!
+    trap 'kill -TERM "$child" 2>/dev/null' HUP INT TERM
+    status=0
+    until wait "$child"; do
+      status=$?
+      kill -0 "$child" 2>/dev/null || break
+    done
+    if ((status != 0)); then
+      rm -f "$pass_file"
+    elif [[ "$(clean_tree)" == "$tree" ]]; then
+      mkdir -p "${pass_file%/*}"
+      touch "$pass_file"
+      find "${pass_file%/*}" -type f -mtime +14 -delete 2>/dev/null || true
+    fi
+    exit "$status"
   fi
   echo "lefthook-ci-lock: ci-lock not found; running unqueued" >&2
 fi
