@@ -31,7 +31,7 @@ enforce() {
 
 # Same as enforce, with a Codex payload (identified by its turn_id).
 enforce_codex() {
-    jq -cn --arg c "$1" '{turn_id:"t1",permission_mode:"default",tool_input:{command:$c}}' |
+    jq -cn --arg c "$1" '{turn_id:"t1",tool_input:{command:$c}}' |
         HOME="$FAKE_HOME" CI_QUEUE_HOOK_LOG="$LOG" CI_QUEUE_HOOK_ENFORCE=1 "$HOOK"
 }
 
