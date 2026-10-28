@@ -372,6 +372,15 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
+@test "memory pressure keeps a single-slot caller out while another slot is busy" {
+    touch "$LOCK.1"
+    exec 9>"$LOCK.1"
+    flock -n 9
+    run env FAKE_PRESSURE_LEVEL=4 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=1 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    exec 9>&-
+    [ "$status" -eq 1 ]
+}
+
 @test "a third check waits while both slots are busy" {
     hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR"
     hold "$BATS_TEST_TMPDIR/b" "$BATS_TEST_TMPDIR"

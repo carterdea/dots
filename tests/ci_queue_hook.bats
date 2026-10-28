@@ -577,6 +577,8 @@ EOF
     [ "$(classify 'while true; do LABEL="nightly run" "$CMD"; sleep 5; done')" = "QUEUE long-check" ]
     [ "$(classify 'while true; do timeout 600 "$CMD"; sleep 5; done')" = "QUEUE long-check" ]
     [ "$(classify 'while true; do if true; then "$CMD"; fi; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do /usr/bin/env "$CMD"; sleep 5; done')" = "QUEUE long-check" ]
+    [ "$(classify 'while true; do echo "$(cd project && $CMD)"; sleep 5; done')" = "QUEUE long-check" ]
 }
 
 @test "polling loops that capture read-only status skip the queue" {

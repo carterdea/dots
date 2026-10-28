@@ -272,12 +272,14 @@ read_only_seg() {
 }
 
 dynamic_command() {
-  local seg="$1" rest="$1" sq="'" assignment
+  local seg="$1" rest="$1" sq="'" assignment inner
   local -a tok
   # shellcheck disable=SC2016
   while [[ "$rest" == *'$('* ]]; do
     rest="${rest#*\$(}"
-    dynamic_command "${rest%%)*}" && return 0
+    while IFS= read -r inner; do
+      dynamic_command "$inner" && return 0
+    done < <(split_segments "${rest%%)*}")
   done
   assignment="^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=(\"[^\"]*\"|${sq}[^${sq}]*${sq}|[^[:space:]]*)|(then|do|else|elif|if|while|until|!|\\{)[[:space:]]|\\()"
   while [[ "$seg" =~ $assignment ]]; do
@@ -287,7 +289,7 @@ dynamic_command() {
   ((${#tok[@]})) || return 1
   # shellcheck disable=SC2016
   [[ "${tok[0]}" == *'$'* || "${tok[0]}" == *'`'* ]] && return 0
-  case "${tok[0]}" in
+  case "${tok[0]##*/}" in
     eval|exec|source|.|xargs|command|env|nohup|time|timeout|sudo|nice|caffeinate|stdbuf) [[ "$seg" == *'$'* ]] ;;
     *) return 1 ;;
   esac

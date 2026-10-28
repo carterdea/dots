@@ -268,9 +268,9 @@ slot_held() {
   ( exec 197>"$(slot_file "$1")" && ! flock -n 197 )
 }
 other_slot_held() {
-  local slot
-  for ((slot = 1; slot < SLOTS; slot++)); do
-    slot_held "$slot" && return 0
+  local file
+  for file in "$LOCK_FILE".[0-9]*; do
+    [[ -e "$file" ]] && ( exec 197>"$file" && ! flock -n 197 ) && return 0
   done
   return 1
 }
@@ -346,7 +346,7 @@ acquire() {
       # budget: bash runs a trap only once the foreground command returns,
       # and a waiter that ignores Ctrl-C for half an hour — leaving its
       # ticket behind the whole time — is its own kind of wedge.
-      if ((SLOTS == 1)) && [[ -z "$REPO_LOCK" ]]; then
+      if ((SLOTS == 1)) && [[ -z "$REPO_LOCK" ]] && { memory_ok || ! other_slot_held; }; then
         exec 199>&-
         exec 199>"$LOCK_FILE"
         LOCK_FDS="199>&-"
