@@ -272,15 +272,19 @@ read_only_seg() {
 }
 
 dynamic_command() {
-  local seg="$1" rest="$1" sq="'" assignment inner
+  # shellcheck disable=SC2016
+  local seg="$1" rest="$1" sq="'" assignment inner open subst='$('
+  for open in '`' '<(' '>('; do
+    rest="${rest//"$open"/"$subst"}"
+  done
   local -a tok
   # shellcheck disable=SC2016
-  while [[ "$rest" == *'$('* ]]; do
+  if [[ "$rest" == *'$('* ]]; then
     rest="${rest#*\$(}"
     while IFS= read -r inner; do
       dynamic_command "$inner" && return 0
-    done < <(split_segments "${rest%%)*}")
-  done
+    done < <(split_segments "$rest")
+  fi
   assignment="^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=(\"[^\"]*\"|${sq}[^${sq}]*${sq}|[^[:space:]]*)|(then|do|else|elif|if|while|until|!|\\{)[[:space:]]|\\()"
   while [[ "$seg" =~ $assignment ]]; do
     seg="${seg:${#BASH_REMATCH[0]}}"
