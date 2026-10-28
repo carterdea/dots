@@ -5,7 +5,8 @@
 # Machine-wide semaphore for CI-style checks.
 # Usage: [CI_LOCK_LANE=<lane>] [CI_LOCK_SLOTS=<n>] ci-lock <command> [args...]
 # Commands queue per lane across every project, no matter how many agents
-# commit/push at once. Fast and check lanes run one at a time; heavy runs two,
+# commit/push at once. Fast and check lanes run one at a time; heavy runs two
+# (the second only while macOS reports no memory pressure),
 # never two from the same repository. Lanes are independent — the default "heavy" lane (tests, e2e,
 # builds) never blocks the "fast" lane (staged lint/format on commit), so a
 # commit only ever waits behind other commits, not behind a test suite.
@@ -267,6 +268,12 @@ slot0_held() {
   ( exec 197>"$LOCK_FILE" && ! flock -n 197 )
 }
 
+memory_ok() {
+  local level
+  level="$(sysctl -n kern.memorystatus_vm_pressure_level 2>/dev/null)" || return 0
+  [[ ! "$level" =~ ^[0-9]+$ ]] || ((level <= 1))
+}
+
 # Takes the repo lock (if any) and then any free slot, all nonblocking. On
 # failure nothing stays held, so the queue head never sits on half a claim.
 try_slots() {
@@ -277,6 +284,7 @@ try_slots() {
   fi
   for ((slot = 0; slot < SLOTS; slot++)); do
     ((slot == 0)) || slot0_owned || break
+    ((slot == 0)) || memory_ok || break
     # Closed first: bash 3.2 silently keeps an open fd above 9 on reopen.
     exec 199>&-
     exec 199>"$(slot_file "$slot")"

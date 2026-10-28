@@ -9,6 +9,10 @@ setup() {
     LOCK="$BATS_TEST_TMPDIR/test.lock"
     # Run from a git hook, these would redirect the fixture repositories.
     unset GIT_DIR GIT_COMMON_DIR GIT_WORK_TREE GIT_INDEX_FILE
+    unset "${!CI_LOCK_@}"
+    mkdir -p "$BATS_TEST_TMPDIR/pressure"
+    ln -sf "$DIR/fixtures/pressure-sysctl.bash" "$BATS_TEST_TMPDIR/pressure/sysctl"
+    export PATH="$BATS_TEST_TMPDIR/pressure:$PATH"
 }
 
 @test "unavailable clock helper does not prevent the check" {
@@ -327,6 +331,17 @@ teardown() {
 @test "two slots let a second check run beside the first" {
     hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR"
     run env CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 0 ]
+}
+
+@test "memory pressure keeps the second slot closed" {
+    hold "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR"
+    run env FAKE_PRESSURE_LEVEL=2 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
+    [ "$status" -eq 1 ]
+}
+
+@test "memory pressure never blocks the first slot" {
+    run env FAKE_PRESSURE_LEVEL=4 CI_LOCK_LOG="$LOG" CI_LOCK_FILE="$LOCK" CI_LOCK_SLOTS=2 CI_LOCK_TIMEOUT=1 "$CI_LOCK" true
     [ "$status" -eq 0 ]
 }
 
