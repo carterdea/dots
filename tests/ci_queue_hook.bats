@@ -853,3 +853,63 @@ EOF
     export -f ps
     [ "$(classify 'echo "$(ps bun test)"')" = "QUEUE long-check" ]
 }
+
+# --- quoted data and plain file steps stay out of the heavy lane ---
+
+@test "quoted program text naming a suite is data" {
+    [ "$(classify "awk -F'\t' '\$2==\"heavy\"{if(c~/vitest|bun test/)n++}' ci-lock.log")" = "SKIP not-heavy" ]
+    [ "$(classify 'git commit -q -m "fix: bun test flake"')" = "SKIP not-heavy" ]
+    [ "$(classify "trello cards comment abc --text 'ran bun run test locally'")" = "SKIP not-heavy" ]
+}
+
+@test "quoted text that executes still queues" {
+    [ "$(classify "node -e \"require('child_process').execSync('bun test')\"")" = "QUEUE long-check" ]
+    [ "$(classify 'nice -n 10 bash -c "bun test"')" = "QUEUE long-check" ]
+    [ "$(classify 'eval "bun run test"')" = "QUEUE long-check" ]
+    [ "$(classify "xargs -I{} sh -c 'bun test {}'")" = "QUEUE long-check" ]
+    [ "$(classify 'printf "%s" "$(bun run test)"')" = "QUEUE long-check" ]
+    [ "$(classify 'env -S "bun run test"')" = "QUEUE long-check" ]
+    [ "$(classify 'time run_silent "tests" "bun run test"')" = "QUEUE long-check" ]
+    [ "$(classify 'cat <(eval "bun test")')" = "QUEUE long-check" ]
+    [ "$(classify 'tee >(eval "bun test")')" = "QUEUE long-check" ]
+    [ "$(classify 'if true; then eval "bun test"; fi')" = "QUEUE long-check" ]
+    [ "$(classify 'for f in a; do run_silent "tests" "bun run test"; done')" = "QUEUE long-check" ]
+    [ "$(classify "node -p 'require(\"child_process\").execSync(\"bun test\")'")" = "QUEUE long-check" ]
+    [ "$(classify "python3 <<< 'import os; os.system(\"bun test\")'")" = "QUEUE long-check" ]
+    [ "$(classify 'git rebase --exec "bun run test" main')" = "QUEUE long-check" ]
+    [ "$(classify 'git rebase -x "bun run test" main')" = "QUEUE long-check" ]
+    [ "$(classify 'git grep --open-files-in-pager="bun run test" TODO')" = "QUEUE long-check" ]
+    [ "$(classify "awk 'BEGIN { cmd=\"bun test\"; print \"\" | cmd; close(cmd) }'")" = "QUEUE long-check" ]
+}
+
+@test "a quoted command word or script name is not data" {
+    [ "$(classify '"./scripts/verify.sh"')" = "QUEUE long-check" ]
+    [ "$(classify 'bun run "test"')" = "QUEUE long-check" ]
+    [ "$(classify "bun run 'typecheck'")" = "QUEUE check-only" ]
+}
+
+@test "run_silent executes its quoted command" {
+    [ "$(classify 'source scripts/run_silent.sh && run_silent "tests" "bun run test"')" = "QUEUE long-check" ]
+    [ "$(classify 'source scripts/run_silent.sh && run_silent "typecheck" "bun run typecheck"')" = "QUEUE check-only" ]
+}
+
+@test "file edits and staging beside a typecheck keep the check lane" {
+    [ "$(classify 'rm apps/api/src/jobs/old.test.ts && bun run typecheck')" = "QUEUE check-only" ]
+    [ "$(classify 'cp a.ts b.ts && mkdir -p out && bunx tsc --noEmit -p .')" = "QUEUE check-only" ]
+    [ "$(classify 'git add a.ts && git commit -qm wip && bun run lint')" = "QUEUE check-only" ]
+}
+
+@test "only plain file steps are excused beside a typecheck" {
+    [ "$(classify 'source ./setup.sh && bun run typecheck')" = "QUEUE long-check" ]
+    [ "$(classify 'make seed && bun run typecheck')" = "QUEUE long-check" ]
+    [ "$(classify 'git push && bun run typecheck')" = "QUEUE long-check" ]
+    [ "$(classify 'git -c core.hooksPath=x commit -m wip && bun run typecheck')" = "QUEUE long-check" ]
+    [ "$(classify 'rm "$(make integration)" && bun run typecheck')" = "QUEUE long-check" ]
+    [ "$(classify 'cp <(make seed) out && bun run typecheck')" = "QUEUE long-check" ]
+    cmd="$(printf "python3 - <<'EOF'\nimport subprocess; subprocess.run(['bun', 'test'])\nEOF\nbun run typecheck")"
+    [ "$(classify "$cmd")" = "QUEUE long-check" ]
+}
+
+@test "an unterminated quote keeps its text visible" {
+    [ "$(classify "trello comment 'bun run test")" = "QUEUE long-check" ]
+}
