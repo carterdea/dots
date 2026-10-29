@@ -23,14 +23,14 @@ Generate a continuation prompt so the next session can pick up where this one le
 
 ### 2. Detect Pipeline Position
 
-Scan conversation for which commands were used (`/design-doc`, `/execute-plan`, `/qa`, `/de-slop`, `/gh-ship`). Read the plan file (if one exists) and classify its state:
+Scan conversation for which commands were used (`/design-doc`, `/execute-plan`, `/qa`, `/de-slop`). Read the plan file (if one exists) and classify its state:
 
 | Plan state | Suggested next step |
 |---|---|
 | All implementation tasks unchecked | `/execute-plan <plan-path>` |
 | Some tasks checked, some unchecked | `/execute-plan <plan-path>` (resume) |
 | All tasks checked, unchecked `- [ ] QA:` items | `/qa <plan-path> [--url <dev-server-url>]` |
-| All QA items checked | `/de-slop` -> `code-simplifier` -> `/gh-ship` |
+| All QA items checked | `/de-slop` -> `code-simplifier` -> open a PR |
 | No plan file | `/design-doc` if the goal is clear |
 
 If mid-execution: count checked vs total tasks, note the first unchecked (e.g., "Paused at Phase 2, Task 3 -- 5/12 complete"). `/execute-plan` handles resuming.
@@ -93,7 +93,7 @@ Repo: [repo path]
 [- "Design doc complete. All implementation tasks unchecked -- start execution."]
 [- "Execution paused at Phase 2, Task 3 (5/12 complete). Resume execution."]
 [- "All implementation tasks checked. QA items remain -- run QA."]
-[- "QA complete. Run de-slop, then code-simplifier, then gh-ship."]
+[- "QA complete. Run de-slop, then code-simplifier, then open a PR."]
 
 ## Suggested Next Step
 

@@ -146,7 +146,7 @@ If unchecked `- [ ] QA:` items exist in the plan, output:
 
 If all QA items are already checked (or all were `QA: N/A`), output:
 
-/gh-ship
+Open a PR
 
 Keep it copy-pastable with no extra commentary inside the block.
 

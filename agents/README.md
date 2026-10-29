@@ -37,7 +37,6 @@ agents/
     ├── gh-commit/                        # Conventional commit messages
     ├── gh-fix-ci/                        # Fix first failing CI check
     ├── gh-review-pr/                     # Review GitHub PR
-    ├── gh-ship/                          # Commit, push, PR in one step
     ├── grilling/                         # Relentless one-question-at-a-time planning interview
     ├── grill-me/                         # Stress-test plan via relentless interview
     ├── handoff/                          # Generate continuation prompt
@@ -137,7 +136,6 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 
 ### GitHub Workflow
 
-- `/gh-ship` — Commit, push, and file a concise PR in one step
 - `/gh-commit` — Imperative conventional commit message
 - `/gh-review-pr` — Thorough PR review (correctness, tests, risk)
 - `/babysit-pr` — Run PR comment handling and CI fixes together, only when invoked

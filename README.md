@@ -222,7 +222,6 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/simple-html-artifact` - Build or refine single-file HTML artifacts
 
 **GitHub Workflow:**
-- `/gh-ship` - Commit, push, PR in one step
 - `/gh-commit` - Conventional commit messages
 - `/gh-review-pr` - Thorough PR review
 - `/gh-address-pr-comments` - Watch PR comments and fix valid review feedback
