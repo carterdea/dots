@@ -41,17 +41,17 @@ Check the diff against main and remove slop introduced in the branch. Preserve b
 2. Establish the local idiom.
    - Read nearby code before fixing.
    - Prefer existing utilities, dependency style, data shapes, and validation/error patterns.
-3. Show a dry-run list of issues found (file + line) unless the caller asked you to apply fixes directly.
-4. Ask what to fix (`1 3 4`, `1-5`, `all`, `none`) unless the caller delegated judgment.
-5. Apply selected edits.
-6. Run the narrowest useful checks for touched files.
-7. Re-open the diff and confirm the cleanup did not change intended behavior.
+3. Fix what's worth fixing, using your own judgment. No dry run, no approval step.
+   - Default to fixing. Most findings are worth it; quality always beats a smaller diff.
+   - Skip only items that would change intended behavior, need a product/API decision, or are churn with no real payoff. Note each skip and why.
+4. Run the narrowest useful checks for touched files.
+5. Re-open the diff and confirm the cleanup did not change intended behavior.
 
 For larger diffs, split the scan into passes: local idiom/reuse, cohesion/API shape, control flow/errors, and behavior tests/safety.
 
 ## Findings
 
-For review-only asks, return only the top 5-8 findings and merge repeated symptoms under one root cause.
+Only when the user explicitly asks for review-only, return only the top 5-8 findings and merge repeated symptoms under one root cause.
 
 Use this shape:
 
@@ -65,7 +65,7 @@ Use this shape:
 - `Confidence` (`High`, `Medium`, `Low`)
 - `File/line`
 
-For implementation asks, patch the code directly, then summarize what was simplified, what was intentionally left alone, what validation ran, and any follow-up risks.
+Otherwise, patch the code directly, then summarize what was simplified, what was intentionally left alone and why, what validation ran, and any follow-up risks.
 
 ## Guardrails
 
