@@ -425,7 +425,7 @@ git_runs_program() {
 # Prints a segment with its multi-word quoted arguments emptied, so a commit
 # message, an awk pattern, or a comment body that names a suite is not read as
 # running one. Only for tools whose quoted arguments are data (git commit,
-# tag, notes, log, show, grep; gh, trello, awk, jq); any other command may
+# tag, notes, log, show; gh, trello, awk, jq); any other command may
 # execute its quotes (git rebase -x, node -p, python <<<, eval, run_silent,
 # ...), so they stay, as do quotes beside git options that run programs.
 # Unchanged entirely: env -S, inline code (-c, -e, --eval), gh aliases, an awk
@@ -451,7 +451,7 @@ quoted_data_blanked() {
   case "$word" in
     git)
       case "${tok[i + 1]:-}" in
-        commit | tag | notes | log | show | grep) git_runs_program "${tok[@]:i+2}" && blank=0 ;;
+        commit | tag | notes | log | show) git_runs_program "${tok[@]:i+2}" && blank=0 ;;
         *) blank=0 ;;
       esac ;;
     gh) [[ "${tok[i + 1]:-}" != alias ]] || { printf '%s' "$seg"; return; } ;;
@@ -461,7 +461,7 @@ quoted_data_blanked() {
   # shellcheck disable=SC2016 # literal $( is the point
   if [[ "$seg" == *'$('* || "$seg" == *'`'* || "$seg" == *'<('* || "$seg" == *'>('* ]] ||
     [[ "$seg" =~ (^|[[:space:]])(-[a-zA-Z]*[ce][a-zA-Z]*|--eval|--command)([[:space:]=]|$) ]] ||
-    { [[ "$word" =~ ^[gmn]?awk$ ]] && [[ "$seg" == *system* || "$seg" == *getline* || "$seg" =~ \|[[:space:]]*\" ]]; }; then
+    { [[ "$word" =~ ^[gmn]?awk$ ]] && [[ "$seg" == *system* || "$seg" == *getline* || "$seg" =~ print[f]?[^\;\}]*\| ]]; }; then
     printf '%s' "$seg"
     return
   fi

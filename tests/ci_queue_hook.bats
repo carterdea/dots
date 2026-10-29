@@ -878,6 +878,8 @@ EOF
     [ "$(classify "python3 <<< 'import os; os.system(\"bun test\")'")" = "QUEUE long-check" ]
     [ "$(classify 'git rebase --exec "bun run test" main')" = "QUEUE long-check" ]
     [ "$(classify 'git rebase -x "bun run test" main')" = "QUEUE long-check" ]
+    [ "$(classify 'git grep --open-files-in-pager="bun run test" TODO')" = "QUEUE long-check" ]
+    [ "$(classify "awk 'BEGIN { cmd=\"bun test\"; print \"\" | cmd; close(cmd) }'")" = "QUEUE long-check" ]
 }
 
 @test "a quoted command word or script name is not data" {
