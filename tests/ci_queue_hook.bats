@@ -868,6 +868,14 @@ EOF
     [ "$(classify 'eval "bun run test"')" = "QUEUE long-check" ]
     [ "$(classify "xargs -I{} sh -c 'bun test {}'")" = "QUEUE long-check" ]
     [ "$(classify 'printf "%s" "$(bun run test)"')" = "QUEUE long-check" ]
+    [ "$(classify 'env -S "bun run test"')" = "QUEUE long-check" ]
+    [ "$(classify 'time run_silent "tests" "bun run test"')" = "QUEUE long-check" ]
+}
+
+@test "a quoted command word or script name is not data" {
+    [ "$(classify '"./scripts/verify.sh"')" = "QUEUE long-check" ]
+    [ "$(classify 'bun run "test"')" = "QUEUE long-check" ]
+    [ "$(classify "bun run 'typecheck'")" = "QUEUE check-only" ]
 }
 
 @test "run_silent executes its quoted command" {
@@ -876,8 +884,6 @@ EOF
 }
 
 @test "file edits and staging beside a typecheck keep the check lane" {
-    cmd="$(printf "python3 - <<'EOF'\nprint(1)\nEOF\nbun run typecheck")"
-    [ "$(classify "$cmd")" = "QUEUE check-only" ]
     [ "$(classify 'rm apps/api/src/jobs/old.test.ts && bun run typecheck')" = "QUEUE check-only" ]
     [ "$(classify 'cp a.ts b.ts && mkdir -p out && bunx tsc --noEmit -p .')" = "QUEUE check-only" ]
     [ "$(classify 'git add a.ts && git commit -qm wip && bun run lint')" = "QUEUE check-only" ]
@@ -888,6 +894,10 @@ EOF
     [ "$(classify 'make seed && bun run typecheck')" = "QUEUE long-check" ]
     [ "$(classify 'git push && bun run typecheck')" = "QUEUE long-check" ]
     [ "$(classify 'git -c core.hooksPath=x commit -m wip && bun run typecheck')" = "QUEUE long-check" ]
+    [ "$(classify 'rm "$(make integration)" && bun run typecheck')" = "QUEUE long-check" ]
+    [ "$(classify 'cp <(make seed) out && bun run typecheck')" = "QUEUE long-check" ]
+    cmd="$(printf "python3 - <<'EOF'\nimport subprocess; subprocess.run(['bun', 'test'])\nEOF\nbun run typecheck")"
+    [ "$(classify "$cmd")" = "QUEUE long-check" ]
 }
 
 @test "an unterminated quote keeps its text visible" {

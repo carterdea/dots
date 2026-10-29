@@ -422,21 +422,29 @@ git_runs_program() {
   return 1
 }
 
-# Prints a segment with its quoted arguments emptied, so a commit message, an
-# awk pattern, or a comment body that names a suite is not read as running
-# one. Unchanged when the segment executes quoted text: inline code (-c, -e,
-# --eval), a runner of its arguments (eval, run_silent, xargs, ...), an awk
-# program that spawns commands, or any substitution, whose nested quotes a
-# scan cannot pair reliably.
+# Prints a segment with its multi-word quoted arguments emptied, so a commit
+# message, an awk pattern, or a comment body that names a suite is not read as
+# running one. A one-word quote is unquoted, not emptied: it can be a script
+# name (bun run "test") or a path. Unchanged when the segment executes quoted
+# text: inline code (-c, -e, --eval), a runner of its arguments (eval,
+# run_silent, xargs, env -S, ...), a quoted command word, an awk program that
+# spawns commands, or any substitution, whose nested quotes a scan cannot pair
+# reliably.
 quoted_data_blanked() {
-  local seg="$1" out="" c q="" i word
+  local seg="$1" out="" span="" c q="" i word
   local -a tok
   read -ra tok <<<"$seg"
   i=0
-  while ((i < ${#tok[@]})) && [[ "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; do
+  while ((i < ${#tok[@]})); do
+    case "${tok[i]}" in
+      -S* | --split-string*) printf '%s' "$seg"; return ;;
+      env | time | nice | nohup | command | exec | timeout | caffeinate | stdbuf | -* | [0-9]*) ;;
+      *) [[ "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || break ;;
+    esac
     i=$((i + 1))
   done
   word="${tok[i]:-}"
+  if [[ "$word" == [\"\']* ]]; then printf '%s' "$seg"; return; fi
   word="${word##*/}"
   case "$word" in
     eval | run_silent | xargs | parallel | ssh | sudo | su | script | watch) printf '%s' "$seg"; return ;;
@@ -453,15 +461,18 @@ quoted_data_blanked() {
     if [[ -n "$q" ]]; then
       # shellcheck disable=SC1003 # comparing against a literal backslash
       if [[ "$q" == '"' && "$c" == '\' ]]; then
+        span+="$c${seg:i+1:1}"
         i=$((i + 1))
       elif [[ "$c" == "$q" ]]; then
-        out+="$q$q"
+        if [[ "$span" =~ [[:space:]] ]]; then out+="$q$q"; else out+="$span"; fi
         q=""
+      else
+        span+="$c"
       fi
       continue
     fi
     case "$c" in
-      \' | \") q="$c" ;;
+      \' | \") q="$c" span="" ;;
       \\) out+="$c${seg:i+1:1}"; i=$((i + 1)) ;;
       *) out+="$c" ;;
     esac
@@ -475,6 +486,8 @@ quoted_data_blanked() {
 plain_file_step() {
   local seg="$1" i
   local -a tok
+  # shellcheck disable=SC2016 # literal $( is the point
+  [[ "$seg" != *'$('* && "$seg" != *'`'* && "$seg" != *'<('* && "$seg" != *'>('* ]] || return 1
   read -ra tok <<<"$seg"
   i=0
   while ((i < ${#tok[@]})) && [[ "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; do
@@ -492,9 +505,6 @@ plain_file_step() {
       esac ;;
     # Sourcing the repo's quiet-output helper only defines run_silent.
     source | .) [[ ${#tok[@]} -eq $((i + 2)) && "${tok[i + 1]}" =~ (^|/)run_silent\.sh$ ]] ;;
-    # A script on stdin: its heredoc body was stripped as data. Alone it is
-    # already not heavy; beside a typecheck it is an edit, not a suite.
-    python | python3) [[ "${tok[i + 1]:-}" == - && "${tok[i + 2]:-}" == '<<'* ]] ;;
     *) return 1 ;;
   esac
 }
