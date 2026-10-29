@@ -18,6 +18,7 @@ You are a **Task subagent**. The parent agent already collected git output and c
 
 - Apply the rubric **only** to what the diff and contents show. Trace cross-file impact when the change touches module boundaries.
 - Output in the **priority order** the rubric specifies. Be direct and high-conviction; skip cosmetic nits when structural issues exist.
+- You have no edit tools: return findings only. The parent applies them by its own judgment, without a dry run or approval step.
 - Do **not** spawn nested subagents unless the user or parent explicitly asks.
 
 ## Parent orchestration

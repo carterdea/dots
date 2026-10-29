@@ -21,6 +21,16 @@ Start from this baseline:
 > Be ambitious, if there is a clear path to improving the implementation that involves restructuring some of the codebase, go for it.
 > Be extremely thorough and rigorous. Measure twice, cut once.
 
+## Apply, Don't Just Report
+
+This skill fixes the code, not just reviews it. No dry run, no approval step.
+
+- After the audit, implement the changes using your own judgment on what's worth doing.
+- Lean hard toward doing most or all of them, including the ambitious restructurings. Quality always beats a smaller diff.
+- Skip only changes that would alter intended behavior, need a product/API decision, or are churn with no real payoff. List each skip and why.
+- Run the narrowest useful checks for touched files, then re-read the diff to confirm behavior is unchanged.
+- Exception: when running as a read-only reviewer (e.g. the subagent with no edit tools), or the user explicitly asks for review-only, return findings and let the caller apply them.
+
 ## Non-Negotiable Additional Standards
 
 Apply the baseline prompt above, plus these explicit review rules:
@@ -35,7 +45,7 @@ Apply the baseline prompt above, plus these explicit review rules:
 1. **Do not let a PR push a file from under 1k lines to over 1k lines without a very strong reason.**
    - Treat this as a strong code-quality smell by default.
    - Prefer extracting helpers, subcomponents, modules, or local abstractions instead of letting a file sprawl past 1000 lines.
-   - If the diff crosses that threshold, explicitly ask whether the code should be decomposed first.
+   - If the diff crosses that threshold, decompose it.
    - Only waive this if there is a compelling structural reason and the resulting file is still clearly organized.
 
 2. **Do not allow random spaghetti growth in existing code.**
@@ -154,7 +164,7 @@ Good phrases:
 
 ## Output Expectations
 
-Prioritize findings in this order:
+Work through, and report, findings in this order:
 
 1. Structural code-quality regressions
 2. Missed opportunities for dramatic simplification / code-judo restructuring
@@ -190,4 +200,4 @@ Treat these as presumptive blockers unless the author can justify them clearly:
 - the PR adds an unnecessary abstraction, wrapper, or cast-heavy contract that makes the design more indirect
 - the PR duplicates an existing helper or puts logic in the wrong layer when there is a clear canonical home
 
-If those conditions are not met, leave explicit, actionable feedback and push for a cleaner decomposition.
+If those conditions are not met, fix them. Leave feedback instead only for the skips described in "Apply, Don't Just Report".
