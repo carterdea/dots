@@ -118,7 +118,7 @@ Before opening the PR — and before the preview, screenshots, and everything af
 
 - Run `de-slop`, then `code-simplifier` — **one after the other, never at the same time**. Both edit the same changed files and would collide.
 - **The edits must land on the branch you push.** Cleanup performed anywhere but the working tree you commit from is cleanup that never ships. If you can't guarantee the edits reach that tree, do the passes yourself in it. The cleanup is not negotiable to save context.
-- `de-slop` defaults to a dry-run list that waits for a manual selection. Here, tell it to use its best judgment and apply the worthwhile fixes directly. Keep it scoped to AI artifacts and cleanup noise in the branch diff.
+- `de-slop` applies the fixes it judges worthwhile directly. Keep it scoped to AI artifacts and cleanup noise in the branch diff.
 - `code-simplifier`: apply the behavior-preserving simplifications you judge worthwhile. Keep changes scoped to what you touched; don't refactor the whole repo.
 - Re-run the relevant checks from step 5 after cleanup so the folded-in changes are still green.
 - These cleanups ship in the same PR as the feature, in their own commits.

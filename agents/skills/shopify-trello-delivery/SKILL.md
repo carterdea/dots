@@ -143,7 +143,7 @@ Git mutations, Shopify deploys, GitHub PR updates, Trello comments and moves, an
    - Run this before deploying the preview theme — and before the PR, screenshots, and everything after it — so the cleaned-up code is what gets QA'd and shipped.
    - Run `de-slop`, then `code-simplifier` — **one after the other, never at the same time**. Both edit the same changed files and would collide.
    - **The edits must land on the branch you push.** Cleanup performed anywhere but the working tree you commit from is cleanup that never ships. If you can't guarantee the edits reach that tree, do the passes yourself in it. The cleanup is not negotiable to save context.
-   - `de-slop` defaults to a dry-run list that waits for a manual selection. Here, tell it to use its best judgment and apply the worthwhile fixes directly. Keep it scoped to AI artifacts and cleanup noise in the branch diff; preserve Shopify generated JSON headers (they are not slop).
+   - `de-slop` applies the fixes it judges worthwhile directly. Keep it scoped to AI artifacts and cleanup noise in the branch diff; preserve Shopify generated JSON headers (they are not slop).
    - `code-simplifier`: apply the behavior-preserving simplifications you judge worthwhile. Keep changes scoped to the files you touched; don't refactor the whole theme.
    - Re-run the relevant step 4 checks after cleanup — `git diff --check`, `shopify theme check`, and any package checks the touched files require — so the folded-in changes are still green.
    - These cleanups ship in the same PR as the feature, in their own commits.
