@@ -17,6 +17,6 @@ git diff --name-only
 
 3. Write tests following existing patterns (no excessive mocking).
 
-4. Run the smallest relevant test command (then the full suite if needed).
+4. Run the smallest relevant test command: the new test files or a name filter. Leave the full suite to the pre-push hook.
 
 5. Summarize what's covered and what's not.

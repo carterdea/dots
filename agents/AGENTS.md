@@ -37,11 +37,22 @@ The work is making complex things simple. Reduce complexity while solving the pr
 - Do not mock tests just to make them pass
 - When in plan mode, always include writing tests
 - Treat lint failures, test failures, and test flakiness as engineering quality problems worth fixing, even when they are not caused by the current change
-- Test only what changed: while iterating, run the test file or name filter for the code you touched, never the full suite. The pre-push hook owns the full gate
+
+## Checks and pushes
+Lefthook runs the heavy gates on commit and push through a machine-wide queue shared by every agent. Each extra full run blocks everyone else.
+- While iterating, run only the test file or name filter for the code you touched, plus the project's quiet typecheck/lint. Nothing broader
+- Never run the full test suite, e2e suite, a repo-wide `check`/`baseline` script, or `lefthook run pre-push` yourself. The pre-push hook owns the full gate; running it by hand and then pushing runs it twice
+- Run something broader only when I ask, or to reproduce a failure the hook or CI already reported, and then only the failing file or job
 - Don't rerun a check you already ran on the same code; read the earlier output instead
+- Commit locally as you go. Commits are cheap; pushes are not
+- Push only when opening a PR, when a batch of review or CI fixes is complete, or when I ask. One push per batch, never one per commit or per fix
+- Finish every change planned for the batch before pushing; a push followed by a "one more tweak" push is two full gates
+- Never push to see whether CI passes; reproduce the failing check locally and narrowly instead
+- If the pre-push hook fails, fix it, rerun only the failing check, then push once
 - Never poll with `sleep` loops in Bash; run long commands in the background and wait for the notification
 - A check printing "waiting in queue" is queued, not hung; never kill it
 - `git push --no-verify` is fine for docs-only changes, tiny follow-ups to a push that already passed, or when I say time is tight. Say when you used it. Never for code changes otherwise
+- When a project file says to run a suite before committing or pushing and the repo's lefthook already runs it, the hook satisfies that instruction
 
 ## Planning and task management
 - When creating planning documents, use markdown checkboxes for tasks
@@ -49,8 +60,7 @@ The work is making complex things simple. Reduce complexity while solving the pr
 
 ## Git workflow
 - Never use `git add .`; select files one at a time
-- Commit often in logical groups
-- Push rarely: every push runs the full pre-push gate. Commit locally while iterating; push once a piece of work is ready for review or a PR update
+- Commit often in logical groups; push rarely (see Checks and pushes)
 - Do not work on `main` unless given permission
 
 ## Writing and content

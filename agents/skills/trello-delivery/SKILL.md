@@ -109,7 +109,7 @@ Run only what the project actually has, preferring quiet/silent variants (often 
 
 - `git diff --check` for whitespace/conflict markers.
 - Typecheck and lint (e.g. `bun run typecheck`, `bun run lint`, biome) when those scripts exist.
-- The relevant tests. If the change touches a unit-tested area, run that suite (`bun run test`, vitest, jest). If there are e2e/playwright tests for the touched flow and they're fast enough to matter, run them; otherwise note they exist.
+- The relevant tests: only the test files covering what you touched (`vitest run <path>`, a name filter), not the whole suite. If there are e2e/playwright tests for the touched flow, run that one spec when it's fast; otherwise note it exists. The pre-push hook runs the full gate.
 - If checks surface failures, separate what your change introduced from pre-existing repo-wide noise, and report both. Don't hide failures, and don't block delivery on tooling the repo simply lacks — say "no test script present" and move on.
 
 ### 6. Cleanup pass (folded into this PR)
