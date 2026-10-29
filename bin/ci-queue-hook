@@ -180,7 +180,7 @@ system_command() {
     [[ "$1" =~ ^/(usr/)?s?bin/[^/]+$ ]]
   else
     # An exported function of that name would run instead of the tool.
-    ! declare -F "$1" >/dev/null
+    ! declare -F -- "$1" >/dev/null
   fi
 }
 
@@ -422,6 +422,83 @@ git_runs_program() {
   return 1
 }
 
+# Prints a segment with its quoted arguments emptied, so a commit message, an
+# awk pattern, or a comment body that names a suite is not read as running
+# one. Unchanged when the segment executes quoted text: inline code (-c, -e,
+# --eval), a runner of its arguments (eval, run_silent, xargs, ...), an awk
+# program that spawns commands, or any substitution, whose nested quotes a
+# scan cannot pair reliably.
+quoted_data_blanked() {
+  local seg="$1" out="" c q="" i word
+  local -a tok
+  read -ra tok <<<"$seg"
+  i=0
+  while ((i < ${#tok[@]})) && [[ "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; do
+    i=$((i + 1))
+  done
+  word="${tok[i]:-}"
+  word="${word##*/}"
+  case "$word" in
+    eval | run_silent | xargs | parallel | ssh | sudo | su | script | watch) printf '%s' "$seg"; return ;;
+  esac
+  # shellcheck disable=SC2016 # literal $( is the point
+  if [[ "$seg" == *'$('* || "$seg" == *'`'* ]] ||
+    [[ "$seg" =~ (^|[[:space:]])(-[a-zA-Z]*[ce][a-zA-Z]*|--eval|--command)([[:space:]=]|$) ]] ||
+    { [[ "$word" =~ ^[gmn]?awk$ ]] && [[ "$seg" == *system* || "$seg" == *getline* || "$seg" =~ \|[[:space:]]*\" ]]; }; then
+    printf '%s' "$seg"
+    return
+  fi
+  for ((i = 0; i < ${#seg}; i++)); do
+    c="${seg:i:1}"
+    if [[ -n "$q" ]]; then
+      # shellcheck disable=SC1003 # comparing against a literal backslash
+      if [[ "$q" == '"' && "$c" == '\' ]]; then
+        i=$((i + 1))
+      elif [[ "$c" == "$q" ]]; then
+        out+="$q$q"
+        q=""
+      fi
+      continue
+    fi
+    case "$c" in
+      \' | \") q="$c" ;;
+      \\) out+="$c${seg:i+1:1}"; i=$((i + 1)) ;;
+      *) out+="$c" ;;
+    esac
+  done
+  if [[ -n "$q" ]]; then printf '%s' "$seg"; else printf '%s' "$out"; fi
+}
+
+# True when a segment only edits, stages, or commits files: work that never
+# needs a heavy slot, so it should not pull a companion typecheck off the check
+# lane. Commits still run their own hooks, which lefthook queues itself.
+plain_file_step() {
+  local seg="$1" i
+  local -a tok
+  read -ra tok <<<"$seg"
+  i=0
+  while ((i < ${#tok[@]})) && [[ "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; do
+    i=$((i + 1))
+  done
+  ((i < ${#tok[@]})) || return 1
+  system_command "${tok[i]}" || return 1
+  case "${tok[i]##*/}" in
+    rm | rmdir | cp | mv | mkdir | touch | ln | chmod | diff | cmp) return 0 ;;
+    git)
+      case "${tok[i + 1]:-}" in
+        add | commit | checkout | restore | switch | stash | mv | rm | reset | apply)
+          ! git_runs_program "${tok[@]:i+2}" ;;
+        *) return 1 ;;
+      esac ;;
+    # Sourcing the repo's quiet-output helper only defines run_silent.
+    source | .) [[ ${#tok[@]} -eq $((i + 2)) && "${tok[i + 1]}" =~ (^|/)run_silent\.sh$ ]] ;;
+    # A script on stdin: its heredoc body was stripped as data. Alone it is
+    # already not heavy; beside a typecheck it is an edit, not a suite.
+    python | python3) [[ "${tok[i + 1]:-}" == - && "${tok[i + 2]:-}" == '<<'* ]] ;;
+    *) return 1 ;;
+  esac
+}
+
 all_read_only() {
   local segment
   while IFS= read -r segment; do
@@ -611,27 +688,30 @@ decide() {
       any_install=1
       continue
     fi
+    local scan
+    scan="$(quoted_data_blanked "$seg")"
     # Long: full suites, e2e, aggregates, builds — the heavy lane.
-    if [[ "$seg" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]]|\$\()jest([[:space:]]|$)|\$\(jest\)) ]] ||
-      [[ "$seg" =~ run[[:space:]]+--filter[[:space:]]+[^[:space:]]+[[:space:]]+test([[:space:]]|$) ]] ||
-      [[ "$seg" =~ ((^|[[:space:]]|\$\()pytest([[:space:]]|$)|\$\(pytest\)|(^|[[:space:]]|\$\()rspec([[:space:]]|$)|\$\(rspec\)|go[[:space:]]+test) ]] ||
-      [[ "$seg" =~ (playwright|cypress|detox) ]] ||
-      [[ "$seg" =~ (^|[[:space:]/])(rails|rake)[[:space:]]+test(:[a-z]+)?([[:space:]]|$) ]] ||
-      [[ "$seg" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||
-      [[ "$seg" =~ scripts/(verify|test)[^[:space:]]*\.sh ]] ||
+    if [[ "$scan" =~ (run[[:space:]]+test|bun[[:space:]]+test|vitest[[:space:]]+run|(^|[[:space:]]|\$\()jest([[:space:]]|$)|\$\(jest\)) ]] ||
+      [[ "$scan" =~ run[[:space:]]+--filter[[:space:]]+[^[:space:]]+[[:space:]]+test([[:space:]]|$) ]] ||
+      [[ "$scan" =~ ((^|[[:space:]]|\$\()pytest([[:space:]]|$)|\$\(pytest\)|(^|[[:space:]]|\$\()rspec([[:space:]]|$)|\$\(rspec\)|go[[:space:]]+test) ]] ||
+      [[ "$scan" =~ (playwright|cypress|detox) ]] ||
+      [[ "$scan" =~ (^|[[:space:]/])(rails|rake)[[:space:]]+test(:[a-z]+)?([[:space:]]|$) ]] ||
+      [[ "$scan" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||
+      [[ "$scan" =~ scripts/(verify|test)[^[:space:]]*\.sh ]] ||
       # An awk program file is opaque, like a shell script: it may run anything.
-      [[ "$seg" =~ (^|[^[:alnum:]_])[gmn]?awk[[:space:]]([^\;\&\|]*[[:space:]])?-f ]]; then
+      [[ "$scan" =~ (^|[^[:alnum:]_])[gmn]?awk[[:space:]]([^\;\&\|]*[[:space:]])?-f ]]; then
       echo "QUEUE long-check"
       return
     fi
     # Typecheck and lint only: CPU-bound, no ports, DBs, or fixtures — they
     # get their own lane so a 30s tsc never waits behind a Playwright run.
-    if [[ "$seg" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright|run[[:space:]]+lint(:[^[:space:]]*)?([[:space:]]|$)) ]] ||
-      [[ "$seg" =~ (shopify[[:space:]]+theme[[:space:]]+check|run[[:space:]]+check:theme([[:space:]]|$)) ]] ||
-      [[ "$seg" =~ (biome[[:space:]]+check|(^|[[:space:]])eslint|ruff[[:space:]]+check)([[:space:]]+-[^[:space:]]+)*[[:space:]]+\.([[:space:]]|$) ]]; then
+    if [[ "$scan" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright|run[[:space:]]+lint(:[^[:space:]]*)?([[:space:]]|$)) ]] ||
+      [[ "$scan" =~ (shopify[[:space:]]+theme[[:space:]]+check|run[[:space:]]+check:theme([[:space:]]|$)) ]] ||
+      [[ "$scan" =~ (biome[[:space:]]+check|(^|[[:space:]])eslint|ruff[[:space:]]+check)([[:space:]]+-[^[:space:]]+)*[[:space:]]+\.([[:space:]]|$) ]]; then
       checkonly=1
       continue
     fi
+    plain_file_step "$seg" && continue
     # A segment this classifier does not recognize could be anything.
     any_other=1
   done < <(split_segments "$cmd")

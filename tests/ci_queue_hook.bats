@@ -853,3 +853,43 @@ EOF
     export -f ps
     [ "$(classify 'echo "$(ps bun test)"')" = "QUEUE long-check" ]
 }
+
+# --- quoted data and plain file steps stay out of the heavy lane ---
+
+@test "quoted program text naming a suite is data" {
+    [ "$(classify "awk -F'\t' '\$2==\"heavy\"{if(c~/vitest|bun test/)n++}' ci-lock.log")" = "SKIP not-heavy" ]
+    [ "$(classify 'git commit -q -m "fix: bun test flake"')" = "SKIP not-heavy" ]
+    [ "$(classify "trello cards comment abc --text 'ran bun run test locally'")" = "SKIP not-heavy" ]
+}
+
+@test "quoted text that executes still queues" {
+    [ "$(classify "node -e \"require('child_process').execSync('bun test')\"")" = "QUEUE long-check" ]
+    [ "$(classify 'nice -n 10 bash -c "bun test"')" = "QUEUE long-check" ]
+    [ "$(classify 'eval "bun run test"')" = "QUEUE long-check" ]
+    [ "$(classify "xargs -I{} sh -c 'bun test {}'")" = "QUEUE long-check" ]
+    [ "$(classify 'printf "%s" "$(bun run test)"')" = "QUEUE long-check" ]
+}
+
+@test "run_silent executes its quoted command" {
+    [ "$(classify 'source scripts/run_silent.sh && run_silent "tests" "bun run test"')" = "QUEUE long-check" ]
+    [ "$(classify 'source scripts/run_silent.sh && run_silent "typecheck" "bun run typecheck"')" = "QUEUE check-only" ]
+}
+
+@test "file edits and staging beside a typecheck keep the check lane" {
+    cmd="$(printf "python3 - <<'EOF'\nprint(1)\nEOF\nbun run typecheck")"
+    [ "$(classify "$cmd")" = "QUEUE check-only" ]
+    [ "$(classify 'rm apps/api/src/jobs/old.test.ts && bun run typecheck')" = "QUEUE check-only" ]
+    [ "$(classify 'cp a.ts b.ts && mkdir -p out && bunx tsc --noEmit -p .')" = "QUEUE check-only" ]
+    [ "$(classify 'git add a.ts && git commit -qm wip && bun run lint')" = "QUEUE check-only" ]
+}
+
+@test "only plain file steps are excused beside a typecheck" {
+    [ "$(classify 'source ./setup.sh && bun run typecheck')" = "QUEUE long-check" ]
+    [ "$(classify 'make seed && bun run typecheck')" = "QUEUE long-check" ]
+    [ "$(classify 'git push && bun run typecheck')" = "QUEUE long-check" ]
+    [ "$(classify 'git -c core.hooksPath=x commit -m wip && bun run typecheck')" = "QUEUE long-check" ]
+}
+
+@test "an unterminated quote keeps its text visible" {
+    [ "$(classify "trello comment 'bun run test")" = "QUEUE long-check" ]
+}
