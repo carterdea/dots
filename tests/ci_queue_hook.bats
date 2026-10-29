@@ -870,6 +870,10 @@ EOF
     [ "$(classify 'printf "%s" "$(bun run test)"')" = "QUEUE long-check" ]
     [ "$(classify 'env -S "bun run test"')" = "QUEUE long-check" ]
     [ "$(classify 'time run_silent "tests" "bun run test"')" = "QUEUE long-check" ]
+    [ "$(classify 'cat <(eval "bun test")')" = "QUEUE long-check" ]
+    [ "$(classify 'tee >(eval "bun test")')" = "QUEUE long-check" ]
+    [ "$(classify 'if true; then eval "bun test"; fi')" = "QUEUE long-check" ]
+    [ "$(classify 'for f in a; do run_silent "tests" "bun run test"; done')" = "QUEUE long-check" ]
 }
 
 @test "a quoted command word or script name is not data" {

@@ -427,9 +427,9 @@ git_runs_program() {
 # running one. A one-word quote is unquoted, not emptied: it can be a script
 # name (bun run "test") or a path. Unchanged when the segment executes quoted
 # text: inline code (-c, -e, --eval), a runner of its arguments (eval,
-# run_silent, xargs, env -S, ...), a quoted command word, an awk program that
-# spawns commands, or any substitution, whose nested quotes a scan cannot pair
-# reliably.
+# run_silent, xargs, env -S, ...) even after a wrapper or then/do, a quoted
+# command word, an awk program that spawns commands, or any command or process
+# substitution, whose nested quotes a scan cannot pair reliably.
 quoted_data_blanked() {
   local seg="$1" out="" span="" c q="" i word
   local -a tok
@@ -439,6 +439,7 @@ quoted_data_blanked() {
     case "${tok[i]}" in
       -S* | --split-string*) printf '%s' "$seg"; return ;;
       env | time | nice | nohup | command | exec | timeout | caffeinate | stdbuf | -* | [0-9]*) ;;
+      if | then | elif | else | while | until | do | ! | \{ | \() ;;
       *) [[ "${tok[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || break ;;
     esac
     i=$((i + 1))
@@ -450,7 +451,7 @@ quoted_data_blanked() {
     eval | run_silent | xargs | parallel | ssh | sudo | su | script | watch) printf '%s' "$seg"; return ;;
   esac
   # shellcheck disable=SC2016 # literal $( is the point
-  if [[ "$seg" == *'$('* || "$seg" == *'`'* ]] ||
+  if [[ "$seg" == *'$('* || "$seg" == *'`'* || "$seg" == *'<('* || "$seg" == *'>('* ]] ||
     [[ "$seg" =~ (^|[[:space:]])(-[a-zA-Z]*[ce][a-zA-Z]*|--eval|--command)([[:space:]=]|$) ]] ||
     { [[ "$word" =~ ^[gmn]?awk$ ]] && [[ "$seg" == *system* || "$seg" == *getline* || "$seg" =~ \|[[:space:]]*\" ]]; }; then
     printf '%s' "$seg"
