@@ -1,4 +1,4 @@
 interface:
   display_name: "App Store Preflight Compliance"
   short_description: "Apple App Store preflight compliance workflow"
-  default_prompt: "Use $app-store-preflight-compliance to run Greenlight preflight, fix compliance issues, and rerun until GREENLIT."
+  default_prompt: "Use $app-store-preflight-compliance to audit App Store readiness for the target build, verify working flows and reviewer access, and report risks and evidence gaps."
