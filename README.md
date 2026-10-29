@@ -231,7 +231,6 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/trello-delivery` - Ship a Trello ticket end to end as a reviewable PR (non-Shopify web apps). Requires the `trello-cli` binary from [Scale-Flow/trello-cli](https://github.com/Scale-Flow/trello-cli)
 
 **Code Quality and Review:**
-- `/pre-pr` - Project-appropriate validation, release-risk review, and PR summary
 - `/rams` - Accessibility and visual design review
 - `/codex-review` - Second opinion via OpenAI Codex CLI
 - `/claude-review` - Second opinion via Claude Code CLI

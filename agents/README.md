@@ -52,7 +52,6 @@ agents/
     ├── loop-me/                          # Specify recurring workflows through grilling
     ├── nestjs-best-practices/            # NestJS architecture and API patterns
     ├── no-ui-flash/                      # Prevent wrong-state UI flashes
-    ├── pre-pr/                           # Project-appropriate PR validation and summary
     ├── prove-it-bug-fix/                 # Failing test before fix
     ├── qa/                               # Browser QA against plan file
     ├── quality-python/                   # Python structure, typing, IO, and tests
@@ -149,7 +148,6 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 
 ### Code Quality and Review
 
-- `/pre-pr` — Project-appropriate validation, release-risk review, and PR summary
 - `/rams` — Accessibility and visual design review against WCAG
 - `/codex-review` — Second opinion via OpenAI Codex CLI
 - `/claude-review` — Second opinion via Claude Code CLI

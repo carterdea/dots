@@ -72,7 +72,7 @@ Do NOT use Chrome MCP (mcp__claude-in-chrome__*) when agent-browser is installed
 
 6. Close the browser session when finished (`agent-browser --session qa-<plan-slug> close`).
 
-7. Summarize: passed, failed, skipped. If all passed, suggest `/pre-pr`. If any failed, suggest re-running `/execute-plan` to fix them.
+7. Summarize: passed, failed, skipped. If all passed, suggest `/gh-ship`. If any failed, suggest re-running `/execute-plan` to fix them.
 
 ## Rules
 
