@@ -253,9 +253,6 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 
 **Planning and Thinking:**
 - `/grill-me` - Stress-test plan via relentless interview
-- `/grilling` - Relentless one-question-at-a-time planning interview
-- `/loop-me` - Specify recurring workflows through grilling
-- `/domain-model` - Grilling session that maintains CONTEXT.md (glossary) and docs/adr/ inline
 - `/zoom-out` - Higher-level perspective on a section of code
 - `/subagent-orchestrator` - Coordinate sub-agents on long-horizon tasks
 - `/prove-it-bug-fix` - Failing reproduction test before fix

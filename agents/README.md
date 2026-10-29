@@ -29,7 +29,6 @@ agents/
     ├── de-slop/                          # Clean AI-shaped code before PR
     ├── design-doc/                       # Create technical design documents
     ├── dogfood/                          # Exploratory test web app, structured bug report
-    ├── domain-model/                     # Grilling session that maintains CONTEXT.md + ADRs
     ├── emil-design-engineering/          # Design engineering principles
     ├── execute-plan/                     # Work through plan file task-by-task
     ├── babysit-pr/                      # User-only wrapper for PR comments and CI fixes
@@ -37,7 +36,6 @@ agents/
     ├── gh-commit/                        # Conventional commit messages
     ├── gh-fix-ci/                        # Fix first failing CI check
     ├── gh-review-pr/                     # Review GitHub PR
-    ├── grilling/                         # Relentless one-question-at-a-time planning interview
     ├── grill-me/                         # Stress-test plan via relentless interview
     ├── handoff/                          # Generate continuation prompt
     ├── html-communication/               # HTML write-ups of work, reported as a link
@@ -48,7 +46,6 @@ agents/
     ├── iterate-forever/                  # Visual-reference-to-app loop
     ├── make-tests/                       # Add tests for current change
     ├── merge-conflicts/                  # Rebase, resolve conflicts, force-push
-    ├── loop-me/                          # Specify recurring workflows through grilling
     ├── nestjs-best-practices/            # NestJS architecture and API patterns
     ├── no-ui-flash/                      # Prevent wrong-state UI flashes
     ├── prove-it-bug-fix/                 # Failing test before fix
@@ -171,9 +168,6 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 ### Planning and Thinking
 
 - `/grill-me` — Stress-test a plan via relentless interview until each branch resolves
-- `/grilling` — Relentless one-question-at-a-time planning interview
-- `/loop-me` — Specify recurring workflows through grilling
-- `/domain-model` — Grilling session that updates `CONTEXT.md` (glossary) and `docs/adr/` inline as decisions crystallize. Pairs with `/improve-codebase-architecture`
 - `/zoom-out` — Higher-level perspective on a section of code
 - `/subagent-orchestrator` — Coordinate sub-agents on complex long-horizon tasks
 - `/prove-it-bug-fix` — Failing reproduction test before fixing
