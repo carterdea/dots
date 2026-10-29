@@ -877,6 +877,7 @@ EOF
     [ "$(classify "node -p 'require(\"child_process\").execSync(\"bun test\")'")" = "QUEUE long-check" ]
     [ "$(classify "python3 <<< 'import os; os.system(\"bun test\")'")" = "QUEUE long-check" ]
     [ "$(classify 'git rebase --exec "bun run test" main')" = "QUEUE long-check" ]
+    [ "$(classify 'git rebase -x "bun run test" main')" = "QUEUE long-check" ]
 }
 
 @test "a quoted command word or script name is not data" {
