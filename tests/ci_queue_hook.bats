@@ -874,6 +874,9 @@ EOF
     [ "$(classify 'tee >(eval "bun test")')" = "QUEUE long-check" ]
     [ "$(classify 'if true; then eval "bun test"; fi')" = "QUEUE long-check" ]
     [ "$(classify 'for f in a; do run_silent "tests" "bun run test"; done')" = "QUEUE long-check" ]
+    [ "$(classify "node -p 'require(\"child_process\").execSync(\"bun test\")'")" = "QUEUE long-check" ]
+    [ "$(classify "python3 <<< 'import os; os.system(\"bun test\")'")" = "QUEUE long-check" ]
+    [ "$(classify 'git rebase --exec "bun run test" main')" = "QUEUE long-check" ]
 }
 
 @test "a quoted command word or script name is not data" {
