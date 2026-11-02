@@ -75,6 +75,7 @@ agents/
     ├── simple-html-artifact/             # Single-file HTML artifacts
     ├── skill-creator/                    # Create/edit/measure skills
     ├── smart-brevity/                    # Smart Brevity rewriting
+    ├── stageshow/                        # Product UI illustrations and animated demos
     ├── subagent-orchestrator/            # Orchestrate sub-agents for long tasks
     ├── teach/                            # Teach skills or concepts with lessons
     ├── thermo-nuclear-code-quality-review/ # Harsh maintainability review
@@ -177,6 +178,7 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 
 - `/emil-design-engineering` — Polished, accessible web interface principles
 - `/interface-details` — Crafted UI micro-interactions and details
+- `/stageshow` — Product UI illustrations and animated cursor demos. Vendored from [benjitaylor/skills](https://github.com/benjitaylor/skills/tree/main/stageshow)
 - `/no-ui-flash` — Prevent wrong-state flashes in SPA/SSR auth and state gates
 - `/web-animation-design` — Animation patterns and performance
 - `/shopify-liquid-patterns` — Liquid code patterns

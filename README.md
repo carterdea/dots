@@ -261,6 +261,7 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 **Frontend and Design:**
 - `/emil-design-engineering` - Polished, accessible web interface principles
 - `/interface-details` - Crafted UI micro-interactions and details
+- `/stageshow` - Product UI illustrations and animated cursor demos. Vendored from [benjitaylor/skills](https://github.com/benjitaylor/skills/tree/main/stageshow)
 - `/no-ui-flash` - Prevent wrong-state flashes in SPA/SSR auth and state gates
 - `/web-animation-design` - Animation patterns and performance
 - `/shopify-liquid-patterns` - Liquid code patterns
