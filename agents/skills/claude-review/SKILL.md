@@ -11,17 +11,17 @@ Get an independent code review from Anthropic's Claude CLI as a second opinion.
 
 Pass `--model` with an alias — aliases always resolve to the latest version of each model, so never pin dated model IDs:
 
-- `sonnet` — Claude Sonnet. Default: fast and cheap, good enough for most reviews.
-- `opus` — Claude Opus. Stronger reasoning for tricky or subtle diffs.
+- `opus` — Claude Opus (currently Opus 5.5). Default for every review.
+- `sonnet` — Claude Sonnet. Faster and cheaper; only when the user asks for it.
 - `fable` — Claude Fable, Anthropic's most capable model. Premium tier, 2.5x Opus per-token pricing. See Reviewing with Fable below.
 
-If the user names a model ("use fable", "review with opus"), use that. Otherwise default to `sonnet`. Never upgrade to `fable` on your own initiative — it is opt-in.
+If the user names a model ("use fable", "review with sonnet"), use that. Otherwise always pass `--model opus` — never omit `--model`, or the CLI falls back to the account's configured default. Never downgrade to `sonnet` or upgrade to `fable` on your own initiative — both are opt-in.
 
 Non-interactive calls use print mode: `claude -p --model <alias> "<prompt>"` with the diff piped via stdin.
 
 ## Reviewing with Fable
 
-Only reach for Fable when the user asks for it by name, asks for "the deepest review" or "the best model", or the diff is genuinely high-stakes: security-sensitive code, auth, payments, concurrency, migrations, or a large refactor. For everything else Sonnet or Opus is the right call.
+Only reach for Fable when the user asks for it by name, asks for "the deepest review" or "the best model", or the diff is genuinely high-stakes: security-sensitive code, auth, payments, concurrency, migrations, or a large refactor. For everything else Opus is the right call.
 
 Fable behaves differently enough from the Opus family that the default recipe in Process needs three changes.
 
@@ -91,7 +91,7 @@ If the user provided custom focus instructions (e.g., "focus on security"), use 
 Set the model per the Model selection section, then pipe the diff into Claude's non-interactive print mode. If the model is `fable`, use the short prompt and effort flag from Reviewing with Fable instead of the checklist below:
 
 ```bash
-MODEL=sonnet  # or opus per Model selection; fable has its own recipe above
+MODEL=opus  # or sonnet if the user asks; fable has its own recipe above
 eval "$DIFF_CMD" | claude -p --model "$MODEL" "Review the code changes in this diff for quality, correctness, and adherence to best practices.
 
 ## Review Checklist
