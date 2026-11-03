@@ -86,13 +86,15 @@ owner and confirm the keeper goes red. Then restore the source byte for byte.
 Done when every reported gap is restored or rejected with source evidence, and
 every restored contract has a caught mutation.
 
-## 7. Product defects
+## 7. Baseline failures
 
-A baseline failure that survives into a keeper is a bug report. Report the
-defect and repair steps by default. When the task authorizes product changes,
-fix it at its owner as a separate commit and prove it through the real user
-flow, with a **control** run that reverts the fix and shows the old behavior.
-Record unrelated product discrepancies as follow-ups.
+A baseline failure that survives into a keeper is a defect candidate. Classify
+it as a test, harness, environment, or product defect and record the evidence.
+Report the defect and repair steps by default. When the task authorizes product
+changes, fix each confirmed product defect at its owner as a separate commit
+and prove it through the real user flow, with a **control** run that reverts
+the fix and shows the old behavior. Record unrelated product discrepancies as
+follow-ups.
 
 Done when each defect is reported and each authorized repair has a failing
 control and a passing candidate on the same harness.
