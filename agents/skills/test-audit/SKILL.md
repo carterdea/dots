@@ -55,6 +55,6 @@ Before adding test, answer:
   inspect full owners/callers/history; record remaining proof before deletion.
 - Delete obsolete production seams with tests; never optimize for deletion counts.
 - Follow [proof policy](references/proof.md#proof-policy); preserve active
-  Vitest checkouts; run owner/sibling proof + changed checks; then autoreview.
+  test runs; run owner/sibling proof + changed checks; then autoreview.
 - Report causes, retained contracts, proof/cost, production versus test LOC,
   follow-ups. Commit/push/land only with task authority.

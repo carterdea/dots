@@ -65,9 +65,10 @@ assertions to carry into keepers, and the test-only production seams unlocked.
 Edit lane by lane. Serialize changes to shared harnesses and support files
 through one owner. With each lane, remove the test-only production seams it
 unlocks: injection parameters, getters, reset exports, and indirection layers.
-Register moved suites in CI routing and test inventories. Update shrink-only
-line-cap baselines. Put durable test-ownership rules in the subsystem's
-`AGENTS.md`, drawn from mistakes this campaign actually found.
+Where the target repository defines them, register moved suites in CI routing
+and test inventories, and update shrink-only line-cap baselines. If the subsystem
+has an `AGENTS.md`, record durable test-ownership rules drawn from mistakes this
+campaign actually found. Report missing artifacts as unavailable; do not create them.
 
 Done when every lane plan is applied and each lane's keepers pass.
 
@@ -87,14 +88,14 @@ every restored contract has a caught mutation.
 
 ## 7. Product defects
 
-A baseline failure that survives into a keeper is a bug report. Fix it at its
-owner as a separate commit, and prove it through the real user flow, with a
-**control** run that reverts the fix and shows the old behavior. Record
-unrelated product discrepancies you find as follow-ups instead of fixing them
-in the campaign.
+A baseline failure that survives into a keeper is a bug report. Report the
+defect and repair steps by default. When the task authorizes product changes,
+fix it at its owner as a separate commit and prove it through the real user
+flow, with a **control** run that reverts the fix and shows the old behavior.
+Record unrelated product discrepancies as follow-ups.
 
-Done when each repaired defect has a failing control and a passing candidate
-on the same harness.
+Done when each defect is reported and each authorized repair has a failing
+control and a passing candidate on the same harness.
 
 ## 8. Reconcile and hand off
 

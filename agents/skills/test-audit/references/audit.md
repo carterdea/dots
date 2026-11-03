@@ -53,7 +53,7 @@ contract. Audit existing matches:
 ## Validation and handoff
 
 - Follow [proof policy](proof.md#proof-policy).
-  Never edit checkout during active Vitest run. Run owner/sibling tests.
+  Never edit a checkout during an active test run. Run owner/sibling tests.
 - Removed source greps/plan assertions: exercise owning executable/dry-run.
 - Run the repository's targeted format/check commands and `git diff --check`.
   Inspect CI routing before selecting validation; do not invent unavailable commands.
