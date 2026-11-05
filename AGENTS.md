@@ -7,6 +7,7 @@ Personal dotfiles and shared agent skills for macOS.
 - `install.sh` — symlinks dotfiles and agent configs; use `--dry-run` to preview
 - `bootstrap.sh` — fresh macOS setup (Xcode CLI tools, Homebrew, oh-my-zsh, tools)
 - `shell/` — zsh/bash configs
+- `bin/` — scripts symlinked into `~/.local/bin` (ci-lock: machine-wide flock queues with separate lanes — heavy for test suites (two slots, never two from one repo), check for typecheck/lint, fast for staged lint; lefthook-ci-lock: LEFTHOOK_BIN shim routing pre-push through the heavy lane and pre-commit through the fast lane, so commits never wait behind pushes)
 - `git/` — gitconfig with local override pattern (`~/.gitconfig.local`)
 - `config/` — ripgrep, gh, ghostty
 - `ssh/` — SSH config
@@ -33,4 +34,4 @@ Personal dotfiles and shared agent skills for macOS.
 - After Claude install, verify: `ls -la ~/.claude/CLAUDE.md`
 - After Codex install, verify: `ls -la ~/.codex/AGENTS.md`
 - After OpenCode install, verify: `ls -la ~/.config/opencode/AGENTS.md`
-- Shell changes need `source ~/.zshrc` or a new terminal
+- Shell changes need `exec zsh` or a new terminal; `source ~/.zshrc` skips `.zshenv`

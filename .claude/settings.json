@@ -189,5 +189,12 @@
       "- **Org-specific CLIs**: None configured — uv, agent-browser, claude, and gh seen in usage are general-purpose tools, not org-specific"
     ]
   },
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "pluginConfigs": {
+    "cc-plugin-agents-md@builtin": {
+      "options": {
+        "instructionFiles": "claude-md-and-agents-md"
+      }
+    }
+  }
 }
