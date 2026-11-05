@@ -171,7 +171,7 @@ dots/
 ├── bootstrap.sh            # Fresh macOS setup script
 ├── install.sh              # Installation script
 ├── Brewfile                # Homebrew package list
-├── CLAUDE.md               # Repo-specific agent instructions
+├── AGENTS.md               # Repo-specific agent instructions
 ├── README.md               # This file
 ├── tests/                  # bats + shellcheck suite (run_tests.sh)
 ├── shell/                  # Shell configurations

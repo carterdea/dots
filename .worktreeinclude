@@ -1,0 +1,16 @@
+.env
+.env.local
+.env.development.local
+.env.test.local
+agents/skills/shopify-polaris-admin-extensions/.env
+agents/skills/shopify-polaris-admin-extensions/.env.local
+agents/skills/shopify-polaris-admin-extensions/.env.development.local
+agents/skills/shopify-polaris-admin-extensions/.env.test.local
+agents/skills/shopify-polaris-app-home/.env
+agents/skills/shopify-polaris-app-home/.env.local
+agents/skills/shopify-polaris-app-home/.env.development.local
+agents/skills/shopify-polaris-app-home/.env.test.local
+agents/skills/stageshow/.env
+agents/skills/stageshow/.env.local
+agents/skills/stageshow/.env.development.local
+agents/skills/stageshow/.env.test.local
