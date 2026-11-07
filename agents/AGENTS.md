@@ -37,6 +37,7 @@ The work is making complex things simple. Reduce complexity while solving the pr
 - Do not mock tests just to make them pass
 - When in plan mode, always include writing tests
 - Treat lint failures, test failures, and test flakiness as engineering quality problems worth fixing, even when they are not caused by the current change
+- If you capture screenshots or videos while testing, use `gh pr create --attach` or `gh pr edit --attach` to attach media showing the final state to the PR description.
 
 ## Checks and pushes
 Lefthook runs the heavy gates on commit and push through a machine-wide queue shared by every agent. Each extra full run blocks everyone else.
