@@ -129,3 +129,4 @@ Before finishing:
 3. Pick the 2-3 weakest things and improve those first: usually hierarchy, verbosity, surface choice, or visual sameness.
 4. Check keyboard/focus, labels, contrast, touch targets, mobile overflow, long text, print/readability, and semantic HTML.
 5. If it still feels generated, fix structure and copy before changing colors, shadows, or fonts.
+6. End the reply with the file's absolute path.
