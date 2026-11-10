@@ -591,6 +591,24 @@ EOF
     [ "$(classify 'clean=0; while [ $clean -lt 4 ]; do sleep 300; uv run fetch_comments.py --pr 5 > /tmp/pr.json; done')" = "SKIP wait-loop" ]
 }
 
+@test "polling loops that wait on a load reading skip the queue" {
+    [ "$(classify 'until [ "$(sysctl -n vm.loadavg | awk '"'"'{print int($2)}'"'"')" -lt 150 ]; do sleep 30; done; uptime; git push -u origin HEAD')" = "SKIP wait-loop" ]
+    [ "$(classify 'deadline=$((SECONDS+5400)); until [ "$(sysctl -n vm.loadavg | awk '"'"'{print int($2)}'"'"')" -lt 12 ] || [ $SECONDS -ge $deadline ]; do sleep 30; done; uptime')" = "SKIP wait-loop" ]
+    [ "$(classify 'until [ "$(bun test | awk '"'"'{print int($1)}'"'"')" -gt 0 ]; do sleep 30; done')" = "QUEUE long-check" ]
+    [ "$(classify 'until [ -f /tmp/ready ] && $CMD; do sleep 30; done')" = "QUEUE long-check" ]
+}
+
+@test "xcode and swift builds and tests queue" {
+    [ "$(classify "xcodebuild test -project Aqua.xcodeproj -scheme Aqua -destination 'platform=iOS Simulator,id=4E7C'")" = "QUEUE long-check" ]
+    [ "$(classify 'taskpolicy -B -p $$ xcodebuild test-without-building -project Aqua.xcodeproj -scheme QA')" = "QUEUE long-check" ]
+    [ "$(classify 'xcodebuild -project Aqua.xcodeproj -scheme Aqua build')" = "QUEUE long-check" ]
+    [ "$(classify 'swift test')" = "QUEUE long-check" ]
+    [ "$(classify 'swift test --filter EquipmentDecoderTests')" = "SKIP not-heavy" ]
+    [ "$(classify 'xcodebuild -version')" = "SKIP not-heavy" ]
+    [ "$(classify 'xcodebuild -list -project Aqua.xcodeproj')" = "SKIP not-heavy" ]
+    [ "$(classify 'xcrun swiftc -typecheck -swift-version 6 Sources/Foo.swift')" = "QUEUE check-only" ]
+}
+
 @test "polling loops still queue dynamic commands and trailing suites" {
     [ "$(classify 'while true; do $CMD; sleep 5; done')" = "QUEUE long-check" ]
     [ "$(classify 'while true; do eval "$x"; sleep 5; done')" = "QUEUE long-check" ]

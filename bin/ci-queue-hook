@@ -645,9 +645,11 @@ decide() {
       done
       condition="${condition#"${condition%%[![:space:]]*}"}"
       condition="${condition#!}"
-      if [[ "$condition" == *'$'* ]] && ! all_read_only "$condition"; then
-        echo 'QUEUE long-check'; return
-      fi
+      while IFS= read -r body_segment; do
+        if dynamic_command "$body_segment"; then
+          echo 'QUEUE long-check'; return
+        fi
+      done < <(split_segments "$condition")
       verdict="$(decide "$condition")"
       [[ "$verdict" == 'QUEUE long-check' ]] && { echo "$verdict"; return; }
       [[ "$verdict" != QUEUE* ]] || condition_verdict="$verdict"
@@ -720,6 +722,8 @@ decide() {
       [[ "$scan" =~ run[[:space:]]+--filter[[:space:]]+[^[:space:]]+[[:space:]]+test([[:space:]]|$) ]] ||
       [[ "$scan" =~ ((^|[[:space:]]|\$\()pytest([[:space:]]|$)|\$\(pytest\)|(^|[[:space:]]|\$\()rspec([[:space:]]|$)|\$\(rspec\)|go[[:space:]]+test) ]] ||
       [[ "$scan" =~ (playwright|cypress|detox) ]] ||
+      [[ "$scan" =~ xcodebuild[[:space:]](.*[[:space:]])?(build|test|build-for-testing|test-without-building|archive)([[:space:]]|$) ]] ||
+      { [[ "$scan" =~ (^|[[:space:]])swift[[:space:]]+(build|test)([[:space:]]|$) ]] && [[ ! "$scan" =~ [[:space:]]--filter[[:space:]=] ]]; } ||
       [[ "$scan" =~ (^|[[:space:]/])(rails|rake)[[:space:]]+test(:[a-z]+)?([[:space:]]|$) ]] ||
       [[ "$scan" =~ (verify[:-](quick|full|silent)|run[[:space:]]+check([[:space:]]|$)|run[[:space:]]+build) ]] ||
       [[ "$scan" =~ scripts/(verify|test)[^[:space:]]*\.sh ]] ||
@@ -730,7 +734,7 @@ decide() {
     fi
     # Typecheck and lint only: CPU-bound, no ports, DBs, or fixtures — they
     # get their own lane so a 30s tsc never waits behind a Playwright run.
-    if [[ "$scan" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|basedpyright|run[[:space:]]+lint(:[^[:space:]]*)?([[:space:]]|$)) ]] ||
+    if [[ "$scan" =~ (run[[:space:]]+typecheck|tsc[[:space:]]+--noEmit|swiftc[[:space:]]+-typecheck|basedpyright|run[[:space:]]+lint(:[^[:space:]]*)?([[:space:]]|$)) ]] ||
       [[ "$scan" =~ (shopify[[:space:]]+theme[[:space:]]+check|run[[:space:]]+check:theme([[:space:]]|$)) ]] ||
       [[ "$scan" =~ (biome[[:space:]]+check|(^|[[:space:]])eslint|ruff[[:space:]]+check)([[:space:]]+-[^[:space:]]+)*[[:space:]]+\.([[:space:]]|$) ]]; then
       checkonly=1
