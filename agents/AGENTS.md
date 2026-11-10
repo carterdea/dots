@@ -98,6 +98,7 @@ Lefthook runs the heavy gates on commit and push through a machine-wide queue sh
 - If computer use is helpful for completing or verifying work, shell out to gpt-6-sol with Codex for it
 
 ## Commands
+- The shell is zsh: quote globs passed as arguments (`grep --include='*.ts'`, `find -name '*.sqlite'`) or use `rg -g '*.ts'`; unquoted ones abort with "no matches found"
 - Before starting a dev server, check whether one is already running (`portless list`); reuse it if so
 - Prefer starting dev servers in a worktree with `portless` over `bun run dev`; each worktree gets its own `https://<branch>.<project>.localhost` URL
 - Don't run build commands unless specifically told to

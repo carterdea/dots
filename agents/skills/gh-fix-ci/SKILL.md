@@ -1,6 +1,6 @@
 ---
 name: gh-fix-ci
-description: Fix failing PR checks and watch CI until green. Use when asked to repair CI or when another skill needs CI diagnosis and fixes.
+description: Fix failing PR checks and watch CI until green. Use when asked to repair CI, when a CI-failure event or Auto-fix wake-up arrives, or when another skill needs CI diagnosis and fixes. Reproduce the failing job locally before pushing; never push to see whether CI passes.
 user-invocable: true
 ---
 
