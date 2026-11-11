@@ -13,16 +13,16 @@ import argparse
 import datetime as dt
 import json
 import os
-import time
 import shutil
 import subprocess
 import sys
 import tarfile
+import time
 from pathlib import Path
 
 
 def run(cmd: list[str], cwd: Path | None = None, check: bool = False) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, cwd=cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=check)
+    return subprocess.run(cmd, cwd=cwd, text=True, capture_output=True, check=check)
 
 
 def expand(path: str) -> Path:
@@ -140,13 +140,20 @@ def under_any_root(wt: Path, roots: list[Path]) -> bool:
     return any(root in wt.parents or wt == root for root in roots)
 
 
+def may_hold_worktree(path: Path) -> bool:
+    try:
+        return (path / ".git").exists() or any((child / ".git").exists() for child in path.iterdir() if child.is_dir())
+    except OSError:
+        return True
+
+
 def move_leftovers(roots: list[Path], audit_dir: Path, trash_base: Path, apply: bool, registered: set[Path]) -> int:
     leftovers: list[Path] = []
     for root in roots:
         if not root.exists():
             continue
         for p in root.iterdir():
-            if p.is_dir() and p.resolve() not in registered:
+            if p.is_dir() and p.resolve() not in registered and not may_hold_worktree(p):
                 leftovers.append(p)
     with (audit_dir / "leftover-directories.tsv").open("w") as out:
         for p in leftovers:
