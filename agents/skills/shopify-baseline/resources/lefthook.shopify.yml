@@ -1,5 +1,5 @@
 # Shopify theme quality hooks.
-# Fast staged checks on commit. Full checks on push.
+# Fast checks on commit (staged lint, Theme Check, tsrs typecheck). Full checks on push.
 
 pre-commit:
   parallel: true
@@ -25,6 +25,9 @@ pre-commit:
         - "**/*.map"
       run: bunx biome check --write --no-errors-on-unmatched {staged_files}
       stage_fixed: true
+    typecheck:
+      glob: "**/*.{ts,tsx,mts,cts}"
+      run: bun run check:type
 
 pre-push:
   parallel: false
@@ -33,8 +36,6 @@ pre-push:
       run: bun run check:theme
     biome:
       run: bun run check:biome
-    typecheck:
-      run: bun run check:type
     dead-code:
       # self-skips unless src/ + a fallow config exist
       run: bun run check:dead-code

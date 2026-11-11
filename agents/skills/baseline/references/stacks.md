@@ -196,8 +196,27 @@ Hook layout:
 | Biome | `--write` staged files | full repo check |
 | Ruff | `format` and `check --fix` | full repo check |
 | Rubocop | `-a` staged | full repo check |
-| Typecheck | none | full project check |
+| Typecheck (TS, tsrs) | full project check | none |
+| Typecheck (Python) | none | full project check |
 | Fallow | none | full audit |
 | Tests | changed/staged only if fast | full relevant suite |
 
-Typecheckers, fallow, and full suites have no useful staged mode, so keep them pre-push.
+Fallow, full suites, and Python typecheckers have no useful staged mode, so keep them pre-push. TypeScript is the exception: tsrs checks a whole project in seconds, so it runs pre-commit.
+
+TypeScript typecheck scripts (check current versions before pinning; tsrs versions track a TypeScript 7 release):
+
+```bash
+bun add -d --exact typescript tsrs
+```
+
+```json
+{
+  "typecheck": "tsrs --noEmit --fast",
+  "typecheck:ci": "tsc --noEmit"
+}
+```
+
+- `typecheck` (tsrs) is the local and pre-commit check. `typecheck:ci` (TypeScript 7 `tsc`) is the CI check, so the reference compiler still signs off on every PR.
+- Build scripts that typecheck (`tsc -b && vite build`) use the same TypeScript 7 `tsc`; do not keep a second, older compiler for builds.
+- If a dependency needs the TypeScript JS API (ts-morph, some codegen), keep `typescript` on 5.x for it and add the compiler as an alias: `"typescript-7": "npm:typescript"`, then call its `tsc` from `typecheck:ci` and `build`.
+- vue-tsc, svelte-check, and astro check have no tsrs equivalent; keep those pre-push.

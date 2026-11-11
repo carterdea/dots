@@ -57,8 +57,8 @@ Completion criterion: each missing tool is installed or explicitly reported as s
 
 Create one root `lefthook.yml` if no lefthook config exists. Use fast staged checks on commit and full checks on push:
 
-- Pre-commit: formatter/linter staged-file fixes where the tool supports it.
-- Pre-push: typecheck, dead-code scan, and full test suite when present.
+- Pre-commit: formatter/linter staged-file fixes where the tool supports it, plus the TypeScript typecheck (tsrs).
+- Pre-push: dead-code scan, full test suite when present, and typecheck for stacks without a fast checker (Python).
 
 For monorepos, scope hook globs and commands per workspace using [`references/github-actions-monorepos.md`](references/github-actions-monorepos.md).
 

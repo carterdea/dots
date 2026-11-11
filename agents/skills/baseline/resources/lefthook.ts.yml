@@ -1,5 +1,5 @@
 # Lefthook config for TypeScript / JavaScript projects.
-# Fast staged-only checks on commit. Full-repo checks on push.
+# Fast checks on commit (staged lint, tsrs typecheck). Full-repo checks on push.
 
 pre-commit:
   parallel: true
@@ -8,15 +8,17 @@ pre-commit:
       glob: "**/*.{js,jsx,ts,tsx,json,jsonc}"
       run: bunx biome check --write --no-errors-on-unmatched {staged_files}
       stage_fixed: true
+    typecheck:
+      # tsrs checks the whole project in seconds, so it runs on every commit
+      # that touches TS. Remove on JS-only repos (no tsconfig.json).
+      glob: "**/*.{ts,tsx,mts,cts}"
+      run: bun run typecheck
 
 pre-push:
   parallel: false
   commands:
     biome:
       run: bunx biome check .
-    typecheck:
-      # Skipped automatically on JS-only repos (no tsconfig.json).
-      run: if [ -f tsconfig.json ]; then bunx tsc --noEmit; fi
     fallow:
       # --fail-on-issues: warn-level findings exit 0 without it, so the gate
       # would silently pass. --quiet drops the stderr progress noise.

@@ -41,7 +41,8 @@ Default shape:
     "check": "bash scripts/check.sh",
     "check:theme": "shopify theme check",
     "check:biome": "biome check .",
-    "check:type": "if [ -f tsconfig.json ]; then tsc --noEmit; else echo \"skipped: no tsconfig.json\"; fi",
+    "check:type": "if [ -f tsconfig.json ]; then tsrs --noEmit --fast; else echo \"skipped: no tsconfig.json\"; fi",
+    "check:type:ci": "if [ -f tsconfig.json ]; then tsc --noEmit; else echo \"skipped: no tsconfig.json\"; fi",
     "check:dead-code": "if [ -d src ] && { ls .fallowrc.* fallow.* >/dev/null 2>&1 || node -e \"process.exit(require('./package.json').fallow ? 0 : 1)\" 2>/dev/null; }; then fallow dead-code --quiet --fail-on-issues; else echo \"skipped: fallow runs only when src/ + a fallow config exist\"; fi",
     "check:test": "if ls vitest.config.* >/dev/null 2>&1; then vitest run; else echo \"skipped: no vitest config\"; fi",
     "check:a11y": "if [ -n \"${BASE_URL:-}${SHOPIFY_PREVIEW_URL:-}\" ]; then playwright test tests/accessibility; else echo \"skipped: set BASE_URL or SHOPIFY_PREVIEW_URL for accessibility smoke tests\"; fi",
@@ -64,12 +65,12 @@ Pre-commit:
 
 - Theme Check full-theme run when staged theme files changed. Theme Check supports `--path`, not staged file lists.
 - Biome write/check on staged JS/TS/JSON/CSS files.
+- Typecheck (tsrs) if `tsconfig.json` exists and TS files are staged.
 
 Pre-push:
 
 - Theme Check full repo.
 - Biome full repo.
-- Typecheck if `tsconfig.json` exists.
 - Fallow dead-code if `src/` and fallow config exist.
 - Vitest if configured.
 - Playwright accessibility only if `BASE_URL` is set.
