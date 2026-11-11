@@ -44,7 +44,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: bunx tsc --noEmit
+      - run: bun run typecheck:ci
 
   dead-code:
     runs-on: ubuntu-latest

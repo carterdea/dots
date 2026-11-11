@@ -100,7 +100,7 @@ Default dev dependencies:
 Add only when detected or requested:
 
 - `vite`
-- `typescript`
+- `typescript` (7.x) and `tsrs`
 - `vitest`
 - `fallow` only when bundled `src/` source exists
 

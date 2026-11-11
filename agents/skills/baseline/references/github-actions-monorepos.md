@@ -90,12 +90,13 @@ pre-commit:
       glob: "**/*.py"
       run: uv run ruff check --fix {staged_files}
       stage_fixed: true
+    typecheck-web:
+      root: "apps/web/"
+      glob: "**/*.{ts,tsx}"
+      run: bun run typecheck
 
 pre-push:
   commands:
-    typecheck-web:
-      root: "apps/web/"
-      run: bunx tsc --noEmit
     fallow-web:
       root: "apps/web/"
       run: bunx fallow

@@ -61,7 +61,7 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      - run: bun run check:type
+      - run: bun run check:type:ci
 
   dead-code:
     runs-on: ubuntu-latest
