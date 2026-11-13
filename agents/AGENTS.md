@@ -52,7 +52,6 @@ Lefthook runs the heavy gates on commit and push through a machine-wide queue sh
 - Finish every change planned for the batch before pushing; a push followed by a "one more tweak" push is two full gates
 - Never push to see whether CI passes; reproduce the failing check locally and narrowly instead
 - If the pre-push hook fails, fix it, rerun only the failing check, then push once
-- Never poll with `sleep` loops in Bash; run long commands in the background and wait for the notification
 - A check printing "waiting in queue" is queued, not hung; never kill it
 - `git push --no-verify` is fine for docs-only changes, tiny follow-ups to a push that already passed, or when I say time is tight. Say when you used it. Never for code changes otherwise
 - When a project file says to run a suite before committing or pushing and the repo's lefthook already runs it, the hook satisfies that instruction
@@ -69,7 +68,6 @@ Lefthook runs the heavy gates on commit and push through a machine-wide queue sh
 ## Writing and content
 - Do not use emojis in pull requests
 - Do not make up fake case studies or numbers
-- Sacrifice grammar for the sake of concision
 - List any unresolved questions at the end, if any
 
 ## Code style
@@ -97,7 +95,6 @@ Lefthook runs the heavy gates on commit and push through a machine-wide queue sh
 - Never touch production, live databases, or daily-driver build/preview channels unless explicitly told to
 
 ## General preferences
-- If computer use is helpful for completing or verifying work, shell out to gpt-6-sol with Codex for it
 
 ## Commands
 - The shell is zsh: quote globs passed as arguments (`grep --include='*.ts'`, `find -name '*.sqlite'`) or use `rg -g '*.ts'`; unquoted ones abort with "no matches found"
@@ -112,7 +109,6 @@ Lefthook runs the heavy gates on commit and push through a machine-wide queue sh
 - Be careful with destructive actions that are not explicitly requested
 - If details are missing, pick a reasonable default and state the assumption
 - Keep work moving with small, incremental steps and quick checks
-- If asked to do too much work at once, stop and state that clearly
 
 ## Match ceremony to the task
 - Do not spawn subagents or a multi-agent panel for work a single agent finishes in one pass. Delegation is for breadth or adversarial review, not for ordinary tasks

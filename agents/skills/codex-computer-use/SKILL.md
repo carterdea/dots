@@ -1,6 +1,6 @@
 ---
 name: codex-computer-use
-description: Ask Codex CLI (gpt-5.5) to run local app verification that needs computer use — browser automation, simulators, screenshots, app launching, or independent runtime inspection. This is how gpt-5.5 is invoked for computer-use work. Use when the user asks Claude to have Codex or gpt-5.5 test a flow, verify UI behavior, inspect a running app, capture screenshots, or report confirmation and feedback about implemented behavior.
+description: Ask Codex CLI (gpt-6.1-sol) to run local app verification that needs computer use — browser automation, simulators, screenshots, app launching, or independent runtime inspection. This is how gpt-6.1-sol is invoked for computer-use work. Use when the user asks Claude to have Codex or gpt-6.1-sol test a flow, verify UI behavior, inspect a running app, capture screenshots, or report confirmation and feedback about implemented behavior.
 ---
 
 # Codex Computer Use
@@ -27,13 +27,13 @@ RUN_LOG="$ARTIFACT_DIR/run.log"    # captures the codex exec stream, kept separa
 # Write a self-contained prompt to $PROMPT, then run:
 codex exec \
   -C "$PWD" \
-  -m gpt-5.5 \
+  -m gpt-6.1-sol \
   --add-dir "$ARTIFACT_DIR" \
   -s danger-full-access \
   - < "$PROMPT" > "$RUN_LOG"
 ```
 
-Pass `-m gpt-5.5` explicitly — the installed Codex config may default to a different model, and this skill's whole point is having gpt-5.5 do the verification.
+Pass `-m gpt-6.1-sol` explicitly — the installed Codex config may default to a different model.
 
 Keep the report path Codex writes distinct from where you capture stdout — redirecting the `codex exec` stream to `$REPORT` while also telling Codex to save its report there can interleave or clobber the file. Read `$REPORT` for Codex's report and `$RUN_LOG` for the run trace.
 

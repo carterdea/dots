@@ -21,6 +21,3 @@ You are a **Task subagent**. The parent agent already collected git output and c
 - You have no edit tools: return findings only. The parent applies them by its own judgment, without a dry run or approval step.
 - Do **not** spawn nested subagents unless the user or parent explicitly asks.
 
-## Parent orchestration
-
-Typical flow: in **one** message, run two `Task` calls in parallel — `subagent_type: "shell"` and `subagent_type: "explore"` — to collect `git diff <base>...HEAD` output and full contents of changed files (default base `main`). Then invoke this agent with `subagent_type: "thermo-nuclear-code-quality-review"` and a user prompt containing `### Git / diff output` and `### Changed file contents`.

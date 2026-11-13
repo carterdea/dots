@@ -14,7 +14,6 @@ You will analyze recently modified code and apply refinements that:
 
    - Use ES modules with proper import sorting and extensions
    - Prefer `function` keyword over arrow functions
-   - Use explicit return type annotations for top-level functions
    - Follow proper React component patterns with explicit Props types
    - Use proper error handling patterns (avoid try/catch when possible)
    - Maintain consistent naming conventions

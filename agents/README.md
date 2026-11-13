@@ -20,7 +20,6 @@ agents/
     ├── audit-ai-frontend/                # Audit AI-looking frontend implementations
     ├── baseline/                         # Install quality baseline (linter, hooks, dead-code)
     ├── claude-review/                    # Second opinion via Claude Code CLI
-    ├── clean-coder/                      # Invoked when user swears or is upset
     ├── clean-worktrees/                  # Audit/clean agent worktrees and gone branches safely
     ├── code-simplifier/                  # Simplify recently modified code
     ├── codex-review/                     # Second opinion via OpenAI Codex CLI
@@ -43,7 +42,6 @@ agents/
     ├── improve/                          # Senior codebase survey and improvement plan
     ├── improve-codebase-architecture/    # Find deepening opportunities
     ├── interface-details/                # Crafted UI micro-interactions and details
-    ├── iterate-forever/                  # Visual-reference-to-app loop
     ├── make-tests/                       # Add tests for current change
     ├── merge-conflicts/                  # Rebase, resolve conflicts, force-push
     ├── nestjs-best-practices/            # NestJS architecture and API patterns
@@ -76,7 +74,6 @@ agents/
     ├── skill-creator/                    # Create/edit/measure skills
     ├── smart-brevity/                    # Smart Brevity rewriting
     ├── stageshow/                        # Product UI illustrations and animated demos
-    ├── subagent-orchestrator/            # Orchestrate sub-agents for long tasks
     ├── teach/                            # Teach skills or concepts with lessons
     ├── thermo-nuclear-code-quality-review/ # Harsh maintainability review
     ├── trello-cli/                       # Drive Trello through the `trello-cli`
@@ -126,7 +123,6 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 - `/handoff` — Continuation prompt for the next session
 - `/de-slop` — Remove AI artifacts and clean AI-shaped code before PR
 - `/make-tests` — Generate tests for current changes
-- `/iterate-forever` — Visual-reference-to-app loop with screenshot comparison
 - `/dogfood` — Systematic bug hunt with structured repro evidence
 - `/merge-conflicts` — Rebase onto main, resolve conflicts, force-push
 - `/simple-html-artifact` — Build or refine single-file HTML artifacts
@@ -170,7 +166,6 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 
 - `/grill-me` — Stress-test a plan via relentless interview until each branch resolves
 - `/zoom-out` — Higher-level perspective on a section of code
-- `/subagent-orchestrator` — Coordinate sub-agents on complex long-horizon tasks
 - `/prove-it-bug-fix` — Failing reproduction test before fixing
 - `/ultragoal` — Design, critique, set, or update explicit long-horizon goals
 
@@ -218,7 +213,6 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 
 - `/skill-creator` — Create, edit, evaluate, and benchmark skills
 - `/self-improve` — Codex session-driven self-improvement
-- `/clean-coder` — Invoked when user swears or is upset
 - `/teach` — Teach a skill or concept with workspace-local lessons
 - `/wizard` — Generate interactive bash wizards
 

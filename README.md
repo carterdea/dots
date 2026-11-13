@@ -216,7 +216,6 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 - `/handoff` - Continuation prompt for the next session
 - `/de-slop` - Remove AI artifacts and clean AI-shaped code before PRs
 - `/make-tests` - Generate tests for current changes
-- `/iterate-forever` - Visual-reference-to-app loop with screenshot comparison
 - `/dogfood` - Exploratory test web app, structured bug report
 - `/merge-conflicts` - Rebase onto main, resolve conflicts, force-push
 - `/simple-html-artifact` - Build or refine single-file HTML artifacts
@@ -254,7 +253,6 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 **Planning and Thinking:**
 - `/grill-me` - Stress-test plan via relentless interview
 - `/zoom-out` - Higher-level perspective on a section of code
-- `/subagent-orchestrator` - Coordinate sub-agents on long-horizon tasks
 - `/prove-it-bug-fix` - Failing reproduction test before fix
 - `/ultragoal` - Design, critique, set, or update explicit long-horizon goals
 
@@ -297,7 +295,6 @@ Some shared skills include a `package.json` for local validation helpers. Any ag
 **Meta:**
 - `/skill-creator` - Create, edit, evaluate, benchmark skills
 - `/self-improve` - Codex session-driven self-improvement
-- `/clean-coder` - Invoked when user swears or is upset
 - `/teach` - Teach a skill or concept with workspace-local lessons
 - `/wizard` - Generate interactive bash wizards
 
