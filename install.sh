@@ -119,11 +119,15 @@ remove_deprecated_skill_symlinks() {
     local deprecated_skills=(
         "audit-ai-code"
         "audit-ai-writing"
+        "clean-coder"
         "clean-gone"
+        "code-review-prompt"
         "garry-tan-code-review"
+        "iterate-forever"
         "loop-on-ci"
         "new-skill"
         "pair-programming"
+        "subagent-orchestrator"
     )
 
     for skill_name in "${deprecated_skills[@]}"; do
@@ -137,6 +141,24 @@ remove_deprecated_skill_symlinks() {
             fi
         elif [[ -e "$target" ]]; then
             warn "Deprecated skill path is not a symlink; leaving unchanged: $target"
+        fi
+    done
+}
+
+remove_deprecated_subagents() {
+    local agents_dir=$1
+    local extension=$2
+    local deprecated_subagents=("codex-review")
+
+    for subagent_name in "${deprecated_subagents[@]}"; do
+        local target="$agents_dir/$subagent_name.$extension"
+        [[ -e "$target" || -L "$target" ]] || continue
+        if [[ "$DRY_RUN" == true ]]; then
+            info "[DRY RUN] Would remove deprecated subagent: $target"
+        else
+            backup_file "$target"
+            rm "$target"
+            info "Removed deprecated subagent: $target"
         fi
     done
 }
@@ -249,6 +271,7 @@ install_claude() {
     fi
 
     # Install subagents
+    remove_deprecated_subagents "$HOME/.claude/agents" "md"
     if [[ -d "$DOTFILES_DIR/agents/subagents" ]]; then
         for subagent in "$DOTFILES_DIR/agents/subagents"/*.md; do
             if [[ -f "$subagent" ]]; then
@@ -258,7 +281,7 @@ install_claude() {
     fi
 
     # Install skills (skip skills meant for other agents)
-    local CLAUDE_SKIP_SKILLS=("claude-review" "codex-review" "self-improve")
+    local CLAUDE_SKIP_SKILLS=("claude-review" "self-improve")
     remove_deprecated_skill_symlinks "$HOME/.claude/skills"
     if [[ -d "$DOTFILES_DIR/agents/skills" ]]; then
         for skill_dir in "$DOTFILES_DIR/agents/skills"/*; do
@@ -300,6 +323,7 @@ install_codex() {
         done
     fi
 
+    remove_deprecated_subagents "$HOME/.codex/agents" "toml"
     install_codex_agents
 }
 
