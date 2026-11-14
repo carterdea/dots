@@ -60,11 +60,10 @@ fpath=("$HOME/.local/share/zsh/site-functions" $fpath)
 autoload -Uz compinit
 compinit
 
-# asdf version manager
-. $(brew --prefix asdf)/libexec/asdf.sh
-
-# Prefer Homebrew globals over stale asdf shims when both expose a command.
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+
+# asdf shims win so per-project .tool-versions apply; ~/.tool-versions falls back to system
+export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
 
 # Load local configuration (API keys, secrets, machine-specific settings)
 [ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"
