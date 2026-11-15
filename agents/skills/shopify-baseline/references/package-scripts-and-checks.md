@@ -1,6 +1,6 @@
 # Package Scripts And Checks
 
-Use this when writing baseline files, package scripts, and agent instruction snippets.
+Use this when writing baseline files, package scripts, and AGENTS.md.
 
 ## Files To Write
 
@@ -21,13 +21,17 @@ Copy these resources when missing:
 - `.shopifyignore` from `resources/shopifyignore.default` when missing
 - `.env.example` from `resources/env.shopify.example` when missing
 
-Append `resources/agent-instructions.snippet.md` to existing root `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/*.mdc`. Do not create agent instruction files from scratch unless asked.
-
-The snippet is bounded by `<!-- shopify-baseline:run-silent -->` and `<!-- /shopify-baseline:run-silent -->`. If both markers exist, replace the full marked range. If an old install has only the opening marker, treat that open marker through the end of its block as the range and rewrite it with the bounded version.
-
-Key upgrade idempotency on a `scripts/check.sh` mention, not merely `run_silent.sh`.
-
 Resource templates default to Bun. In pnpm repos, rewrite `bun install`, `bun run`, and `bunx` to pnpm equivalents before writing. In GitHub Actions, replace Bun setup with `pnpm/action-setup` plus `actions/setup-node` with `cache: pnpm`.
+
+## AGENTS.md
+
+`AGENTS.md` is the only agent file; Claude Code, Codex, Cursor, and the rest read it. Never create `CLAUDE.md`, a symlink to it, or `.cursor/rules` files, and leave existing ones alone.
+
+The `## Working here` section of `resources/agents-md.template.md` is bounded by `<!-- shopify-baseline:run-silent -->` and `<!-- /shopify-baseline:run-silent -->`. Rewrite `<pm>` to `bun` or `pnpm`, and keep only rows for checks that exist.
+
+- `AGENTS.md` exists with both markers: replace the marked range. With only the opening marker (an old install), treat that marker through the end of its block as the range. With neither, append the marked section. Touch nothing else in the file.
+- Only a real `CLAUDE.md` exists: log `CLAUDE.md found — git mv CLAUDE.md AGENTS.md, then re-run shopify-baseline.` and skip this step.
+- Neither exists: write `AGENTS.md` from the template. Draft Why it exists, Principles, and How it fits together from the README, `shopify.theme.toml`, `layout/theme.liquid`, and the build config. Drop any section the repo cannot answer and report it as an open question; never invent a client, goal, or status. Link only docs that exist, and remove the template's HTML comments.
 
 ## Package Scripts
 
