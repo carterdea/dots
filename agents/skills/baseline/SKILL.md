@@ -72,7 +72,7 @@ Reconcile `AGENTS.md` using [`references/backpressure-portless.md`](references/b
 
 - `CLAUDE.md` is a symlink: `git rm` it.
 - `CLAUDE.md` is a real file and `AGENTS.md` is missing or a symlink: `git rm` any `AGENTS.md` symlink, then `git mv CLAUDE.md AGENTS.md`.
-- Both are real files: log `CLAUDE.md and AGENTS.md both exist — merge CLAUDE.md into AGENTS.md, git rm CLAUDE.md, then re-run baseline.` and skip this path.
+- Both are real files: merge all of `CLAUDE.md` into `AGENTS.md`, then `git rm CLAUDE.md`. Keep every instruction, file each one under the matching `AGENTS.md` section, write duplicates once, and drop `@AGENTS.md` import lines. Where the two contradict, keep the `AGENTS.md` wording and report the conflict as an open question.
 
 Then:
 
@@ -81,7 +81,7 @@ Then:
 
 Append `.gitignore` entries for `test-results/`, `/qa/screenshots/`, and `/qa/reports/` if absent.
 
-Completion criterion: the wrapper exists, QA artifacts are ignored, and `AGENTS.md` lists the repo's check and dev commands or a clear manual-reconcile blocker is logged.
+Completion criterion: the wrapper exists, QA artifacts are ignored, and `AGENTS.md` lists the repo's check and dev commands, and no `CLAUDE.md` remains.
 
 ### 5. Install Portless
 

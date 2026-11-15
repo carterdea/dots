@@ -31,7 +31,7 @@ Retire `CLAUDE.md` first:
 
 - `CLAUDE.md` is a symlink: `git rm` it.
 - `CLAUDE.md` is a real file and `AGENTS.md` is missing or a symlink: `git rm` any `AGENTS.md` symlink, then `git mv CLAUDE.md AGENTS.md`.
-- Both are real files: log `CLAUDE.md and AGENTS.md both exist — merge CLAUDE.md into AGENTS.md, git rm CLAUDE.md, then re-run shopify-baseline.` and skip this step.
+- Both are real files: merge all of `CLAUDE.md` into `AGENTS.md`, then `git rm CLAUDE.md`. Keep every instruction, file each one under the matching `AGENTS.md` section, write duplicates once, and drop `@AGENTS.md` import lines. Where the two contradict, keep the `AGENTS.md` wording and report the conflict as an open question.
 
 The `## Working here` section of `resources/agents-md.template.md` is bounded by `<!-- shopify-baseline:run-silent -->` and `<!-- /shopify-baseline:run-silent -->`. Rewrite `<pm>` to `bun` or `pnpm`, and keep only rows for checks that exist.
 
