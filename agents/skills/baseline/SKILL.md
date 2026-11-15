@@ -68,10 +68,15 @@ Completion criterion: `lefthook.yml` exists or was skipped because an existing h
 
 Copy this skill's `scripts/run_silent.sh` into the repo at `scripts/run_silent.sh` if missing and make it executable.
 
-Reconcile `AGENTS.md` using [`references/backpressure-portless.md`](references/backpressure-portless.md):
+Reconcile `AGENTS.md` using [`references/backpressure-portless.md`](references/backpressure-portless.md). Retire `CLAUDE.md` first:
+
+- `CLAUDE.md` is a symlink: `git rm` it.
+- `CLAUDE.md` is a real file and `AGENTS.md` is missing or a symlink: `git rm` any `AGENTS.md` symlink, then `git mv CLAUDE.md AGENTS.md`.
+- Both are real files: log `CLAUDE.md and AGENTS.md both exist — merge CLAUDE.md into AGENTS.md, git rm CLAUDE.md, then re-run baseline.` and skip this path.
+
+Then:
 
 - `AGENTS.md` exists: keep it; append only a `## Working here` commands table if it names no check or dev command.
-- Only a real `CLAUDE.md` exists: log `CLAUDE.md found — git mv CLAUDE.md AGENTS.md, then re-run baseline.` and skip this path.
 - Neither exists: write `AGENTS.md` from `resources/agents-md.template.md`, drafted from the README and code. Drop any section the repo cannot answer and report it as an open question.
 
 Append `.gitignore` entries for `test-results/`, `/qa/screenshots/`, and `/qa/reports/` if absent.

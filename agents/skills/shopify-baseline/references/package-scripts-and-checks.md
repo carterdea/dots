@@ -25,12 +25,17 @@ Resource templates default to Bun. In pnpm repos, rewrite `bun install`, `bun ru
 
 ## AGENTS.md
 
-`AGENTS.md` is the only agent file; Claude Code, Codex, Cursor, and the rest read it. Never create `CLAUDE.md`, a symlink to it, or `.cursor/rules` files, and leave existing ones alone.
+`AGENTS.md` is the only agent file; Claude Code, Codex, Cursor, and the rest read it. Never create `CLAUDE.md`, a symlink between the two, or `.cursor/rules` files, and leave existing `.cursor/rules` alone.
+
+Retire `CLAUDE.md` first:
+
+- `CLAUDE.md` is a symlink: `git rm` it.
+- `CLAUDE.md` is a real file and `AGENTS.md` is missing or a symlink: `git rm` any `AGENTS.md` symlink, then `git mv CLAUDE.md AGENTS.md`.
+- Both are real files: log `CLAUDE.md and AGENTS.md both exist — merge CLAUDE.md into AGENTS.md, git rm CLAUDE.md, then re-run shopify-baseline.` and skip this step.
 
 The `## Working here` section of `resources/agents-md.template.md` is bounded by `<!-- shopify-baseline:run-silent -->` and `<!-- /shopify-baseline:run-silent -->`. Rewrite `<pm>` to `bun` or `pnpm`, and keep only rows for checks that exist.
 
 - `AGENTS.md` exists with both markers: replace the marked range. With only the opening marker (an old install), treat that marker through the end of its block as the range. With neither, append the marked section. Touch nothing else in the file.
-- Only a real `CLAUDE.md` exists: log `CLAUDE.md found — git mv CLAUDE.md AGENTS.md, then re-run shopify-baseline.` and skip this step.
 - Neither exists: write `AGENTS.md` from the template. Draft Why it exists, Principles, and How it fits together from the README, `shopify.theme.toml`, `layout/theme.liquid`, and the build config. Drop any section the repo cannot answer and report it as an open question; never invent a client, goal, or status. Link only docs that exist, and remove the template's HTML comments.
 
 ## Package Scripts

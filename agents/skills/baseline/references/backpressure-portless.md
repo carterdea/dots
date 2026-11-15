@@ -23,14 +23,13 @@ Source: https://www.humanlayer.dev/blog/context-efficient-backpressure
 
 ## Agent Instructions
 
-`AGENTS.md` is the only agent file. Claude Code, Codex, Cursor, OpenCode, and pi all read it. Never create `CLAUDE.md` or a `CLAUDE.md -> AGENTS.md` symlink.
+`AGENTS.md` is the only agent file. Claude Code, Codex, Cursor, OpenCode, and pi all read it. Never create `CLAUDE.md` or a symlink between the two; retire an existing `CLAUDE.md` with the rules in `SKILL.md` step 4.
 
 AGENTS.md says why the project exists, what good looks like, and how the pieces fit at a high level, then links to the detailed docs. It is not a style guide: Biome, Ruff, Rubocop, and the type checker already enforce the mechanical rules, so do not restate them.
 
 Reconcile:
 
 - `AGENTS.md` exists: leave it alone. If it names no lint, typecheck, test, or dev command, append the `## Working here` section from the template and report it.
-- Only `CLAUDE.md` exists, as a real file: log `CLAUDE.md found — git mv CLAUDE.md AGENTS.md, then re-run baseline.` and skip the rest of this path.
 - Neither exists: write `AGENTS.md` from `resources/agents-md.template.md`.
 
 Writing a new AGENTS.md:
