@@ -23,27 +23,23 @@ Source: https://www.humanlayer.dev/blog/context-efficient-backpressure
 
 ## Agent Instructions
 
-`CLAUDE.md` is canonical. `AGENTS.md` is only a relative symlink to it.
+`AGENTS.md` is the only agent file. Claude Code, Codex, Cursor, OpenCode, and pi all read it. Never create `CLAUDE.md` or a `CLAUDE.md -> AGENTS.md` symlink.
 
-- If `AGENTS.md` exists as a regular file, stop only the agent-instructions reconcile path and log the manual merge instruction from `SKILL.md`.
-- Otherwise create `CLAUDE.md` if missing and create `AGENTS.md -> CLAUDE.md` if missing.
-- Append Cursor `.cursor/rules/*.mdc` snippets separately only when rules already exist.
+AGENTS.md says why the project exists, what good looks like, and how the pieces fit at a high level, then links to the detailed docs. It is not a style guide: Biome, Ruff, Rubocop, and the type checker already enforce the mechanical rules, so do not restate them.
 
-Append the stack-specific run-silent snippet:
+Reconcile:
 
-- TS / JS: `resources/agent-instructions.run-silent.ts.snippet.md`
-- Python: `resources/agent-instructions.run-silent.py.snippet.md`
-- Ruby: `resources/agent-instructions.run-silent.rb.snippet.md`
+- `AGENTS.md` exists: leave it alone. If it names no lint, typecheck, test, or dev command, append the `## Working here` section from the template and report it.
+- Only `CLAUDE.md` exists, as a real file: log `CLAUDE.md found — git mv CLAUDE.md AGENTS.md, then re-run baseline.` and skip the rest of this path.
+- Neither exists: write `AGENTS.md` from `resources/agents-md.template.md`.
 
-Each snippet has a sentinel. Skip only if that exact stack sentinel is present.
+Writing a new AGENTS.md:
 
-Append the stack-specific Portless snippet:
-
-- TS / JS: `resources/agent-instructions.portless.ts.snippet.md`
-- Python: `resources/agent-instructions.portless.py.snippet.md`
-- Ruby: `resources/agent-instructions.portless.rb.snippet.md`
-
-Per-stack sentinels allow mixed monorepos to carry multiple snippets.
+- Draft each section from `README.md`, the manifest's description, and the code layout. State only what the repo supports. When the repo cannot answer a section (usually Why it exists, Scope, or Principles), drop it and list it as an open question in the report; never invent a goal, user, or status.
+- Fill Working here with the commands that exist: the package scripts or tool commands the hooks call, and the dev command. Prefer the repo's quiet variant when a script wraps `run_silent.sh`. Keep it a table, no prose about how the tools work.
+- Dev command: TS/JS uses bare `portless`, which runs the `package.json` `dev` script (in a workspace root it starts every package with a `dev` script; name the per-app form instead). Python and Ruby pass the command and `$PORT` explicitly, for example `portless run uv run uvicorn app.main:app --port $PORT --host 127.0.0.1` or `portless run bundle exec rails server -p $PORT -b 127.0.0.1`.
+- Docs links only to files that exist. Do not create architecture or stack docs to link to.
+- Remove the template's HTML comments. Aim for under 100 lines.
 
 ## `.gitignore`
 
@@ -77,7 +73,7 @@ else
 fi
 ```
 
-Do not rewrite source files for Portless. For TS/JS, keep the existing `dev` script. For Python/Ruby, put the invocation in the agent instruction snippet.
+Do not rewrite source files for Portless. For TS/JS, keep the existing `dev` script. For Python/Ruby, put the invocation in AGENTS.md's Working here table.
 
 Docker aliases are explicit and project-specific:
 
@@ -100,5 +96,5 @@ Portless is pre-1.0; if trust warnings reappear after upgrade, tell the user to 
 - `lefthook.yml`
 - `.github/workflows/ci.yml`
 - `scripts/run_silent.sh`
-- `CLAUDE.md` canonical file and relative `AGENTS.md` symlink
+- `AGENTS.md` (new repos only)
 - global `portless`

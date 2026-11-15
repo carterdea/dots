@@ -22,7 +22,7 @@ Install or upgrade a light-touch quality floor for Shopify Online Store 2.0 them
 Read only the branch needed for the current repo:
 
 - Theme Access secrets, `.env`, `.gitignore`, and `.shopifyignore`: [`references/theme-access-and-ignore-files.md`](references/theme-access-and-ignore-files.md)
-- Package scripts, `scripts/check.sh`, `run_silent.sh`, and files to write: [`references/package-scripts-and-checks.md`](references/package-scripts-and-checks.md)
+- Package scripts, `scripts/check.sh`, `run_silent.sh`, `AGENTS.md`, and files to write: [`references/package-scripts-and-checks.md`](references/package-scripts-and-checks.md)
 - Biome, Fallow, Vite, and accessibility rules: [`references/tooling-rules.md`](references/tooling-rules.md)
 - GitHub Actions, Shopify Lighthouse CI, and Claude Code review: [`references/github-actions.md`](references/github-actions.md)
 
@@ -68,6 +68,7 @@ Inventory existing tooling:
 - Shopify Lighthouse CI.
 - `shopify.theme.toml` environments and committed `shptka_` secrets.
 - `.shopifyignore`.
+- `AGENTS.md` and `CLAUDE.md`.
 
 If the theme is not at the repository root, stop after detection and propose a root strategy before writing files.
 
@@ -110,7 +111,7 @@ Completion criterion: package changes are limited to missing baseline dependenci
 
 ### 5. Write or patch baseline files
 
-Use [`references/package-scripts-and-checks.md`](references/package-scripts-and-checks.md) for the file list and package script shape. Copy bundled resources when files are missing; patch existing files only where the reference explicitly says to reconcile.
+Use [`references/package-scripts-and-checks.md`](references/package-scripts-and-checks.md) for the file list, package script shape, and `AGENTS.md`. Copy bundled resources when files are missing; patch existing files only where the reference explicitly says to reconcile.
 
 Always preserve Shopify-managed theme data:
 
