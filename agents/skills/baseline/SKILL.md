@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Baseline
 
-Install a light-touch quality floor on a repo. Detect the stack, add the missing standard tools, wire local hooks and CI, install Portless, and make quiet checks discoverable to future agents.
+Install a light-touch quality floor on a repo. Detect the stack, add the missing standard tools, wire local hooks and CI, install Portless, and give future agents an `AGENTS.md` that says what the project is for and how to check it.
 
 Safe to re-run: skip what is already configured and report it.
 
@@ -14,16 +14,16 @@ Safe to re-run: skip what is already configured and report it.
 
 - **Light-touch:** if a config already exists, log `already configured: <path>` and do not merge, diff, overwrite, or modernize it.
 - **Honest debt:** install the guardrails; do not fix the issues they surface. Report failing checks and counts so the repo's real debt is visible.
-- **One agent file:** `CLAUDE.md` is canonical; `AGENTS.md` is only a relative symlink to it.
+- **One agent file:** `AGENTS.md`, never `CLAUDE.md`. It describes purpose, goals, and the stack at a high level, links to detailed docs, and leaves code style to the tools.
 - **Project manager wins:** use the existing lockfile/package manager. Do not rewrite lockfiles or migrate managers.
-- **Quiet checks:** install `scripts/run_silent.sh` and point agent instructions at it so success is compact and failure is diagnostic.
+- **Quiet checks:** install `scripts/run_silent.sh` so success is compact and failure is diagnostic.
 
 ## References
 
 Read only the reference branch the detected repo needs:
 
 - TS/JS, Python, Ruby tool choices, framework detection, linter/typecheck/fallow/lefthook details: [`references/stacks.md`](references/stacks.md)
-- `run_silent.sh`, agent-instruction snippets, Portless, and produced files: [`references/backpressure-portless.md`](references/backpressure-portless.md)
+- `run_silent.sh`, AGENTS.md, Portless, and produced files: [`references/backpressure-portless.md`](references/backpressure-portless.md)
 - GitHub Actions and monorepo layout: [`references/github-actions-monorepos.md`](references/github-actions-monorepos.md)
 
 ## Steps
@@ -64,18 +64,19 @@ For monorepos, scope hook globs and commands per workspace using [`references/gi
 
 Completion criterion: `lefthook.yml` exists or was skipped because an existing hook config already owns the repo.
 
-### 4. Add quiet-check support
+### 4. Add quiet checks and AGENTS.md
 
-Copy this skill's `scripts/run_silent.sh` into the repo at `scripts/run_silent.sh` if missing and make it executable. Append the stack-specific run-silent and Portless snippets to the canonical agent instructions using [`references/backpressure-portless.md`](references/backpressure-portless.md).
+Copy this skill's `scripts/run_silent.sh` into the repo at `scripts/run_silent.sh` if missing and make it executable.
 
-Reconcile agent instructions first:
+Reconcile `AGENTS.md` using [`references/backpressure-portless.md`](references/backpressure-portless.md):
 
-- If `AGENTS.md` is a real file, stop only this reconcile path and log: `AGENTS.md is a real file — merge it into CLAUDE.md, replace it with ln -s CLAUDE.md AGENTS.md, then re-run baseline.`
-- Otherwise create `CLAUDE.md` if missing and create a relative `AGENTS.md -> CLAUDE.md` symlink if missing.
+- `AGENTS.md` exists: keep it; append only a `## Working here` commands table if it names no check or dev command.
+- Only a real `CLAUDE.md` exists: log `CLAUDE.md found — git mv CLAUDE.md AGENTS.md, then re-run baseline.` and skip this path.
+- Neither exists: write `AGENTS.md` from `resources/agents-md.template.md`, drafted from the README and code. Drop any section the repo cannot answer and report it as an open question.
 
 Append `.gitignore` entries for `test-results/`, `/qa/screenshots/`, and `/qa/reports/` if absent.
 
-Completion criterion: the wrapper exists, QA artifacts are ignored, and the canonical agent file either contains the right snippets or has a clear manual-reconcile blocker.
+Completion criterion: the wrapper exists, QA artifacts are ignored, and `AGENTS.md` lists the repo's check and dev commands or a clear manual-reconcile blocker is logged.
 
 ### 5. Install Portless
 
@@ -125,4 +126,4 @@ Do not verify with `bunx` or `uv run` when the repo was installed through anothe
 
 If checks fail, separate setup failures from inherited project debt. Do not fix the debt during baseline.
 
-Completion criterion: report tools installed, tools skipped, hooks wired, CI status, and verification results.
+Completion criterion: report tools installed, tools skipped, hooks wired, CI status, verification results, and any AGENTS.md sections left for the user to answer.
