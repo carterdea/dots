@@ -154,3 +154,11 @@ runs() { [ -f "$RUNS" ] && wc -l <"$RUNS" | tr -d ' ' || echo 0; }
     "$SHIM" run pre-push
     [ "$(runs)" = 2 ]
 }
+
+@test "lefthook installed in a subdirectory package is found" {
+    mkdir workers
+    mv node_modules workers/
+    run "$SHIM" run pre-commit
+    [ "$status" -eq 0 ]
+    [ "$(runs)" = 1 ]
+}
