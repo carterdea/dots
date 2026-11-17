@@ -96,3 +96,15 @@ push_upstream_commit() {
     [ "$status" -eq 0 ]
     [ "$(cat "$BATS_TEST_TMPDIR/installed")" = "--all" ]
 }
+
+@test "skips main when a fast-forward would overwrite an ignored file" {
+    echo local.conf > "$APP/.gitignore"
+    echo mine > "$APP/local.conf"
+    echo upstream > "$SEED/local.conf"
+    git -C "$SEED" add local.conf
+    git -C "$SEED" commit -qm conf
+    git -C "$SEED" push -q origin main
+    run "$REPOS_SYNC"
+    [ "$output" = "app: skipped: fast-forward of main would overwrite local files" ]
+    [ "$(cat "$APP/local.conf")" = mine ]
+}

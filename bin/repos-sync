@@ -37,10 +37,10 @@ sync_repo() {
     elif [ "$(git symbolic-ref --quiet --short HEAD)" = "$branch" ]; then
         if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
             echo "skipped: uncommitted changes on $branch"
-        elif git merge --quiet --ff-only "origin/$branch" >/dev/null 2>&1; then
+        elif git merge --quiet --ff-only --no-overwrite-ignore "origin/$branch" >/dev/null 2>&1; then
             echo "updated $branch"
         else
-            echo "skipped: fast-forward of $branch would overwrite untracked files"
+            echo "skipped: fast-forward of $branch would overwrite local files"
         fi
     elif git fetch --quiet . "origin/$branch:$branch" 2>/dev/null; then
         echo "updated $branch"
