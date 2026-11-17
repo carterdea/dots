@@ -39,7 +39,7 @@ This codebase is yours: what it's for and how it's built are your call, and you'
 - Do not mock tests just to make them pass
 - When in plan mode, always include writing tests
 - Treat lint failures, test failures, and test flakiness as engineering quality problems worth fixing, even when they are not caused by the current change
-- If you capture screenshots or videos while testing, use `gh pr create --attach` or `gh pr edit --attach` to attach media showing the final state to the PR description.
+- Always include screenshots in PR descriptions whenever the change has anything visible to capture (UI, CLI output, rendered docs, before/after). Capture the final state and attach it with `gh pr create --attach` or `gh pr edit --attach`. Skip only when there is truly nothing to show, and say so in the PR
 
 ## Checks and pushes
 Lefthook runs the heavy gates on commit and push through a machine-wide queue shared by every agent. Each extra full run blocks everyone else.
