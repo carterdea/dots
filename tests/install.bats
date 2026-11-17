@@ -54,3 +54,30 @@ setup() {
     [ "$status" -eq 0 ]
     [ "$(grep -c "pi-manual-compact" <<< "$output")" -eq 1 ]
 }
+
+@test "re-running install does not back up unchanged generated agents" {
+    export HOME="$BATS_TEST_TMPDIR/home"
+    mkdir -p "$HOME" "$BATS_TEST_TMPDIR/bin"
+    printf '#!/bin/sh\n' > "$BATS_TEST_TMPDIR/bin/bun"
+    chmod +x "$BATS_TEST_TMPDIR/bin/bun"
+    PATH="$BATS_TEST_TMPDIR/bin:$PATH" "$INSTALL_SCRIPT" --codex
+    PATH="$BATS_TEST_TMPDIR/bin:$PATH" "$INSTALL_SCRIPT" --codex
+    ! compgen -G "$HOME/.dotfiles-backup-*"
+}
+
+@test "install.sh --sync adds one nightly cron job on Linux" {
+    export HOME="$BATS_TEST_TMPDIR/home"
+    shims="$BATS_TEST_TMPDIR/bin"
+    mkdir -p "$HOME" "$shims"
+    printf '#!/bin/sh\necho Linux\n' > "$shims/uname"
+    printf '#!/bin/sh\nf="%s"\nif [ "$1" = -l ]; then cat "$f"; else cat > "$f"; fi\n' "$BATS_TEST_TMPDIR/crontab" > "$shims/crontab"
+    chmod +x "$shims/uname" "$shims/crontab"
+    echo "@reboot keep-me" > "$BATS_TEST_TMPDIR/crontab"
+
+    PATH="$shims:$PATH" "$INSTALL_SCRIPT" --sync
+    PATH="$shims:$PATH" "$INSTALL_SCRIPT" --sync
+
+    [ "$(grep -c 'bin/repos-sync' "$BATS_TEST_TMPDIR/crontab")" -eq 1 ]
+    grep -q '^0 3 \* \* \* ' "$BATS_TEST_TMPDIR/crontab"
+    grep -qx '@reboot keep-me' "$BATS_TEST_TMPDIR/crontab"
+}

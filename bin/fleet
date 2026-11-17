@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+HOSTS_FILE="${FLEET_HOSTS_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/fleet/hosts}"
+
+if [ $# -eq 0 ]; then
+    echo "usage: fleet <command> [args...]" >&2
+    exit 64
+fi
+if [ ! -f "$HOSTS_FILE" ]; then
+    echo "fleet: list one ssh host per line in $HOSTS_FILE" >&2
+    exit 64
+fi
+
+remote_command="export PATH=\"\$HOME/.local/bin:\$PATH\"; $*"
+output_dir="$(mktemp -d)"
+trap 'rm -rf "$output_dir"' EXIT
+
+hosts=()
+pids=()
+while read -r host || [ -n "$host" ]; do
+    case "$host" in '' | \#*) continue ;; esac
+    ssh -n -o BatchMode=yes -o ConnectTimeout=10 "$host" "$remote_command" >"$output_dir/${#hosts[@]}" 2>&1 &
+    pids+=("$!")
+    hosts+=("$host")
+done <"$HOSTS_FILE"
+
+if [ ${#hosts[@]} -eq 0 ]; then
+    echo "fleet: no hosts in $HOSTS_FILE" >&2
+    exit 64
+fi
+
+status=0
+for i in "${!hosts[@]}"; do
+    if wait "${pids[$i]}"; then
+        echo "== ${hosts[$i]}"
+    else
+        echo "== ${hosts[$i]} (exit $?)"
+        status=1
+    fi
+    cat "$output_dir/$i"
+done
+
+exit "$status"

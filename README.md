@@ -90,6 +90,7 @@ cd ~/dots
 - `--git` - Install git configurations
 - `--config` - Install tool configs (ripgrep, gh, ghostty)
 - `--ssh` - Install SSH config
+- `--sync` - Schedule nightly `repos-sync` at 03:00 (launchd on macOS, cron on Linux)
 - `--claude` - Install skills to Claude Code (~/.claude)
 - `--codex` / `--openai` - Install skills to Codex (~/.agents)
 - `--cursor` - Install skills to Cursor global (~/.cursor)
@@ -136,6 +137,21 @@ exec zsh
 
 # Or open a new terminal
 ```
+
+## Keeping Machines in Sync
+
+`repos-sync` fast-forwards the default branch of every repo in `~/Sites` to origin. It skips any repo with uncommitted changes on that branch, local commits, or the branch checked out in another worktree, and never stashes, merges, or resets. If `dots` moved, it re-runs `install.sh --all` (override with `REPOS_SYNC_INSTALL_ARGS`).
+
+`install.sh --sync` (part of `--all`) runs it nightly. Logs go to `~/.local/state/repos-sync.log`.
+
+To push now instead of waiting for the night run, list one ssh host per line in `~/.config/fleet/hosts` and run:
+
+```bash
+fleet repos-sync      # sync every host now
+fleet 'brew bundle'   # or any other command
+```
+
+Each host needs SSH access without a password (Remote Login on macOS, `tailscale set --ssh` on Linux) and `gh auth login` once so night fetches can authenticate.
 
 ## Brewfile
 
