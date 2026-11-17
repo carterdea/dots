@@ -19,27 +19,32 @@ A target selector (`--uncommitted` / `--base` / `--commit`) runs Codex's built-i
 ```bash
 ARTIFACT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-review.XXXXXX")"
 REPORT="$ARTIFACT_DIR/report.md"
+LOG="$ARTIFACT_DIR/codex.log"
 PROMPT="$ARTIFACT_DIR/prompt.md"
 
-# `codex review` runs on review_model (falling back to the session model),
-# and either may default to something other than gpt-6.1-sol. It has no --model
-# flag, so force the reviewer with -c review_model.
+# Force the model with BOTH overrides. `-c review_model` alone is not enough:
+# the review still runs on `model` from ~/.codex/config.toml (gpt-5.5).
+MODEL=gpt-6.1-sol
+MODEL_FLAGS=(-c model="$MODEL" -c review_model="$MODEL")
 
 # Standard review of a target (built-in prompt, no custom instructions):
 # staged, unstaged, and untracked changes.
-codex -C "$PWD" review -c review_model="gpt-6.1-sol" --uncommitted > "$REPORT"
+codex -C "$PWD" review "${MODEL_FLAGS[@]}" --uncommitted > "$REPORT" 2> "$LOG"
 # current branch against a base branch.
-codex -C "$PWD" review -c review_model="gpt-6.1-sol" --base main > "$REPORT"
+codex -C "$PWD" review "${MODEL_FLAGS[@]}" --base main > "$REPORT" 2> "$LOG"
 # a single commit.
-codex -C "$PWD" review -c review_model="gpt-6.1-sol" --commit <sha> > "$REPORT"
+codex -C "$PWD" review "${MODEL_FLAGS[@]}" --commit <sha> > "$REPORT" 2> "$LOG"
 
 # Focused review: write instructions to "$PROMPT", then review the current
 # uncommitted changes with them (no target selector allowed here). Name the
 # change set inside $PROMPT so Codex reviews the intended diff, not the repo.
-codex -C "$PWD" review -c review_model="gpt-6.1-sol" - < "$PROMPT" > "$REPORT"
+codex -C "$PWD" review "${MODEL_FLAGS[@]}" - < "$PROMPT" > "$REPORT" 2> "$LOG"
+
+# Confirm the model before trusting the report. This must print gpt-6.1-sol.
+grep -m1 '^model:' "$LOG"
 ```
 
-Default to `gpt-6.1-sol`. Only swap in `gpt-6-astra` (Codex's top-tier, higher-cost model) when the user explicitly asks for Astra — substitute it for `gpt-6.1-sol` in the `-c review_model=` value.
+Default to `gpt-6.1-sol`. Only swap in `gpt-6-astra` (Codex's top-tier, higher-cost model) when the user explicitly asks for Astra — set `MODEL=gpt-6-astra`. Before switching to any other model, confirm its slug is listed in `codex debug models`; a model missing from that catalog fails with `not supported when using Codex with a ChatGPT account`.
 
 If the diff is empty, tell the user there are no changes to review and stop.
 
@@ -65,4 +70,4 @@ Add task-specific context when useful: requirements, risky areas, expected behav
 
 ## Reporting back
 
-Verify each finding against the cited code before relaying it, and separate confirmed issues from unverified Codex suggestions. Name the review target Codex inspected. If Codex finds nothing, say so clearly. If Codex warns `Model metadata for ... not found` or fails with `model is not supported when using Codex with a ChatGPT account`, the CLI is too old for the model, not misnamed: run `codex update` and retry. If `codex` is not installed or the command still fails, report the error and offer to review the changes directly instead.
+Verify each finding against the cited code before relaying it, and separate confirmed issues from unverified Codex suggestions. Name the review target Codex inspected. If Codex finds nothing, say so clearly. If the `model:` line in the log is anything other than the requested model, the override did not take: discard the report, fix the command, and rerun; never present a review from the wrong model. If Codex warns `Model metadata for <requested model> not found` or fails with `model is not supported when using Codex with a ChatGPT account`, the CLI is too old for the model, not misnamed: run `codex update` and retry. If `codex` is not installed or the command still fails, report the error and offer to review the changes directly instead.
