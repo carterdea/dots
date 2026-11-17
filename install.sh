@@ -225,6 +225,7 @@ install_config() {
     info "Installing tool configurations..."
     create_symlink "$DOTFILES_DIR/config/.ripgreprc" "$HOME/.ripgreprc"
     create_symlink "$DOTFILES_DIR/config/gh" "$HOME/.config/gh"
+    create_symlink "$DOTFILES_DIR/config/dcg/config.toml" "$HOME/.config/dcg/config.toml"
     create_symlink "$DOTFILES_DIR/config/ghostty/config" "$HOME/Library/Application Support/com.mitchellh.ghostty/config"
 }
 
