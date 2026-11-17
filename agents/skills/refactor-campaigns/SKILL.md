@@ -1,6 +1,6 @@
 ---
 name: refactor-campaigns
-description: Refactor codebases by collapsing orchestration, tightening typed boundaries, deleting broad context leakage, and adding ratchet tests. Use when the user wants to clean up architecture, simplify a workflow of routers/agents/handlers passing shared state, stage a large architectural campaign or provider/vendor migration behind one capability surface, replace broad context objects with typed ownership, harden LLM tool boundaries, ground evals in fixtures, remove stale compatibility layers, or make agent/application code easier to reason about while preserving behavior.
+description: Refactor codebases by collapsing orchestration, tightening typed boundaries, deleting broad context leakage, and adding ratchet tests. Use when the user wants to clean up architecture, simplify a workflow of routers/agents/handlers passing shared state, stage a large architectural campaign or provider/vendor migration behind one capability surface, replace broad context objects with typed ownership, harden LLM tool boundaries, make external vendor writes replay-safe, ground evals in fixtures, remove stale compatibility layers, or make agent/application code easier to reason about while preserving behavior.
 user-invocable: true
 ---
 
@@ -18,9 +18,12 @@ Do not mention this skill name, its origin, or any person in code comments, comm
 - Route cross-cutting choices (provider, vendor, tenant) through one registry keyed by trusted context, never by branching in callers.
 - Replace pass-through layers and broad context with owned typed boundaries.
 - Treat caller-provided parameters, loader defaults, and UI state as request data, not authority.
-- Credentials and caller-visible schemas carry identity and business parameters, never authority; re-derive authority at point of use.
+- User- and model-facing credentials and caller-visible schemas carry identity and business parameters, never authority; re-derive authority at point of use.
 - Derive trusted facts from authoritative product, database, session, parser, or integration data.
-- Fail closed with typed reasons when a capability is unsupported.
+- Fail closed with typed reasons when a capability or authority is unsupported; let best-effort enrichment fail open to the previous behavior.
+- Classify every external write by idempotency; resolve an ambiguous outcome by reading back, never by a blind retry.
+- Prove each new test or eval catches its bug: it fails with the fix off.
+- Trace every task to a named finding, and file what you discover along the way instead of folding it in.
 - Keep separate identities separate when runtime reconciliation and persistence need different ids.
 - Extract neutral domain primitives when behavior appears in multiple surfaces.
 - Serialize API contracts, computed fields, null behavior, and ordering at service boundaries.
@@ -58,12 +61,14 @@ Do not mention this skill name, its origin, or any person in code comments, comm
 4. Name the invariant that should hold at that boundary.
 5. Find the old concepts that violate the invariant.
 6. Use `rg` to inventory those concepts across production code and tests.
+7. Before changing inherited behavior, trace why it exists (`git log -S`, blame to the introducing PR). Keep what was intended; remove only the accidental side effect.
+8. Check any existing plan against current code and vendor docs. Plans drift; cite the source for every vendor behavior you rely on.
 
 ## Big Change Campaigns
 
 Large architectural improvements are staged, not landed whole. Two levels of sequencing:
 
-Across PRs: **collapse → stabilize → ratchet**. The big simplification PR lands first (net-negative lines), behavior is stabilized on the smaller surface, then small surgical PRs pin behavior with deterministic guards. Cheap guards are only viable because the collapse made the surface small.
+Across PRs: **collapse → stabilize → ratchet**. The big simplification PR lands first (net-negative runtime lines; tests may grow), behavior is stabilized on the smaller surface, then small surgical PRs pin behavior with deterministic guards. Cheap guards are only viable because the collapse made the surface small.
 
 Within a big PR, commits land **feature last**, each standing on verified ground:
 
@@ -76,7 +81,9 @@ Within a big PR, commits land **feature last**, each standing on verified ground
 
 After wiring a new seam, land a tests-only "prove the path" commit showing existing callers route through the new implementation end-to-end. Migrate in micro-slices, each pairing prod and test changes roughly 1:1. Expect most of the diff to be verification machinery.
 
-For seam mechanics, cutover decisions, doc artifacts, product-contract versioning, and the PR verification protocol, read [references/big-change-playbook.md](references/big-change-playbook.md).
+Plan the campaign as a dependency graph, not a list: each finding gets an id, each task names its finding, files, occurrence counts, and target shape, and test tasks block the wiring they guard. One concern per PR; a grab-bag PR loses per-fix revertibility the moment it is squashed. When a slice is done, review it against its plan in a fresh context and file what was skipped, partial, or wrong as new tasks.
+
+For planning, seam mechanics, cutover and deploy-order decisions, data migrations, doc artifacts, product-contract versioning, and the PR verification protocol, read [references/big-change-playbook.md](references/big-change-playbook.md).
 
 ## Refactoring Moves
 
@@ -172,6 +179,8 @@ Look for:
 - optimistic ids overwritten by persisted ids during async acknowledgement
 - tests that prove the old path still works
 - suppression baselines (type-checker baselines, lint ignores) that let old debt hide
+- read-time compatibility for old persisted shapes with no backfill and no exit
+- parse failures on stored state that return empty defaults a later save can overwrite
 
 Move toward:
 
@@ -236,7 +245,19 @@ messages.unshift({ role: 'system', content: systemPrompt });
 messages.unshift(buildStableSystemMessage(modelId, systemPrompt));
 ```
 
-### 8. Preserve Boundary Intent
+### 8. Make External Writes Replay-Safe
+
+Retries, crash recovery, and job replays duplicate vendor writes unless the write path is designed for it. No ratchet catches a duplicate after the fact.
+
+Move toward:
+
+- every external call classified as read, idempotent write, or non-idempotent write; only the first two are retried
+- failures before the write attempt stay retryable; failures after it stay terminal
+- a durable claim (lease, fenced by tenant) recorded before a non-idempotent write
+- "outcome unknown" as its own state (for example `reconcile_required`) resolved by reading the record back, never by sending the write again
+- proof by replay: run the same input twice against a sandbox with disposable records and report the provider write count
+
+### 9. Preserve Boundary Intent
 
 At form, API, and patch/update boundaries, do not collapse absent, empty, null, and invalid into the same value. Those states often mean different things.
 
@@ -266,15 +287,19 @@ const payload = {
 };
 ```
 
-### 9. Warn, Block, Let the User Choose
+### 10. Warn, Block, Let the User Choose
 
 When the system detects a probable user mistake, do not auto-correct silently and do not just warn. Block the default path and present two consequence-named actions: the recommended fix (a real state transition, not a relabel) and a deliberate override. Detection may warn; only the user decides — treat silent auto-correction as a bug. Keep the detection heuristic dumb and inspectable.
 
+When blocking would stall a field workflow, carry provenance with the value instead (`unconfirmed`, `estimated`, source of the guess) so implicit acceptance never upgrades a guess to a checked fact.
+
 For unsafe machine-proposed operations (for example a model tool call missing a dry-run flag), rewrite the call to the safe form instead of denying, and pin the rewrite with a test.
 
-### 10. Add Ratchet Tests
+### 11. Add Ratchet Tests
 
 Every cleanup should make regression difficult. A migration is done when regression is impossible to merge, not when the old code is gone.
+
+A guard only counts if it bites. Run each new test or eval with the fix reverted (or against the base branch, or with the guarded value mutated) and record that it fails. A ratchet you can step around protects nothing: when a hook is already red for an unrelated reason, fix or fence that first instead of skipping the hook. Do not write tests to hit a coverage number.
 
 Useful ratchets:
 
@@ -295,17 +320,17 @@ Useful ratchets:
 
 When an inventory allowlist exists, shrink it as migration work completes.
 
-For workflow fixes, prefer a boundary coverage ladder: the thinnest useful test at each crossed boundary instead of one giant top-level test. A typical ladder is schema or DTO, repository scope, service side effect, action or controller response, UI behavior, and one end-to-end happy path when the real path matters.
+For workflow fixes, prefer a boundary coverage ladder: the thinnest useful test at each crossed boundary instead of one giant top-level test. A typical ladder is schema or DTO, repository scope, service side effect, action or controller response, UI behavior, and one end-to-end happy path when the real path matters. Assign each claim to the layer that can actually prove it, and say what each layer cannot prove (an eval whose fixtures ignore the search text cannot prove search matching).
 
 For inventory-test recipes, fake taxonomy (fixture vs emulator), suppression-baseline burn-down, and LLM boundary hardening, read [references/ratchets.md](references/ratchets.md).
 
-### 11. Ground Evals in Fixtures
+### 12. Ground Evals in Fixtures
 
 When the codebase has an eval suite (LLM or otherwise), treat it as the executable product contract: expectations grounded in seeded fixture content, run provenance recorded, deterministic evaluators fencing any LLM judge, one grounded row per product surface, and mechanism pinned tightly while phrasing is pinned only to the invariant word.
 
 For the full method, use the `grounded-evals` skill.
 
-### 12. Leave Invariant Notes
+### 13. Leave Invariant Notes
 
 When a fix depends on a non-obvious invariant, write a short note in the repo's existing documentation system.
 
@@ -321,7 +346,9 @@ Use this shape:
 
 The note should make the next maintainer find the rule before they rediscover the bug.
 
-For big changes, docs are first-class commits: design doc with an ownership table, decision records with rejected alternatives, cutover checklist, closeout note, and open product questions escalated by name. See [references/big-change-playbook.md](references/big-change-playbook.md).
+When the repo keeps one ownership map (an `ARCHITECTURE.md` or similar), update it in the same commit that moves ownership. One short bullet per fact; giant bullets rewritten whole cause rebase conflicts and hide the rule.
+
+For big changes, docs are first-class commits: design doc with an ownership table, decision records with rejected alternatives, cutover checklist, closeout note, and open product questions escalated by name. A plan may be deleted as scaffolding only after its decisions, rejected alternatives, and ownership have moved into a durable doc. See [references/big-change-playbook.md](references/big-change-playbook.md).
 
 ## Workflow
 
@@ -337,8 +364,9 @@ For big changes, docs are first-class commits: design doc with an ownership tabl
 10. Preserve absent, empty, null, and invalid as distinct states at update boundaries.
 11. Update callers to use the new boundary.
 12. Remove bypasses for that slice; drain suppression baselines.
-13. Shrink inventory allowlists or add a new guard.
+13. Shrink inventory allowlists or add a new guard; show each new guard fails with the fix off.
 14. Run focused checks, then the quiet broad checks available in the repo.
+15. Review the slice against its plan in a fresh context; land fixes as separate commits and answer each finding with "Fixed in <sha>: change + proof" or a reason it stays.
 
 ## Skill Output
 
@@ -347,9 +375,11 @@ When reporting back, include:
 - invariant changed or protected
 - old surface removed or narrowed
 - new boundary shape
-- tests/guards added
+- tests/guards added, and proof each fails without the fix
 - docs artifacts written (design, decisions, open questions), if any
-- remaining migration surface, if any
+- not verified: what fixture proof covers vs what still needs a live or sandbox check
+- not changed on purpose, with the reason
+- remaining migration surface and findings filed for later, if any
 - unresolved questions at the end, if any
 
 Do not describe the work as copying a person. Describe the architectural principle and the local codebase effect.
@@ -365,11 +395,15 @@ Do not describe the work as copying a person. Describe the architectural princip
 - [ ] Are old fallbacks removed or tracked, and suppression baselines drained?
 - [ ] Are stable and volatile data paths split where refresh or caching would otherwise overfetch?
 - [ ] Are provider-specific wire shapes isolated behind typed adapters?
+- [ ] Are external writes classified by idempotency, with ambiguous outcomes resolved by read-back and replay proven against a sandbox?
+- [ ] Does best-effort enrichment fail open while authority fails closed?
 - [ ] Do update boundaries preserve absent, empty, null, and invalid distinctly?
 - [ ] Are forbidden fields guarded by tests?
 - [ ] Do detected user mistakes warn, block, and offer consequence-named choices instead of auto-correcting?
 - [ ] Did tests cover the boundary ladder instead of only implementation details?
 - [ ] Are deletions pinned by structural inventory ratchets?
+- [ ] Was every new test or eval shown to fail with the fix off?
+- [ ] Does every task trace to a finding, with discovered bugs filed instead of folded in?
 - [ ] Are eval expectations fixture-grounded with provenance, and LLM judges fenced by deterministic evaluators?
 - [ ] For big changes, did commits land boundary-first and feature-last, with the path proven before behavior moved?
 - [ ] Did the final explanation avoid naming this skill or any person in project artifacts?
