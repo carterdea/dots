@@ -4,10 +4,10 @@ Personal dotfiles and shared agent skills for macOS.
 
 ## Structure
 
-- `install.sh` — symlinks dotfiles and agent configs; use `--dry-run` to preview
+- `install.sh` — symlinks dotfiles and agent configs; use `--dry-run` to preview; `--sync` schedules nightly repos-sync (launchd on macOS, cron on Linux)
 - `bootstrap.sh` — fresh macOS setup (Xcode CLI tools, Homebrew, oh-my-zsh, tools)
 - `shell/` — zsh/bash configs
-- `bin/` — scripts symlinked into `~/.local/bin` (ci-lock: machine-wide flock queues with separate lanes — heavy for test suites (two slots, never two from one repo), check for typecheck/lint, fast for staged lint; lefthook-ci-lock: LEFTHOOK_BIN shim routing pre-push through the heavy lane and pre-commit through the fast lane, so commits never wait behind pushes)
+- `bin/` — scripts symlinked into `~/.local/bin` (ci-lock: machine-wide flock queues with separate lanes — heavy for test suites (two slots, never two from one repo), check for typecheck/lint, fast for staged lint; lefthook-ci-lock: LEFTHOOK_BIN shim routing pre-push through the heavy lane and pre-commit through the fast lane, so commits never wait behind pushes); repos-sync: fast-forwards each `~/Sites` repo's default branch, skipping anything with local work, and re-runs install.sh when dots moved; fleet: runs a command on every host in `~/.config/fleet/hosts` over ssh
 - `git/` — gitconfig with local override pattern (`~/.gitconfig.local`)
 - `config/` — ripgrep, gh, ghostty
 - `ssh/` — SSH config

@@ -20,6 +20,7 @@ INSTALL_SHELL=false
 INSTALL_GIT=false
 INSTALL_CONFIG=false
 INSTALL_SSH=false
+INSTALL_SYNC=false
 INSTALL_CLAUDE=false
 INSTALL_CODEX=false
 INSTALL_OPENCODE=false
@@ -53,6 +54,7 @@ OPTIONS:
     --git           Install git configurations
     --config        Install tool configs (ripgrep, gh, ghostty)
     --ssh           Install SSH config
+    --sync          Schedule nightly bin/repos-sync (launchd on macOS, cron on Linux)
     --claude        Install skills to Claude Code (~/.claude)
     --codex         Install skills (~/.agents) and subagents (~/.codex/agents) to Codex
     --opencode      Install config to OpenCode (~/.config/opencode)
@@ -87,6 +89,17 @@ backup_file() {
             fi
         fi
     fi
+}
+
+replace_generated() {
+    local tmp=$1
+    local dest=$2
+    if cmp -s "$tmp" "$dest"; then
+        rm -f "$tmp"
+        return
+    fi
+    backup_file "$dest"
+    mv -f "$tmp" "$dest"
 }
 
 create_symlink() {
@@ -226,7 +239,102 @@ install_config() {
     create_symlink "$DOTFILES_DIR/config/.ripgreprc" "$HOME/.ripgreprc"
     create_symlink "$DOTFILES_DIR/config/gh" "$HOME/.config/gh"
     create_symlink "$DOTFILES_DIR/config/dcg/config.toml" "$HOME/.config/dcg/config.toml"
-    create_symlink "$DOTFILES_DIR/config/ghostty/config" "$HOME/Library/Application Support/com.mitchellh.ghostty/config"
+    if [[ "$(uname -s)" == Darwin ]]; then
+        create_symlink "$DOTFILES_DIR/config/ghostty/config" "$HOME/Library/Application Support/com.mitchellh.ghostty/config"
+    else
+        create_symlink "$DOTFILES_DIR/config/ghostty/config" "$HOME/.config/ghostty/config"
+    fi
+}
+
+install_sync() {
+    info "Scheduling nightly repos-sync..."
+    local log="$HOME/.local/state/repos-sync.log"
+    if [[ "$(uname -s)" == Darwin ]]; then
+        install_sync_launchd "$log"
+    else
+        install_sync_cron "$log"
+    fi
+}
+
+install_sync_launchd() {
+    local log=$1
+    local label="com.dots.repos-sync"
+    local plist="$HOME/Library/LaunchAgents/$label.plist"
+    local domain
+    domain="gui/$(id -u)"
+
+    if [[ "$DRY_RUN" == true ]]; then
+        info "[DRY RUN] Would write $plist (daily 03:00) and load it"
+        return
+    fi
+
+    mkdir -p "$(dirname "$plist")" "$(dirname "$log")"
+    local tmp
+    tmp="$(mktemp "$plist.XXXXXX")"
+    cat > "$tmp" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>$label</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>$DOTFILES_DIR/bin/repos-sync</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>$log</string>
+    <key>StandardErrorPath</key>
+    <string>$log</string>
+</dict>
+</plist>
+EOF
+
+    local changed=true
+    cmp -s "$tmp" "$plist" && changed=false
+    mv -f "$tmp" "$plist"
+
+    if ! launchctl print "$domain/$label" >/dev/null 2>&1; then
+        launchctl bootstrap "$domain" "$plist"
+        info "Loaded $label (daily 03:00, log: $log)"
+    elif [[ "$changed" == true && -z "${REPOS_SYNC_RUNNING:-}" ]]; then
+        launchctl bootout "$domain/$label"
+        launchctl bootstrap "$domain" "$plist"
+        info "Reloaded $label"
+    fi
+}
+
+install_sync_cron() {
+    local log=$1
+    local job="$DOTFILES_DIR/bin/repos-sync"
+    local line="0 3 * * * \"$job\" >> \"$log\" 2>&1"
+
+    if ! command -v crontab >/dev/null 2>&1; then
+        warn "crontab not found; skipping nightly repos-sync"
+        return
+    fi
+
+    local current
+    current="$(crontab -l 2>/dev/null || true)"
+    if grep -qxF "$line" <<< "$current"; then
+        return
+    fi
+
+    if [[ "$DRY_RUN" == true ]]; then
+        info "[DRY RUN] Would add cron job: $line"
+        return
+    fi
+
+    mkdir -p "$(dirname "$log")"
+    { grep -vF "/bin/repos-sync\"" <<< "$current" || true; echo "$line"; } | grep -v '^$' | crontab -
+    info "Added cron job: $line"
 }
 
 install_ssh() {
@@ -355,7 +463,6 @@ install_codex_agents() {
         local name dest tmp
         name="$(basename "${src%.md}")"
         dest="$HOME/.codex/agents/$name.toml"
-        backup_file "$dest"
         # Write to a temp file in the same dir, then atomically replace. This
         # avoids following a symlinked $dest (which redirection would do,
         # clobbering the link target outside this dir with no backup) and
@@ -388,7 +495,7 @@ install_codex_agents() {
                 printf("%s\n", q)
             }
         ' "$src" > "$tmp"
-        mv -f "$tmp" "$dest"
+        replace_generated "$tmp" "$dest"
         count=$((count + 1))
     done
     info "Translated $count Claude subagent(s) -> ~/.codex/agents/"
@@ -515,7 +622,6 @@ install_pi_agents() {
         local name dest tmp
         name="$(basename "$src")"
         dest="$HOME/.pi/agent/agents/$name"
-        backup_file "$dest"
         # Same atomic-replace rationale as install_codex_agents: don't follow a
         # symlinked $dest, and don't leave a half-written file if awk fails.
         tmp="$(mktemp "$HOME/.pi/agent/agents/.$name.XXXXXX")"
@@ -530,7 +636,7 @@ install_pi_agents() {
             fm_count == 1 && /^model:/ { next }
             { print }
         ' "$src" > "$tmp"
-        mv -f "$tmp" "$dest"
+        replace_generated "$tmp" "$dest"
         count=$((count + 1))
     done
     info "Translated $count Claude subagent(s) -> ~/.pi/agent/agents/"
@@ -583,6 +689,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --ssh)
             INSTALL_SSH=true
+            shift
+            ;;
+        --sync)
+            INSTALL_SYNC=true
             shift
             ;;
         --claude)
@@ -644,6 +754,7 @@ if [[ "$INSTALL_ALL" == true ]]; then
     install_git
     install_config
     install_ssh
+    install_sync
     install_claude
     install_codex
     install_opencode
@@ -654,6 +765,7 @@ else
     [[ "$INSTALL_GIT" == true ]] && install_git
     [[ "$INSTALL_CONFIG" == true ]] && install_config
     [[ "$INSTALL_SSH" == true ]] && install_ssh
+    [[ "$INSTALL_SYNC" == true ]] && install_sync
     [[ "$INSTALL_CLAUDE" == true ]] && install_claude
     [[ "$INSTALL_CODEX" == true ]] && install_codex
     [[ "$INSTALL_OPENCODE" == true ]] && install_opencode
