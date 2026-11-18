@@ -14,10 +14,10 @@ Architectural simplification is what makes cheap deterministic guards viable. Do
 
 ## Plan as a dependency graph
 
-- Start from an audit whose findings carry ids. One epic per finding; every task names the finding it serves.
+- Start from an audit whose findings carry ids; every task names the finding it serves.
 - Each task names files, occurrence counts, and the target shape at each site. Split large migrations by subsystem.
 - Test tasks block the wiring they guard, so nothing ships ahead of its proof.
-- Verify the plan against current code and vendor docs before building. Record verified vendor behavior with source links and a current-source file map.
+- Verify the plan against current code and vendor docs before building. Record verified vendor behavior with source links.
 - Bugs found along the way become new tasks; the PR ships its scope.
 - After implementation, a fresh-context pass reads each task's spec, finds the code, and files anything skipped, partial, or wrong as a new task.
 

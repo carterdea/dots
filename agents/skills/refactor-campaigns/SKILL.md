@@ -81,7 +81,7 @@ Within a big PR, commits land **feature last**, each standing on verified ground
 
 After wiring a new seam, land a tests-only "prove the path" commit showing existing callers route through the new implementation end-to-end. Migrate in micro-slices, each pairing prod and test changes roughly 1:1. Expect most of the diff to be verification machinery.
 
-Plan the campaign as a dependency graph, not a list: each finding gets an id, each task names its finding, files, occurrence counts, and target shape, and test tasks block the wiring they guard. One concern per PR; a grab-bag PR loses per-fix revertibility the moment it is squashed. When a slice is done, review it against its plan in a fresh context and file what was skipped, partial, or wrong as new tasks.
+Plan the campaign as a dependency graph whose tasks each trace to a finding, with test tasks blocking the wiring they guard. One concern per PR; a grab-bag PR loses per-fix revertibility once it is squashed.
 
 For planning, seam mechanics, cutover and deploy-order decisions, data migrations, doc artifacts, product-contract versioning, and the PR verification protocol, read [references/big-change-playbook.md](references/big-change-playbook.md).
 
@@ -252,8 +252,8 @@ Retries, crash recovery, and job replays duplicate vendor writes unless the writ
 Move toward:
 
 - every external call classified as read, idempotent write, or non-idempotent write; only the first two are retried
-- failures before the write attempt stay retryable; failures after it stay terminal
-- a durable claim (lease, fenced by tenant) recorded before a non-idempotent write
+- a durable claim row, keyed by tenant and operation, recorded before a non-idempotent write
+- failures before the request is sent stay retryable; once it may have reached the vendor, the outcome is unknown
 - "outcome unknown" as its own state (for example `reconcile_required`) resolved by reading the record back, never by sending the write again
 - proof by replay: run the same input twice against a sandbox with disposable records and report the provider write count
 
@@ -291,7 +291,7 @@ const payload = {
 
 When the system detects a probable user mistake, do not auto-correct silently and do not just warn. Block the default path and present two consequence-named actions: the recommended fix (a real state transition, not a relabel) and a deliberate override. Detection may warn; only the user decides — treat silent auto-correction as a bug. Keep the detection heuristic dumb and inspectable.
 
-When blocking would stall a field workflow, carry provenance with the value instead (`unconfirmed`, `estimated`, source of the guess) so implicit acceptance never upgrades a guess to a checked fact.
+When blocking would stall the workflow, carry provenance with the value instead (`unconfirmed`, `estimated`, source of the guess) so implicit acceptance never upgrades a guess to a checked fact.
 
 For unsafe machine-proposed operations (for example a model tool call missing a dry-run flag), rewrite the call to the safe form instead of denying, and pin the rewrite with a test.
 
@@ -346,9 +346,9 @@ Use this shape:
 
 The note should make the next maintainer find the rule before they rediscover the bug.
 
-When the repo keeps one ownership map (an `ARCHITECTURE.md` or similar), update it in the same commit that moves ownership. One short bullet per fact; giant bullets rewritten whole cause rebase conflicts and hide the rule.
+When the repo keeps one ownership map (an `ARCHITECTURE.md` or similar), update it in the same commit that moves ownership, one short bullet per fact.
 
-For big changes, docs are first-class commits: design doc with an ownership table, decision records with rejected alternatives, cutover checklist, closeout note, and open product questions escalated by name. A plan may be deleted as scaffolding only after its decisions, rejected alternatives, and ownership have moved into a durable doc. See [references/big-change-playbook.md](references/big-change-playbook.md).
+For big changes, docs are first-class commits: design doc with an ownership table, decision records with rejected alternatives, cutover checklist, closeout note, and open product questions escalated by name. See [references/big-change-playbook.md](references/big-change-playbook.md).
 
 ## Workflow
 
