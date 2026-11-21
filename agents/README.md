@@ -106,6 +106,16 @@ Run from repo root:
 
 Skills with `package.json` get their local dependencies installed with `bun install` during any agent skill install target, so validation scripts run through the symlinked skill paths.
 
+### Agent Browser skills
+
+Full skill files, references, and templates are copied into this repository from the official Agent Browser 0.43.0 CLI bundle. They are installed locally through the same skill symlinks as the rest of this library. Agents read the local files; no runtime skill fetch is required.
+
+The installed set is `agent-browser` (upstream `core`), `dogfood`, `derive-client`, `electron`, `slack`, `protected-vercel-deployments`, `vercel-sandbox`, `agentcore`, `webmcp-gen`, and `modern-web-guidance`. Dogfood includes its full workflow, issue taxonomy, and report template.
+
+Local adaptations preserve the built-in-browser preference, regular Google Chrome on this Mac, named sessions, required QA evidence, and pnpm/Bun usage. The shared rules are in `skills/agent-browser/references/local-policy.md`. QA, Trello/Shopify delivery and QA, and frontend audits read these installed files too.
+
+When updating, check the [official release](https://github.com/vercel-labs/agent-browser/releases) and installed CLI version, then copy the matching `skill-data` directories and retain the local adaptations. [Upstream skills documentation](https://agent-browser.dev/skills).
+
 ### What `--claude` installs
 
 - `~/.claude/CLAUDE.md` (symlink to `agents/AGENTS.md`)

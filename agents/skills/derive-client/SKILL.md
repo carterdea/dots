@@ -1,8 +1,18 @@
+---
+name: derive-client
+description: Reverse-engineer a website's internal API by recording browser traffic into a HAR file, then generate a standalone client or CLI that calls the endpoints directly, with no browser needed after the first recording. Use when asked to "derive a client", "build a CLI for <site>", "reverse engineer this site's API", "record network requests", "turn this site into an API", or when the same site will be automated repeatedly and direct HTTP calls would beat driving the browser every time.
+allowed-tools: Bash(agent-browser:*)
+---
+
 # Derive an API client from a recorded session
+
+Follow the [local operating rules](../agent-browser/references/local-policy.md) before using this skill. They cover browser selection, regular Chrome on this Mac, named sessions, package managers, and required QA evidence.
 
 Driving a browser is the right tool for the first visit and the wrong tool for the hundredth. This skill records a site's network traffic once while you use it, then turns the captured requests into a standalone client (script, CLI, or library) that talks to the site's internal API directly.
 
 The recording alone contains everything needed: agent-browser embeds text response bodies (JSON/HTML/JS) in the HAR by default, so endpoint shapes can be studied offline after the browser is closed.
+
+For a task the agent itself will repeat, `agent-browser flow start` and `flow save` do steps 1 to 4 in the core and `flow run` replays it without a browser. Use this skill when you need a standalone client outside agent-browser.
 
 ## Workflow
 

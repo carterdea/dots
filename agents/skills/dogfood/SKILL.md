@@ -1,10 +1,12 @@
 ---
 name: dogfood
 description: Systematically explore and test a web application to find bugs, UX issues, and other problems. Use when asked to "dogfood", "QA", "exploratory test", "find issues", "bug hunt", "test this app/site/platform", or review the quality of a web application. Produces a structured report with full reproduction evidence -- step-by-step screenshots, repro videos, and detailed repro steps for every issue -- so findings can be handed directly to the responsible teams.
-allowed-tools: Bash(agent-browser:*), Bash(npx agent-browser:*)
+allowed-tools: Bash(agent-browser:*)
 ---
 
 # Dogfood
+
+Follow the [local operating rules](../agent-browser/references/local-policy.md) before using this skill. They cover browser selection, regular Chrome on this Mac, named sessions, package managers, and required QA evidence.
 
 Systematically explore a web application, find issues, and produce a report with full reproduction evidence for every finding.
 
@@ -15,14 +17,14 @@ Only the **Target URL** is required. Everything else has sensible defaults -- us
 | Parameter | Default | Example override |
 |-----------|---------|-----------------|
 | **Target URL** | _(required)_ | `vercel.com`, `http://localhost:3000` |
-| **Session name** | Slugified domain (e.g., `vercel.com` -> `vercel-com`) | `--session my-session` |
+| **Session name** | Worktree-scoped name from `agent-browser session id --scope worktree --prefix dogfood` | `--session my-session` |
 | **Output directory** | `./dogfood-output/` | `Output directory: /tmp/qa` |
 | **Scope** | Full app | `Focus on the billing page` |
 | **Authentication** | None | `Sign in to user@example.com` |
 
 If the user says something like "dogfood vercel.com", start immediately with defaults. Do not ask clarifying questions unless authentication is mentioned but credentials are missing.
 
-Always use `agent-browser` directly -- never `npx agent-browser`. The direct binary uses the fast Rust client. `npx` routes through Node.js and is significantly slower.
+Prefer the available built-in browser for interactive exploration. Use Agent Browser directly when CLI automation, recording, or diagnostics require it. Read the local [Agent Browser guide](../agent-browser/SKILL.md) first and adapt the commands below to the selected browser. Report missing evidence capabilities.
 
 ## Workflow
 
@@ -41,13 +43,13 @@ Always use `agent-browser` directly -- never `npx agent-browser`. The direct bin
 mkdir -p {OUTPUT_DIR}/screenshots {OUTPUT_DIR}/videos
 ```
 
-Copy the report template into the output directory and fill in the header fields:
+Copy the local report template into the output directory once and fill in the header fields. Resume an existing report without overwriting findings:
 
 ```bash
-cp {SKILL_DIR}/templates/dogfood-report-template.md {OUTPUT_DIR}/report.md
+cp "{SKILL_DIR}/templates/dogfood-report-template.md" "{OUTPUT_DIR}/report.md"
 ```
 
-Start a named session:
+For CLI automation, generate a session name with `agent-browser session id --scope worktree --prefix dogfood` and substitute it for `{SESSION}` on every command. Start that named session:
 
 ```bash
 agent-browser --session {SESSION} open {TARGET_URL}
@@ -109,10 +111,7 @@ agent-browser --session {SESSION} snapshot -i
 agent-browser --session {SESSION} screenshot --annotate {OUTPUT_DIR}/screenshots/{page-name}.png
 agent-browser --session {SESSION} errors
 agent-browser --session {SESSION} console
-agent-browser --session {SESSION} a11y --tags wcag2a,wcag2aa
 ```
-
-To see what an interaction changed, run `snapshot -i --delta --full` before it to reset the baseline, then `snapshot -i --delta` after it for only the changes. Log each distinct `a11y` violation rule once as an `accessibility` issue (static evidence: annotated screenshot plus the failing selector), not once per element or page.
 
 Use your judgment on how deep to go. Spend more time on core features and less on peripheral pages. If you find a cluster of issues in one area, investigate deeper.
 
@@ -131,10 +130,8 @@ These require user interaction to reproduce -- use full repro with video and ste
 1. **Start a repro video** _before_ reproducing:
 
 ```bash
-agent-browser --session {SESSION} record start {OUTPUT_DIR}/videos/issue-{NNN}-repro.webm --cursor --contact-sheet
+agent-browser --session {SESSION} record start {OUTPUT_DIR}/videos/issue-{NNN}-repro.webm
 ```
-
-`--cursor` draws the pointer and click ripples into the video. `--contact-sheet` also saves `issue-{NNN}-repro.contact-sheet.png` next to the video: a one-image summary of the repro to embed in the report.
 
 2. **Walk through the steps at human pace.** Pause 1-2 seconds between actions so the video is watchable. Take a screenshot at each step:
 
@@ -183,7 +180,7 @@ Write a brief description and reference the screenshot in the report. Set **Repr
 
 ### 6. Wrap Up
 
-Aim to find **5-10 well-documented issues**, then wrap up. Depth of evidence matters more than total count -- 5 issues with full repro beats 20 with vague descriptions.
+Finish the requested scope and report only observed, reproducible findings. There is no issue quota; zero findings is valid. Preserve required viewport coverage, console/network checks, and accessibility evidence. If recording is unavailable, include step-by-step screenshots and state that video could not be captured.
 
 After exploring:
 

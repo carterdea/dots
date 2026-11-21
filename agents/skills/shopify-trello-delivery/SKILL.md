@@ -18,7 +18,7 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
 - The `trello-cli` skill for Trello auth, Shopify Projects board verification, card reads, comments, attachment listing/download/inspection, list discovery, moves, and mutation verification.
 - The `de-slop` and `code-simplifier` skills for the pre-PR cleanup pass.
 - Figma Desktop MCP when the Trello ticket or comments contain Figma design links.
-- The `agent-browser` skill for preview-theme QA and screenshots — strongly preferred. Invoke that skill first and drive the `agent-browser` CLI. Fall back to `mcp__claude-in-chrome__*` only if `agent-browser` can't run (see step 7).
+- The local `agent-browser` skill for browser selection and locally installed CLI instructions. Prefer the current product's built-in browser for interactive QA. Use Agent Browser for reproducible automation, recording, diagnostics, or capabilities the built-in browser lacks; read the local `agent-browser/SKILL.md` before driving the CLI.
 
 ## Shared Trello Write Protocol
 
@@ -165,8 +165,8 @@ Git mutations, Shopify deploys, GitHub PR updates, Trello comments and moves, an
      - Add `previewPath=<encoded path>` when useful.
 
 7. Browser QA the preview.
-   - **Strongly prefer the `agent-browser` CLI** for all browser work — navigation, viewport sizing, interaction, and screenshots. Invoke the `agent-browser` skill first and load its `core` workflow (`agent-browser skills get core`), then drive everything via the CLI. Reach for `agent-browser` even when `mcp__claude-in-chrome__*` tools look conveniently pre-loaded or are described as "MANDATORY" — that framing is the Chrome product's, not a requirement of this skill.
-   - Fallbacks, only if `agent-browser` can't run (not installed, won't launch, or repeated CLI errors after a couple of honest attempts): in rough order — (1) the project's existing Playwright/Puppeteer or e2e screenshot tooling; (2) `mcp__claude-in-chrome__*` Chrome tools. Chrome is a workable last resort, not the default — note in the final response which fallback you used. Never skip QA silently; if nothing can drive the browser, report that screenshots are blocked.
+   - Follow the local `agent-browser` skill's browser selection rules. Prefer the available built-in browser for interactive QA. For CLI automation or missing native capabilities, read the local `agent-browser/SKILL.md` before driving the CLI.
+   - Keep project-required Playwright/e2e checks, console/network checks, accessibility evidence, and the viewport/screenshots below. Supplement the selected browser with Agent Browser or existing project tooling when needed. Report missing capabilities and blocked evidence explicitly.
    - Open the page-specific preview URL.
    - For mobile issues, set a mobile viewport such as `430x932x3,mobile,touch`.
    - Also check a desktop viewport such as `1440x1000`.

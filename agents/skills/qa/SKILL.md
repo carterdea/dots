@@ -14,38 +14,27 @@ Verify completed work in the browser using QA notes from a plan file.
 /qa docs/my_feature_PLAN.md
 /qa
 
-## Browser Tool Selection
+## Browser selection
 
-**Default to `agent-browser` CLI.** Before using any browser tool, detect what's available:
-
-```bash
-command -v agent-browser 2>/dev/null && echo "FOUND:agent-browser" || echo "MISSING:agent-browser"
-```
-
-**Priority order:**
-1. **agent-browser** (preferred) -- use `agent-browser open`, `agent-browser snapshot -i`, `agent-browser click`, `agent-browser fill`, `agent-browser screenshot`, etc. Invoke the `/agent-browser` skill for full command reference.
-2. **Playwright CLI** (fallback) -- use if agent-browser is not installed
-3. **Chrome MCP** (last resort) -- only if neither CLI tool is available
-
-Do NOT use Chrome MCP (mcp__claude-in-chrome__*) when agent-browser is installed.
+Follow the local `agent-browser` skill's browser selection rules. Prefer the current product's available built-in browser for interactive QA. Use Agent Browser for reproducible automation, recording, diagnostics, or missing native capabilities. Before the first CLI browser command, read the local `agent-browser/SKILL.md`; read the local `agent-browser/references/commands.md` for accessibility and network diagnostics. Keep project-required checks and evidence; report unavailable capabilities.
 
 ## Steps
 
 1. Find the plan (file path or conversation history). Scan for unchecked `- [ ] QA:` items. If none, stop.
 
-2. Detect the dev server URL (`--url`, or check common ports and project config). If nothing's running, ask.
+2. Detect the dev server URL (`--url`, or `portless list` and project config). If nothing's running, ask.
 
 3. List the QA items grouped by phase and confirm before starting.
 
-4. Launch the browser using the selected tool (see Browser Tool Selection above):
+4. Open the preview in the selected browser. When using Agent Browser, generate a session name with `agent-browser session id --scope worktree --prefix qa` and substitute it for `<session>` below:
 
    **agent-browser:**
    ```bash
-   agent-browser --session qa-<plan-slug> open <dev-server-url>
-   agent-browser --session qa-<plan-slug> snapshot -i
+   agent-browser --session <session> open <dev-server-url>
+   agent-browser --session <session> snapshot -i
    ```
 
-   Pass `--session qa-<plan-slug>` on every agent-browser command in this run, not just the first. The default session is shared with every other agent on the machine, and an exported `AGENT_BROWSER_SESSION` does not survive between shell calls.
+   Pass `--session <session>` on every Agent Browser command in this run. Shell exports may not survive between tool calls.
 
    **Playwright CLI (fallback):**
    ```bash
@@ -53,24 +42,24 @@ Do NOT use Chrome MCP (mcp__claude-in-chrome__*) when agent-browser is installed
    ```
 
    If auth is needed, check for cached state:
-   - agent-browser: `agent-browser --session qa-<plan-slug> state load .playwright/.auth/qa-state.json`
+   - agent-browser: `agent-browser --session <session> state load .playwright/.auth/qa-state.json`
    - playwright-cli: `playwright-cli state-load .playwright/.auth/qa-state.json`
 
-   If no cached state exists, ask the user for credentials, log in via CLI commands, then persist state.
+   If no cached state exists, use the selected browser's login flow or ask for missing credentials. Persist state only when needed.
 
-   If neither CLI tool can complete auth (MFA, CAPTCHA, OAuth), fall back to Chrome MCP and have the user log in manually.
+   For MFA, CAPTCHA, or OAuth that automation cannot complete, hand the selected browser's login flow to the user.
 
 5. For each `- [ ] QA:` item:
    - Read the instruction and relevant source code
-   - Navigate and interact using the selected browser tool (agent-browser or Playwright CLI)
-   - Take a snapshot to inspect page state (`agent-browser --session qa-<plan-slug> snapshot -i` or equivalent; `snapshot -i --delta` after same-page interactions)
+   - Navigate and interact using the selected browser tool
+   - Take a snapshot to inspect page state (`agent-browser --session <session> snapshot -i` or equivalent; `snapshot -i --delta` after same-page interactions)
    - Screenshot the result and save to `qa/screenshots/` (the baseline gitignores that subdir)
-   - With agent-browser, on each page the item touches, run `agent-browser --session qa-<plan-slug> a11y --tags wcag2a,wcag2aa` (scope with `--selector` to the changed area when possible) and add a `> A11Y:` note for any violation the change introduced. To tell, run the same audit against the base branch or production and only note violations missing there. A11y notes don't fail the item unless the item is about accessibility. On the Playwright fallback, skip this and note `> A11Y: skipped, agent-browser unavailable` once in the summary
+   - Check console errors, failed requests, and accessibility on each touched page. Use the selected browser's diagnostics or supplement with Agent Browser. For CLI audits, run `agent-browser --session <session> a11y --tags wcag2a,wcag2aa`, scoped with `--selector` when possible. Compare against a base-branch preview to identify new violations and add a `> A11Y:` note. A11y notes don't fail the item unless it concerns accessibility. If a required diagnostic is unavailable, record the gap in the summary.
    - Pass: check it off `- [x] QA:`
    - Fail: leave unchecked, add a `> FAIL:` annotation describing what went wrong
    - Continue to next item regardless of pass/fail
 
-6. Close the browser session when finished (`agent-browser --session qa-<plan-slug> close`).
+6. Close only the browser session created for this run (`agent-browser --session <session> close` for the CLI).
 
 7. Summarize: passed, failed, skipped. If all passed, suggest opening a PR. If any failed, suggest re-running `/execute-plan` to fix them.
 

@@ -15,7 +15,7 @@ This skill is host-agnostic. It works for Vercel, Fly.io, or anything else, beca
 
 - `git` and GitHub CLI (`gh`) for branch, PR, and PR-comment work.
 - The `trello-cli` skill for Trello auth, card reads, comments, attachments, list discovery, moves, and mutation verification.
-- The `agent-browser` skill for all browser QA and screenshots — strongly preferred. Invoke that skill first and drive the `agent-browser` CLI. Fall back to `mcp__claude-in-chrome__*` only if `agent-browser` can't run (see step 8).
+- The local `agent-browser` skill for browser selection and locally installed CLI instructions. Prefer the current product's built-in browser for interactive QA. Use Agent Browser for reproducible automation, recording, diagnostics, or capabilities the built-in browser lacks; read the local `agent-browser/SKILL.md` before driving the CLI.
 - Portless (global `bun add -g portless`) plus git worktrees for stable local preview URLs.
 - The `de-slop` and `code-simplifier` skills for the pre-PR cleanup pass.
 - Figma Desktop MCP when the card or comments contain Figma links.
@@ -133,7 +133,7 @@ Before opening the PR — and before the preview, screenshots, and everything af
 
 ### 8. Browser QA the preview
 
-**Strongly prefer the `agent-browser` CLI for all browser work** — navigation, viewport sizing, interaction, and screenshots. Invoke the `agent-browser` skill first and load its `core` workflow (`agent-browser skills get core`), then drive everything via the CLI (run through Bash). Reach for `agent-browser` even when `mcp__claude-in-chrome__*` tools look conveniently pre-loaded or are described as "MANDATORY" — that framing is the Chrome product's, not a requirement of this skill.
+Follow the local `agent-browser` skill's browser selection rules. Prefer the available built-in browser for interactive QA. For CLI automation or missing native capabilities, read the local `agent-browser/SKILL.md` and read the local `agent-browser/references/commands.md` for diagnostics.
 
 - Open the local preview URL at the page/flow the ticket touches.
 - Check a desktop viewport (e.g. `1440x1000`) and a mobile viewport (e.g. `430x932x3,mobile,touch`).
@@ -141,7 +141,7 @@ Before opening the PR — and before the preview, screenshots, and everything af
 - When a Figma node was available, compare the preview against the Figma reference for the matching viewport(s).
 - Save two clearly named screenshots: `<slug>-desktop.png` and `<slug>-mobile.png`.
 
-**Fallbacks**, only if `agent-browser` can't run (not installed, won't launch, or repeated CLI errors after a couple of honest attempts): in rough order of preference — (1) the project's existing Playwright/Puppeteer or e2e screenshot tooling; (2) `mcp__claude-in-chrome__*` Chrome tools. Chrome is a workable last resort, not the default — note in your final response which fallback you used and why. Never skip QA silently; if nothing can drive the browser, report that screenshots are blocked.
+Keep project-required Playwright/e2e checks, viewport coverage, screenshots, console/network checks, and accessibility evidence. Supplement the selected browser with Agent Browser or the project's existing tooling when needed. Report missing capabilities and blocked evidence explicitly.
 
 ### 9. Commit, push, and PR
 

@@ -1,4 +1,12 @@
+---
+name: protected-vercel-deployments
+description: Access and test Vercel deployments protected by Vercel Authentication, SSO, or Deployment Protection with agent-browser. Use when a preview or production URL redirects to a Vercel login page, returns a protection 401 or 403, or needs short-lived Trusted Sources OIDC authentication instead of a static bypass secret or public exception.
+allowed-tools: Bash(agent-browser:*), Bash(vc:*), Bash(vercel:*)
+---
+
 # Protected Vercel deployments
+
+Follow the [local operating rules](../agent-browser/references/local-policy.md) before using this skill. They cover browser selection, regular Chrome on this Mac, named sessions, package managers, and required QA evidence.
 
 Use the caller's existing Vercel identity and a short-lived OIDC token. Do not disable Deployment Protection, make the deployment public, or ask for a static bypass secret first.
 
@@ -35,7 +43,7 @@ export VERCEL_SCOPE="my-team"
 agent-browser snapshot -i
 ```
 
-Continue the normal workflow in that same session. The header is scoped to the target origin and applies to the document, scripts, styles, fonts, and in-page requests. If the browser session is closed or restarted, repeat the authenticated `open` command.
+Continue the normal workflow in that same session. If your harness runs each command in a new shell, the exported `AGENT_BROWSER_SESSION` is gone afterwards, so pass the same name with `--session` on later commands. The header is scoped to the target origin and applies to the document, scripts, styles, fonts, and in-page requests. If the browser session is closed or restarted, repeat the authenticated `open` command.
 
 Never print the token, paste it into source, or save it in an environment file.
 
