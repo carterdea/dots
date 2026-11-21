@@ -16,7 +16,7 @@ Verify completed work in the browser using QA notes from a plan file.
 
 ## Browser selection
 
-Follow the local `agent-browser` skill's browser selection rules. Prefer the current product's available built-in browser for interactive QA. Use Agent Browser for reproducible automation, recording, diagnostics, or missing native capabilities. Before the first CLI browser command, read `agent-browser skills get core`; load `agent-browser skills get core --ref commands` for accessibility and network diagnostics. Keep project-required checks and evidence; report unavailable capabilities.
+Follow the local `agent-browser` skill's browser selection rules. Prefer the current product's available built-in browser for interactive QA. Use Agent Browser for reproducible automation, recording, diagnostics, or missing native capabilities. Before the first CLI browser command, read the local `agent-browser/SKILL.md`; read the local `agent-browser/references/commands.md` for accessibility and network diagnostics. Keep project-required checks and evidence; report unavailable capabilities.
 
 ## Steps
 

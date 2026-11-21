@@ -18,7 +18,7 @@ Use this skill to keep Shopify/Trello delivery work complete rather than stoppin
 - The `trello-cli` skill for Trello auth, Shopify Projects board verification, card reads, comments, attachment listing/download/inspection, list discovery, moves, and mutation verification.
 - The `de-slop` and `code-simplifier` skills for the pre-PR cleanup pass.
 - Figma Desktop MCP when the Trello ticket or comments contain Figma design links.
-- The local `agent-browser` skill for browser selection and version-matched CLI instructions. Prefer the current product's built-in browser for interactive QA. Use Agent Browser for reproducible automation, recording, diagnostics, or capabilities the built-in browser lacks; read `agent-browser skills get core` before driving the CLI.
+- The local `agent-browser` skill for browser selection and locally installed CLI instructions. Prefer the current product's built-in browser for interactive QA. Use Agent Browser for reproducible automation, recording, diagnostics, or capabilities the built-in browser lacks; read the local `agent-browser/SKILL.md` before driving the CLI.
 
 ## Shared Trello Write Protocol
 
@@ -165,7 +165,7 @@ Git mutations, Shopify deploys, GitHub PR updates, Trello comments and moves, an
      - Add `previewPath=<encoded path>` when useful.
 
 7. Browser QA the preview.
-   - Follow the local `agent-browser` skill's browser selection rules. Prefer the available built-in browser for interactive QA. For CLI automation or missing native capabilities, read `agent-browser skills get core` before driving the CLI.
+   - Follow the local `agent-browser` skill's browser selection rules. Prefer the available built-in browser for interactive QA. For CLI automation or missing native capabilities, read the local `agent-browser/SKILL.md` before driving the CLI.
    - Keep project-required Playwright/e2e checks, console/network checks, accessibility evidence, and the viewport/screenshots below. Supplement the selected browser with Agent Browser or existing project tooling when needed. Report missing capabilities and blocked evidence explicitly.
    - Open the page-specific preview URL.
    - For mobile issues, set a mobile viewport such as `430x932x3,mobile,touch`.

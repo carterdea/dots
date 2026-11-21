@@ -15,7 +15,7 @@ This skill is host-agnostic. It works for Vercel, Fly.io, or anything else, beca
 
 - `git` and GitHub CLI (`gh`) for branch, PR, and PR-comment work.
 - The `trello-cli` skill for Trello auth, card reads, comments, attachments, list discovery, moves, and mutation verification.
-- The local `agent-browser` skill for browser selection and version-matched CLI instructions. Prefer the current product's built-in browser for interactive QA. Use Agent Browser for reproducible automation, recording, diagnostics, or capabilities the built-in browser lacks; read `agent-browser skills get core` before driving the CLI.
+- The local `agent-browser` skill for browser selection and locally installed CLI instructions. Prefer the current product's built-in browser for interactive QA. Use Agent Browser for reproducible automation, recording, diagnostics, or capabilities the built-in browser lacks; read the local `agent-browser/SKILL.md` before driving the CLI.
 - Portless (global `bun add -g portless`) plus git worktrees for stable local preview URLs.
 - The `de-slop` and `code-simplifier` skills for the pre-PR cleanup pass.
 - Figma Desktop MCP when the card or comments contain Figma links.
@@ -133,7 +133,7 @@ Before opening the PR — and before the preview, screenshots, and everything af
 
 ### 8. Browser QA the preview
 
-Follow the local `agent-browser` skill's browser selection rules. Prefer the available built-in browser for interactive QA. For CLI automation or missing native capabilities, read `agent-browser skills get core` and load diagnostic references with `agent-browser skills get core --ref commands`.
+Follow the local `agent-browser` skill's browser selection rules. Prefer the available built-in browser for interactive QA. For CLI automation or missing native capabilities, read the local `agent-browser/SKILL.md` and read the local `agent-browser/references/commands.md` for diagnostics.
 
 - Open the local preview URL at the page/flow the ticket touches.
 - Check a desktop viewport (e.g. `1440x1000`) and a mobile viewport (e.g. `430x932x3,mobile,touch`).

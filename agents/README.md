@@ -108,19 +108,13 @@ Skills with `package.json` get their local dependencies installed with `bun inst
 
 ### Agent Browser skills
 
-The local `agent-browser` and `dogfood` skills load current instructions from the installed CLI instead of keeping copies of its command manuals. This follows [Agent Browser's bundled skills model](https://agent-browser.dev/skills). Keep the local browser-selection rules: prefer the product's built-in browser for interactive work and use the CLI for reproducible automation, recordings, or missing capabilities.
+Full skill files, references, and templates are copied into this repository from the official Agent Browser 0.43.0 CLI bundle. They are installed locally through the same skill symlinks as the rest of this library. Agents read the local files; no runtime skill fetch is required.
 
-```bash
-agent-browser --version
-agent-browser skills list
-agent-browser skills get core
-agent-browser skills get core --ref commands
-agent-browser skills get dogfood
-```
+The installed set is `agent-browser` (upstream `core`), `dogfood`, `derive-client`, `electron`, `slack`, `protected-vercel-deployments`, `vercel-sandbox`, `agentcore`, `webmcp-gen`, and `modern-web-guidance`. Dogfood includes its full workflow, issue taxonomy, and report template.
 
-The bundled catalog also covers Electron, Slack, API-client discovery, protected Vercel previews, Vercel Sandbox, AWS AgentCore, WebMCP generation, and Modern Web Guidance. Load only the workflow the task needs with `agent-browser skills get <name>`. Use `agent-browser skills path <name>` for bundled files; paths in CLI-served instructions refer there. The local dogfood taxonomy and report template remain available for built-in-browser QA when the CLI is absent.
+Local adaptations preserve the built-in-browser preference, regular Google Chrome on this Mac, named sessions, required QA evidence, and pnpm/Bun usage. The shared rules are in `skills/agent-browser/references/local-policy.md`. QA, Trello/Shopify delivery and QA, and frontend audits read these installed files too.
 
-QA, Trello delivery/QA, Shopify Trello delivery/QA, and frontend audits use the same browser selection and CLI loader. Upgrading the CLI updates its bundled instructions without re-vendoring skills. For Homebrew installations, check the installed and latest release before `brew upgrade agent-browser`.
+When updating, check the [official release](https://github.com/vercel-labs/agent-browser/releases) and installed CLI version, then copy the matching `skill-data` directories and retain the local adaptations. [Upstream skills documentation](https://agent-browser.dev/skills).
 
 ### What `--claude` installs
 

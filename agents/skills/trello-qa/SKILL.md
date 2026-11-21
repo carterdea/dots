@@ -16,7 +16,7 @@ This skill is host-agnostic (Vercel, Fly.io, anything) and is for non-Shopify pr
 ## Dependencies
 
 - The `trello-cli` skill for Trello auth, card/comment/checklist reads, comments, attachments, member assignment, list discovery, moves, and mutation verification.
-- The local `agent-browser` skill for browser selection and version-matched CLI instructions. Prefer the current product's built-in browser for interactive QA. Use Agent Browser for reproducible automation, recording, diagnostics, or capabilities the built-in browser lacks; read `agent-browser skills get core` before driving the CLI.
+- The local `agent-browser` skill for browser selection and locally installed CLI instructions. Prefer the current product's built-in browser for interactive QA. Use Agent Browser for reproducible automation, recording, diagnostics, or capabilities the built-in browser lacks; read the local `agent-browser/SKILL.md` before driving the CLI.
 - The `dogfood` skill for systematic exploration of the touched surface, the regression sweep, and structured reproduction evidence (numbered steps, screenshots, repro video) on any failure.
 - GitHub CLI (`gh`) to read the PR (read-only) and leave one PR review.
 - Figma Desktop MCP when the card or comments contain Figma links, to compare the build against the design.

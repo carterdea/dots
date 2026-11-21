@@ -9,8 +9,8 @@ Use this loop whenever the page can be rendered locally.
 Delegate browser operation details to whichever automation tool the runtime exposes:
 
 - Follow the local `agent-browser` skill's browser selection rules. Prefer the current product's built-in browser for interactive QA and edit/reload loops.
-- Use Agent Browser for reproducible CLI automation, recording, or diagnostics the built-in browser lacks. Read `agent-browser skills get core` first and load the needed references with `--ref`.
-- When applying Chrome's Modern Web Guidance, load `agent-browser skills get modern-web-guidance` and verify each applied rule in the browser. Follow local package-manager and version-check rules for its examples.
+- Use Agent Browser for reproducible CLI automation, recording, or diagnostics the built-in browser lacks. Read the local `agent-browser/SKILL.md` first and the needed files in its `references/` directory.
+- When applying Chrome's Modern Web Guidance, read the local `modern-web-guidance/SKILL.md` and verify each applied rule in the browser. Follow local package-manager and version-check rules for its examples.
 - Keep required viewport, screenshot, console/network, accessibility, and project Playwright/e2e coverage. Report any unavailable capability.
 - Keep this workflow focused on what to inspect for AI-frontend quality, not how to operate browser primitives.
 

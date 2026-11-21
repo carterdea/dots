@@ -13,7 +13,7 @@ Review in this order:
 
 1. Inspect code and UI together.
    - Read components, CSS/theme tokens, and existing primitives first.
-   - If runnable, follow the local `agent-browser` skill's browser selection rules. Prefer the available built-in browser for interactive QA. Before using the CLI, read `agent-browser skills get core`. This skill decides what to inspect, not browser mechanics.
+   - If runnable, follow the local `agent-browser` skill's browser selection rules. Prefer the available built-in browser for interactive QA. Before using the CLI, read the local `agent-browser/SKILL.md`. This skill decides what to inspect, not browser mechanics.
    - If screenshot-only, review visuals but label implementation risks as `Inferred`.
 
 2. Load only the reference you need.
