@@ -16,7 +16,7 @@ This skill is for Shopify theme tickets; non-Shopify web apps belong to `trello-
 ## Dependencies
 
 - The `trello-cli` skill for Trello auth, Shopify Projects board verification, card/comment/checklist reads, comments, attachment listing/download/inspection, member assignment, list discovery, moves, and mutation verification.
-- The `agent-browser` skill for all browser QA, viewport sizing, interaction, console/network inspection, and screenshots — strongly preferred. Invoke that skill first and drive the `agent-browser` CLI. Fall back to `mcp__claude-in-chrome__*` only if `agent-browser` can't run.
+- The local `agent-browser` skill for browser selection and version-matched CLI instructions. Prefer the current product's built-in browser for interactive QA. Use Agent Browser for reproducible automation, recording, diagnostics, or capabilities the built-in browser lacks; read `agent-browser skills get core` before driving the CLI.
 - The `dogfood` skill for systematic exploration of the touched surface, the regression sweep, and structured reproduction evidence (numbered steps, screenshots, repro video) on any failure.
 - GitHub CLI (`gh`) to read the PR (read-only) and leave one PR review.
 - The Shopify dev / AI Toolkit skills (`shopify-dev`, `shopify-liquid`, `shopify-admin`, `shopify-storefront-graphql`) only to confirm how a theme feature or app is *expected* to behave — never to change or deploy the theme. (Do **not** use `shopify-dev-theme`; QA does not create or deploy themes.)
@@ -133,8 +133,8 @@ Do **not** flag Shopify-generated JSON schema headers — those are expected, no
 Invoke the `dogfood` skill to drive the preview theme systematically, on a desktop viewport (`1440x1000`) and a mobile viewport (`430x932x3,mobile,touch`).
 
 - For each acceptance criterion: reproduce the intended behavior on the preview theme, mark PASS or FAIL, capture evidence.
-- **Console/network check:** with `agent-browser`, read the console and network panel; flag JS errors, failed requests, broken/404 assets the change introduced.
-- **Accessibility check:** run `agent-browser --session <your QA session> a11y --tags wcag2a,wcag2aa --selector "<touched section>"` at desktop and mobile (e.g. `#shopify-section-<id>`); flag violations the change introduced (compare against the live theme if unsure).
+- **Console/network check:** with the selected browser or Agent Browser diagnostics, read the console and network panel; flag JS errors, failed requests, broken/404 assets the change introduced.
+- **Accessibility check:** use the selected browser's audit tools or run `agent-browser --session <your QA session> a11y --tags wcag2a,wcag2aa --selector "<touched section>"` at desktop and mobile (e.g. `#shopify-section-<id>`); flag violations the change introduced (compare against an authorized baseline preview if unsure). Report unavailable diagnostics as a verification gap.
 - **Figma compare:** for visual criteria, compare the preview against the Figma reference at the matching viewport(s); use both desktop and mobile frames when they exist.
 - **Regression sweep:** exercise adjacent sections/templates and the Customizer settings the change exposes, not just the changed screen.
 

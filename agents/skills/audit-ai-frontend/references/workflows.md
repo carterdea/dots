@@ -8,9 +8,10 @@ Use this loop whenever the page can be rendered locally.
 
 Delegate browser operation details to whichever automation tool the runtime exposes:
 
-- Prefer the `agent-browser` CLI for one-shot navigation, screenshots, DOM/a11y snapshots, and trace capture; it works identically across Claude, Codex, and OpenCode.
-- Fall back to Playwright (CLI or MCP), Puppeteer, or any equivalent if `agent-browser` is unavailable.
-- For persistent browser sessions and repeated edit/reload loops, use whatever long-lived browser session your toolchain provides.
+- Follow the local `agent-browser` skill's browser selection rules. Prefer the current product's built-in browser for interactive QA and edit/reload loops.
+- Use Agent Browser for reproducible CLI automation, recording, or diagnostics the built-in browser lacks. Read `agent-browser skills get core` first and load the needed references with `--ref`.
+- When applying Chrome's Modern Web Guidance, load `agent-browser skills get modern-web-guidance` and verify each applied rule in the browser. Follow local package-manager and version-check rules for its examples.
+- Keep required viewport, screenshot, console/network, accessibility, and project Playwright/e2e coverage. Report any unavailable capability.
 - Keep this workflow focused on what to inspect for AI-frontend quality, not how to operate browser primitives.
 
 1. Open the page in a real browser using your chosen automation tool.

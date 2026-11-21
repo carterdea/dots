@@ -106,6 +106,22 @@ Run from repo root:
 
 Skills with `package.json` get their local dependencies installed with `bun install` during any agent skill install target, so validation scripts run through the symlinked skill paths.
 
+### Agent Browser skills
+
+The local `agent-browser` and `dogfood` skills load current instructions from the installed CLI instead of keeping copies of its command manuals. This follows [Agent Browser's bundled skills model](https://agent-browser.dev/skills). Keep the local browser-selection rules: prefer the product's built-in browser for interactive work and use the CLI for reproducible automation, recordings, or missing capabilities.
+
+```bash
+agent-browser --version
+agent-browser skills list
+agent-browser skills get core
+agent-browser skills get core --ref commands
+agent-browser skills get dogfood
+```
+
+The bundled catalog also covers Electron, Slack, API-client discovery, protected Vercel previews, Vercel Sandbox, AWS AgentCore, WebMCP generation, and Modern Web Guidance. Load only the workflow the task needs with `agent-browser skills get <name>`. Use `agent-browser skills path <name>` for bundled files; paths in CLI-served instructions refer there. The local dogfood taxonomy and report template remain available for built-in-browser QA when the CLI is absent.
+
+QA, Trello delivery/QA, Shopify Trello delivery/QA, and frontend audits use the same browser selection and CLI loader. Upgrading the CLI updates its bundled instructions without re-vendoring skills. For Homebrew installations, check the installed and latest release before `brew upgrade agent-browser`.
+
 ### What `--claude` installs
 
 - `~/.claude/CLAUDE.md` (symlink to `agents/AGENTS.md`)
