@@ -13,7 +13,7 @@ Review in this order:
 
 1. Inspect code and UI together.
    - Read components, CSS/theme tokens, and existing primitives first.
-   - If runnable, drive the page with your browser automation tool (`agent-browser` CLI preferred; otherwise Playwright, Playwright MCP, or any equivalent). This skill decides what to inspect, not browser mechanics.
+   - If runnable, follow the local `agent-browser` skill's browser selection rules. Prefer the available built-in browser for interactive QA. Before using the CLI, read the local `agent-browser/SKILL.md`. This skill decides what to inspect, not browser mechanics.
    - If screenshot-only, review visuals but label implementation risks as `Inferred`.
 
 2. Load only the reference you need.
@@ -63,4 +63,4 @@ For implementation asks, patch the code directly, then summarize only the meanin
 
 - `references/patterns.md`: checklist of AI-frontend tells, code smells, and repair patterns.
 - `references/rubric.md`: compact UX/a11y/design-quality rubric for broader audits.
-- `references/workflows.md`: Browser QA, reference-packet, and brief-lock loops; delegates browser mechanics to your automation tool of choice (`agent-browser` CLI preferred).
+- `references/workflows.md`: Browser QA, reference-packet, and brief-lock loops using the selected browser.

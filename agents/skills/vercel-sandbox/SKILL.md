@@ -1,4 +1,11 @@
+---
+name: vercel-sandbox
+description: Run agent-browser + Chrome inside Vercel Sandbox microVMs for browser automation from any Vercel-deployed app. Use when the user needs browser automation in a Vercel app (Next.js, SvelteKit, Nuxt, Remix, Astro, etc.), wants to run headless Chrome without binary size limits, needs persistent browser sessions across commands, or wants ephemeral isolated browser environments. Triggers include "Vercel Sandbox browser", "microVM Chrome", "agent-browser in sandbox", "browser automation on Vercel", or any task requiring Chrome in a Vercel Sandbox.
+---
+
 # Browser Automation with Vercel Sandbox
+
+Follow the [local operating rules](../agent-browser/references/local-policy.md) before using this skill. They cover browser selection, regular Chrome on this Mac, named sessions, package managers, and required QA evidence.
 
 Run agent-browser + headless Chrome inside ephemeral Vercel Sandbox microVMs. A Linux VM spins up on demand, executes browser commands, and shuts down. Works with any Vercel-deployed framework (Next.js, SvelteKit, Nuxt, Remix, Astro, etc.).
 
@@ -122,6 +129,24 @@ export async function fillAndSubmitForm(
 }
 ```
 
+## MCP Server over stdin
+
+For many MCP tool calls in one sandbox, `startAgentBrowserMcp` keeps one `agent-browser mcp` process running and sends requests over the sandbox command's stdin. It requires `@vercel/sandbox` 3.7 or later, and `timeout` (milliseconds) applies to each request and to `close()`:
+
+```ts
+import { startAgentBrowserMcp, withAgentBrowserSandbox } from "@agent-browser/sandbox/vercel";
+
+const snapshot = await withAgentBrowserSandbox(async (sandbox) => {
+  const mcp = await startAgentBrowserMcp(sandbox, { timeout: 60_000 });
+  try {
+    await mcp.callTool("agent_browser_open", { url: "https://example.com" });
+    return await mcp.callTool("agent_browser_snapshot", { interactive: true });
+  } finally {
+    await mcp.close();
+  }
+});
+```
+
 ## Sandbox Snapshots (Fast Startup)
 
 A **sandbox snapshot** is a saved VM image of a Vercel Sandbox with system dependencies + agent-browser + Chromium already installed. Think of it like a Docker image: instead of installing dependencies from scratch every time, the sandbox boots from the pre-built image.
@@ -147,7 +172,7 @@ AGENT_BROWSER_SNAPSHOT_ID=snap_xxxxxxxxxxxx
 A helper script is available in the demo app:
 
 ```bash
-npx tsx examples/environments/scripts/create-snapshot.ts
+pnpm exec tsx examples/environments/scripts/create-snapshot.ts
 ```
 
 Recommended for any production deployment using the Sandbox pattern.
